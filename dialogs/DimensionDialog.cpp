@@ -17,7 +17,7 @@ static const ManufacturerDimensions dimTable[DIM_TABLE_SIZE] =
    { "Bally (standard)", 20.25f, 42.0f },
    { "Bally (widebody)", 26.75f, 42.0f }, //!! OPA claims 40.5
    { "Capcom", 20.25f, 46.0f },
-   { "Data East (up to Hook)", 20.25f, 42.0f }, //!! cyberpez: A KLOV member measured his BTTF for me: "42.5 x 20.25. I expect the extra half inch to be an anomaly on my machine, or I’m measuring at the wrong spot." (speculation: at least Batman, Monday Night Football, King Kong and Phantom of the Opera, are this size too)
+   { "Data East (up to Hook)", 20.25f, 42.0f }, //!! cyberpez: A KLOV member measured his BTTF for me: "42.5 x 20.25. I expect the extra half inch to be an anomaly on my machine, or I'm measuring at the wrong spot." (speculation: at least Batman, Monday Night Football, King Kong and Phantom of the Opera, are this size too)
    { "Data East/Sega (standard)", 20.25f, 46.0f }, // verified by Sliderpoint on RaB (speculation: at least TMNT and LW3 are this size, too)
    { "Data East/Sega (widebody)", 23.25f, 46.0f },
    { "Game Plan", 20.25f, 42.0f },
@@ -62,10 +62,9 @@ DimensionDialog::DimensionDialog() : CDialog(IDD_DIMENSION_CALCULATOR)
 BOOL DimensionDialog::OnInitDialog()
 {
    const HWND listHwnd = GetDlgItem(IDC_TABLE_DIM_LIST).GetHwnd();
-   LVCOLUMN lvc;
    LVITEM lv;
    ListView_SetExtendedListViewStyle(listHwnd, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
-   memset(&lvc, 0, sizeof(LVCOLUMN));
+   LVCOLUMN lvc = {};
    lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT;
    lvc.cx = 150;
    lvc.pszText = TEXT("Manufacturer");
@@ -88,9 +87,9 @@ BOOL DimensionDialog::OnInitDialog()
       ListView_InsertItem(listHwnd, &lv);
 
       char textBuf[MAXNAMEBUFFER];
-      sprintf_s(textBuf, "%.03f", dimTable[i].width);
+      sprintf_s(textBuf, sizeof(textBuf), "%.03f", dimTable[i].width);
       ListView_SetItemText(listHwnd, i, 1, textBuf);
-      sprintf_s(textBuf, "%.03f", dimTable[i].height);
+      sprintf_s(textBuf, sizeof(textBuf), "%.03f", dimTable[i].height);
       ListView_SetItemText(listHwnd, i, 2, textBuf);
    }
    return TRUE;
@@ -114,23 +113,16 @@ INT_PTR DimensionDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                const int width = (int)(dimTable[idx].width*47.0f + 0.5f);
                const int height = (int)(dimTable[idx].height*47.0f + 0.5f);
+               SetDlgItemText(IDC_VP_WIDTH, std::to_string(width).c_str());
+               SetDlgItemText(IDC_VP_HEIGHT, std::to_string(height).c_str());
                char textBuf[MAXNAMEBUFFER];
-               sprintf_s(textBuf, "%i", width);
-               CString textStr(textBuf);
-               SetDlgItemText(IDC_VP_WIDTH, textStr);
-               sprintf_s(textBuf, "%i", height);
-               textStr = CString(textBuf);
-               SetDlgItemText(IDC_VP_HEIGHT, textStr);
-               sprintf_s(textBuf, "%.03f", dimTable[idx].width);
-               textStr = CString(textBuf);
-               SetDlgItemText(IDC_SIZE_WIDTH, textStr);
-               sprintf_s(textBuf, "%.03f", dimTable[idx].height);
-               textStr = CString(textBuf);
-               SetDlgItemText(IDC_SIZE_HEIGHT, textStr);
+               sprintf_s(textBuf, sizeof(textBuf), "%.03f", dimTable[idx].width);
+               SetDlgItemText(IDC_SIZE_WIDTH, textBuf);
+               sprintf_s(textBuf, sizeof(textBuf), "%.03f", dimTable[idx].height);
+               SetDlgItemText(IDC_SIZE_HEIGHT, textBuf);
                float ratio = (float)height / width;
-               sprintf_s(textBuf, "%.04f", ratio);
-               textStr = CString(textBuf);
-               SetDlgItemText(IDC_ASPECT_RATIO_EDIT, textStr);
+               sprintf_s(textBuf, sizeof(textBuf), "%.04f", ratio);
+               SetDlgItemText(IDC_ASPECT_RATIO_EDIT, textBuf);
                break;
             }
          }
@@ -147,49 +139,39 @@ INT_PTR DimensionDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
                int ret = 0;
                if (LOWORD(wParam) == IDC_SIZE_WIDTH)
                {
-                  const CString textStr(GetDlgItemText(IDC_SIZE_WIDTH));
-                  ret = sscanf_s(textStr.c_str(), "%f", &sizeWidth);
+                  ret = sscanf_s(GetDlgItemText(IDC_SIZE_WIDTH).c_str(), "%f", &sizeWidth);
                   if (ret != 1 || sizeWidth < 0.0f)
                      sizeWidth = 0;
                   const int width = (int)(sizeWidth*47.0f + 0.5f);
-                  char textBuf[MAXNAMEBUFFER];
-                  sprintf_s(textBuf, "%i", width);
-                  CString textStr2(textBuf);
-                  SetDlgItemText(IDC_VP_WIDTH, textStr2);
+                  SetDlgItemText(IDC_VP_WIDTH, std::to_string(width).c_str());
                }
                if (LOWORD(wParam) == IDC_SIZE_HEIGHT)
                {
-                  const CString textStr(GetDlgItemText(IDC_SIZE_HEIGHT));
-                  ret = sscanf_s(textStr.c_str(), "%f", &sizeHeight);
+                  ret = sscanf_s(GetDlgItemText(IDC_SIZE_HEIGHT).c_str(), "%f", &sizeHeight);
                   if (ret != 1 || sizeHeight < 0.0f)
                      sizeHeight = 0;
                   const int height = (int)(sizeHeight*47.0f + 0.5f);
-                  char textBuf[MAXNAMEBUFFER];
-                  sprintf_s(textBuf, "%i", height);
-                  const CString textStr2(textBuf);
-                  SetDlgItemText(IDC_VP_HEIGHT, textStr2);
+                  SetDlgItemText(IDC_VP_HEIGHT, std::to_string(height).c_str());
                }
                if (LOWORD(wParam) == IDC_VP_WIDTH)
                {
-                  const CString textStr(GetDlgItemText(IDC_VP_WIDTH));
-                  ret = sscanf_s(textStr.c_str(), "%i", &vpWidth);
+                  ret = sscanf_s(GetDlgItemText(IDC_VP_WIDTH).c_str(), "%i", &vpWidth);
                   if (ret != 1 || vpWidth < 0)
                      vpWidth = 0;
                   const float width = (float)vpWidth / 47.0f;
                   char textBuf[MAXNAMEBUFFER];
-                  sprintf_s(textBuf, "%.3f", width);
+                  sprintf_s(textBuf, sizeof(textBuf), "%.3f", width);
                   CString textStr2(textBuf);
                   SetDlgItemText(IDC_SIZE_WIDTH, textStr2);
                }
                if (LOWORD(wParam) == IDC_VP_HEIGHT)
                {
-                  const CString textStr(GetDlgItemText(IDC_VP_HEIGHT));
-                  ret = sscanf_s(textStr.c_str(), "%i", &vpHeight);
+                  ret = sscanf_s(GetDlgItemText(IDC_VP_HEIGHT).c_str(), "%i", &vpHeight);
                   if (ret != 1 || vpHeight < 0)
                      vpHeight = 0;
                   const float height = (float)vpHeight / 47.0f;
                   char textBuf[MAXNAMEBUFFER];
-                  sprintf_s(textBuf, "%.03f", height);
+                  sprintf_s(textBuf, sizeof(textBuf), "%.03f", height);
                   CString textStr2(textBuf);
                   SetDlgItemText(IDC_SIZE_HEIGHT, textStr2);
                }
@@ -217,17 +199,14 @@ BOOL DimensionDialog::OnCommand(WPARAM wParam, LPARAM lParam)
             break;
          }
 
-         CString textStr;
          int vpWidth, vpHeight;
          int ret;
 
-         textStr = GetDlgItemText(IDC_VP_WIDTH);
-         ret = sscanf_s(textStr.c_str(), "%i", &vpWidth);
+         ret = sscanf_s(GetDlgItemText(IDC_VP_WIDTH).c_str(), "%i", &vpWidth);
          if (ret != 1 || vpWidth < 0)
             vpWidth = 0;
 
-         textStr = GetDlgItemText(IDC_VP_HEIGHT);
-         ret = sscanf_s(textStr.c_str(), "%i", &vpHeight);
+         ret = sscanf_s(GetDlgItemText(IDC_VP_HEIGHT).c_str(), "%i", &vpHeight);
          if (ret != 1 || vpHeight < 0)
             vpHeight = 0;
          pt->put_Width((float)vpWidth);

@@ -5,13 +5,13 @@
 #if !defined(AFX_DECAL_H__447B3CE2_C9EA_4ED1_AA3D_A8328F6DFD48__INCLUDED_)
 #define AFX_DECAL_H__447B3CE2_C9EA_4ED1_AA3D_A8328F6DFD48__INCLUDED_
 
-class DecalData : public BaseProperty
+class DecalData final : public BaseProperty
 {
 public:
    Vertex2D m_vCenter;
    float m_width, m_height;
    float m_rotation;
-   std::string m_szSurface;
+   string m_szSurface;
    DecalType m_decaltype;
    string m_sztext;
    SizingType m_sizingtype;
@@ -68,22 +68,22 @@ public:
 
    STANDARD_NOSCRIPT_EDITABLE_DECLARES(Decal, eItemDecal, DECAL, VIEW_PLAYFIELD | VIEW_BACKGLASS)
 
-   virtual void MoveOffset(const float dx, const float dy) { m_d.m_vCenter.x += dx; m_d.m_vCenter.y += dy; }
-   virtual void SetObjectPos();
+   void MoveOffset(const float dx, const float dy) final { m_d.m_vCenter.x += dx; m_d.m_vCenter.y += dy; }
+   void SetObjectPos() final;
    // Multi-object manipulation
-   virtual Vertex2D GetCenter() const { return m_d.m_vCenter; }
-   virtual void PutCenter(const Vertex2D& pv) { m_d.m_vCenter = pv; }
-   virtual float GetDepth(const Vertex3Ds& viewDir) const;
-   virtual bool IsTransparent() const { return !m_backglass; }
-   virtual void Rotate(const float ang, const Vertex2D& pvCenter, const bool useElementCenter);
+   Vertex2D GetCenter() const final { return m_d.m_vCenter; }
+   void PutCenter(const Vertex2D& pv) final { m_d.m_vCenter = pv; }
+   float GetDepth(const Vertex3Ds &viewDir) const final;
+   bool IsTransparent() const final { return !m_backglass; }
+   void Rotate(const float ang, const Vertex2D &pvCenter, const bool useElementCenter) final;
 
-   STDMETHOD(get_Name)(BSTR *pVal) { return E_FAIL; }
+   STDMETHOD(get_Name)(BSTR *pVal) final { return E_FAIL; }
    char *GetFontName();
    HFONT GetFont();
 
-   virtual void WriteRegDefaults();
+   void WriteRegDefaults() final;
 
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemDecal; }
+   ItemTypeEnum HitableGetItemType() const final { return eItemDecal; }
 
    DecalData m_d;
    IFont *m_pIFont;
@@ -100,7 +100,7 @@ private:
    float m_leading, m_descent;
 
    float m_realwidth, m_realheight;
-   VertexBuffer *vertexBuffer;
+   VertexBuffer *m_vertexBuffer;
 };
 
 #endif // !defined(AFX_DECAL_H__447B3CE2_C9EA_4ED1_AA3D_A8328F6DFD48__INCLUDED_)

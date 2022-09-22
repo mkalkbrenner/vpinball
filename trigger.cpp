@@ -1,10 +1,11 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "objloader.h"
 #include "meshes/triggerSimpleMesh.h"
 #include "meshes/triggerStarMesh.h"
 #include "meshes/triggerButtonMesh.h"
 #include "meshes/triggerWireDMesh.h"
 #include "meshes/triggerInderMesh.h"
+#include "Shader.h"
 
 Trigger::Trigger()
 {
@@ -27,20 +28,12 @@ Trigger::Trigger()
 
 Trigger::~Trigger()
 {
-   if (m_vertexBuffer)
-   {
-      m_vertexBuffer->release();
-      m_vertexBuffer = 0;
-   }
-   if (m_triggerIndexBuffer)
-   {
-      m_triggerIndexBuffer->release();
-      m_triggerIndexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_triggerIndexBuffer);
    if (m_triggerVertices)
    {
       delete[] m_triggerVertices;
-      m_triggerVertices = 0;
+      m_triggerVertices = nullptr;
    }
 }
 
@@ -179,24 +172,28 @@ HRESULT Trigger::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Trigger::SetDefaults(bool fromMouseClick)
 {
-   m_d.m_radius = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Trigger", "Radius", 25.0f) : 25.0f;
-   m_d.m_rotation = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Trigger", "Rotation", 0.f) : 0.f;
-   m_d.m_wireThickness = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Trigger", "WireThickness", 0.f) : 0.f;
-   m_d.m_scaleX = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Trigger", "ScaleX", 1.f) : 1.f;
-   m_d.m_scaleY = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Trigger", "ScaleY", 1.f) : 1.f;
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Trigger", "TimerEnabled", false) : false;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Trigger", "TimerInterval", 100) : 100;
-   m_d.m_enabled = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Trigger", "Enabled", true) : true;
-   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Trigger", "Visible", true) : true;
-   m_d.m_hit_height = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Trigger", "HitHeight", 50.f) : 50.f;
-   m_d.m_shape = fromMouseClick ? (TriggerShape)LoadValueIntWithDefault("DefaultProps\\Trigger", "Shape", TriggerWireA) : TriggerWireA;
+#define regKey regKey[RegName::DefaultPropsTrigger]
 
-   const HRESULT hr = LoadValue("DefaultProps\\Trigger", "Surface", m_d.m_szSurface);
+   m_d.m_radius = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Radius"s, 25.0f) : 25.0f;
+   m_d.m_rotation = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Rotation"s, 0.f) : 0.f;
+   m_d.m_wireThickness = fromMouseClick ? LoadValueFloatWithDefault(regKey, "WireThickness"s, 0.f) : 0.f;
+   m_d.m_scaleX = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ScaleX"s, 1.f) : 1.f;
+   m_d.m_scaleY = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ScaleY"s, 1.f) : 1.f;
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "TimerEnabled"s, false) : false;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(regKey, "TimerInterval"s, 100) : 100;
+   m_d.m_enabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "Enabled"s, true) : true;
+   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(regKey, "Visible"s, true) : true;
+   m_d.m_hit_height = fromMouseClick ? LoadValueFloatWithDefault(regKey, "HitHeight"s, 50.f) : 50.f;
+   m_d.m_shape = fromMouseClick ? (TriggerShape)LoadValueIntWithDefault(regKey, "Shape"s, TriggerWireA) : TriggerWireA;
+
+   const HRESULT hr = LoadValue(regKey, "Surface"s, m_d.m_szSurface);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szSurface.clear();
 
-   m_d.m_animSpeed = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\trigger", "AnimSpeed", 1.f) : 1.f;
-   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Trigger", "ReflectionEnabled", true) : true;
+   m_d.m_animSpeed = fromMouseClick ? LoadValueFloatWithDefault(regKey, "AnimSpeed"s, 1.f) : 1.f;
+   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "ReflectionEnabled"s, true) : true;
+
+#undef regKey
 }
 
 void Trigger::UIRenderPass1(Sur * const psur)
@@ -211,7 +208,7 @@ void Trigger::UIRenderPass1(Sur * const psur)
    {
       psur->SetFillColor(m_ptable->RenderSolid() ? RGB(200, 220, 200) : -1);
 
-      std::vector<RenderVertex> vvertex;
+      vector<RenderVertex> vvertex;
       GetRgVertex(vvertex);
 
       psur->Polygon(vvertex);
@@ -231,7 +228,7 @@ void Trigger::UIRenderPass2(Sur * const psur)
 
    if (m_d.m_shape != TriggerStar && m_d.m_shape != TriggerButton)
    {
-      std::vector<RenderVertex> vvertex;
+      vector<RenderVertex> vvertex;
       GetRgVertex(vvertex);
 
       psur->SetObject(nullptr);
@@ -287,7 +284,7 @@ void Trigger::UIRenderPass2(Sur * const psur)
       if (m_numIndices > 0)
       {
          const size_t numPts = m_numIndices / 3 + 1;
-         std::vector<Vertex2D> drawVertices(numPts);
+         vector<Vertex2D> drawVertices(numPts);
 
          const Vertex3Ds& A = m_vertices[m_faceIndices[0]];
          drawVertices[0] = Vertex2D(A.x, A.y);
@@ -386,7 +383,7 @@ void Trigger::GetHitShapesDebug(vector<HitObject*> &pvho)
    case TriggerWireD:
    case TriggerInder:
    {
-      std::vector<RenderVertex> vvertex;
+      vector<RenderVertex> vvertex;
       GetRgVertex(vvertex);
 
       const int cvertex = (int)vvertex.size();
@@ -418,7 +415,7 @@ void Trigger::GetHitShapesDebug(vector<HitObject*> &pvho)
 void Trigger::CurvesToShapes(vector<HitObject*> &pvho)
 {
    const float height = m_ptable->GetSurfaceHeight(m_d.m_szSurface, m_d.m_vCenter.x, m_d.m_vCenter.y);
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    const int count = (int)vvertex.size();
@@ -484,20 +481,12 @@ void Trigger::EndPlay()
 {
    IEditable::EndPlay();
 
-   if (m_vertexBuffer)
-   {
-      m_vertexBuffer->release();
-      m_vertexBuffer = 0;
-   }
-   if (m_triggerIndexBuffer)
-   {
-      m_triggerIndexBuffer->release();
-      m_triggerIndexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_triggerIndexBuffer);
    if (m_triggerVertices)
    {
       delete[] m_triggerVertices;
-      m_triggerVertices = 0;
+      m_triggerVertices = nullptr;
    }
    m_ptriggerhitcircle = nullptr;
 }
@@ -616,13 +605,13 @@ void Trigger::RenderDynamic()
    RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
 
    const Material * const mat = m_ptable->GetMaterial(m_d.m_szMaterial);
-   pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+   pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
    pd3dDevice->basicShader->SetMaterial(mat);
 
-   pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+   pd3dDevice->SetRenderStateDepthBias(0.0f);
    pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
    if (m_d.m_shape == TriggerWireA || m_d.m_shape == TriggerWireB || m_d.m_shape == TriggerWireC || m_d.m_shape == TriggerWireD || m_d.m_shape == TriggerInder)
-      pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_NONE);
+      pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_NONE);
 
    pd3dDevice->basicShader->Begin(0);
    pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_vertexBuffer, 0, m_numVertices, m_triggerIndexBuffer, 0, m_numIndices);
@@ -860,14 +849,10 @@ void Trigger::RenderSetup()
    }
    }
 
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
-   if (m_triggerIndexBuffer)
-      m_triggerIndexBuffer->release();
-   m_triggerIndexBuffer = pd3dDevice->CreateAndFillIndexBuffer(m_numIndices, indices);
-   if (m_vertexBuffer)
-      m_vertexBuffer->release();
-   ppin3d->m_pd3dPrimaryDevice->CreateVertexBuffer(m_numVertices, USAGE_DYNAMIC, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_triggerIndexBuffer);
+   m_triggerIndexBuffer = IndexBuffer::CreateAndFillIndexBuffer(m_numIndices, indices, PRIMARY_DEVICE);
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   VertexBuffer::CreateVertexBuffer(m_numVertices, USAGE_DYNAMIC, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer, PRIMARY_DEVICE);
    NumVideoBytes += m_numVertices*(int)sizeof(Vertex3D_NoTex2);
 
    GenerateMesh();
@@ -953,7 +938,7 @@ void Trigger::DoCommand(int icmd, int x, int y)
 
       const Vertex2D v = m_ptable->TransformPoint(x, y);
 
-      std::vector<RenderVertex> vvertex;
+      vector<RenderVertex> vvertex;
       GetRgVertex(vvertex);
 
       int iSeg;
@@ -1075,20 +1060,24 @@ void Trigger::ClearForOverwrite()
 
 void Trigger::WriteRegDefaults()
 {
-   SaveValueBool("DefaultProps\\Trigger", "TimerEnabled", m_d.m_tdr.m_TimerEnabled);
-   SaveValueInt("DefaultProps\\Trigger", "TimerInterval", m_d.m_tdr.m_TimerInterval);
-   SaveValueBool("DefaultProps\\Trigger", "Enabled", m_d.m_enabled);
-   SaveValueBool("DefaultProps\\Trigger", "Visible", m_d.m_visible);
-   SaveValueFloat("DefaultProps\\Trigger", "HitHeight", m_d.m_hit_height);
-   SaveValueFloat("DefaultProps\\Trigger", "Radius", m_d.m_radius);
-   SaveValueFloat("DefaultProps\\Trigger", "Rotation", m_d.m_rotation);
-   SaveValueFloat("DefaultProps\\Trigger", "WireThickness", m_d.m_wireThickness);
-   SaveValueFloat("DefaultProps\\Trigger", "ScaleX", m_d.m_scaleX);
-   SaveValueFloat("DefaultProps\\Trigger", "ScaleY", m_d.m_scaleY);
-   SaveValueInt("DefaultProps\\Trigger", "Shape", m_d.m_shape);
-   SaveValue("DefaultProps\\Trigger", "Surface", m_d.m_szSurface);
-   SaveValueFloat("DefaultProps\\Trigger", "AnimSpeed", m_d.m_animSpeed);
-   SaveValueBool("DefaultProps\\Trigger", "ReflectionEnabled", m_d.m_reflectionEnabled);
+#define regKey regKey[RegName::DefaultPropsTrigger]
+
+   SaveValueBool(regKey, "TimerEnabled"s, m_d.m_tdr.m_TimerEnabled);
+   SaveValueInt(regKey, "TimerInterval"s, m_d.m_tdr.m_TimerInterval);
+   SaveValueBool(regKey, "Enabled"s, m_d.m_enabled);
+   SaveValueBool(regKey, "Visible"s, m_d.m_visible);
+   SaveValueFloat(regKey, "HitHeight"s, m_d.m_hit_height);
+   SaveValueFloat(regKey, "Radius"s, m_d.m_radius);
+   SaveValueFloat(regKey, "Rotation"s, m_d.m_rotation);
+   SaveValueFloat(regKey, "WireThickness"s, m_d.m_wireThickness);
+   SaveValueFloat(regKey, "ScaleX"s, m_d.m_scaleX);
+   SaveValueFloat(regKey, "ScaleY"s, m_d.m_scaleY);
+   SaveValueInt(regKey, "Shape"s, m_d.m_shape);
+   SaveValue(regKey, "Surface"s, m_d.m_szSurface);
+   SaveValueFloat(regKey, "AnimSpeed"s, m_d.m_animSpeed);
+   SaveValueBool(regKey, "ReflectionEnabled"s, m_d.m_reflectionEnabled);
+
+#undef regKey
 }
 
 HRESULT Trigger::InitLoad(IStream *pstm, PinTable *ptable, int *pid, int version, HCRYPTHASH hcrypthash, HCRYPTKEY hcryptkey)
@@ -1174,7 +1163,7 @@ STDMETHODIMP Trigger::put_Radius(float newVal)
 STDMETHODIMP Trigger::get_X(float *pVal)
 {
    *pVal = m_d.m_vCenter.x;
-   m_vpinball->SetStatusBarUnitInfo("", true);
+   m_vpinball->SetStatusBarUnitInfo(string(), true);
 
    return S_OK;
 }

@@ -26,7 +26,7 @@ float sz2f(const string& sz)
    return result;
 }
 
-void f2sz(const float f, string& sz)
+string f2sz(const float f)
 {
    CComVariant var = f;
 
@@ -35,11 +35,11 @@ void f2sz(const float f, string& sz)
       const WCHAR * const wzT = V_BSTR(&var);
       char tmp[256];
       WideCharToMultiByteNull(CP_ACP, 0, wzT, -1, tmp, 256, nullptr, nullptr);
-      sz = tmp;
       VariantClear(&var);
+      return tmp;
    }
    else
-      sz = "0.0"; //!! must this be somehow localized, i.e. . vs ,
+      return "0.0"s; //!! must this be somehow localized, i.e. . vs ,
 }
 
 void WideStrNCopy(const WCHAR *wzin, WCHAR *wzout, const DWORD wzoutMaxLen)
@@ -106,7 +106,7 @@ LocalString::LocalString(const int resid)
    if (resid > 0)
       /*const int cchar =*/ LoadString(g_pvp->theInstance, resid, m_szbuffer, sizeof(m_szbuffer));
    else
-      m_szbuffer[0] = 0;
+      m_szbuffer[0] = '\0';
 }
 
 LocalStringW::LocalStringW(const int resid)
@@ -114,7 +114,7 @@ LocalStringW::LocalStringW(const int resid)
    if (resid > 0)
       LoadStringW(g_pvp->theInstance, resid, m_szbuffer, sizeof(m_szbuffer)/sizeof(WCHAR));
    else
-      m_szbuffer[0] = 0;
+      m_szbuffer[0] = L'\0';
 }
 
 WCHAR *MakeWide(const string& sz)
@@ -203,4 +203,21 @@ char* replace(const char* const original, const char* const pattern, const char*
     }
     return returned;
   }
+}
+
+// Helper function for IsOnWine
+//
+// This exists such that we only check if we're on wine once, and assign the result of this function to a static const var
+static bool IsOnWineInternal()
+{
+   // See https://www.winehq.org/pipermail/wine-devel/2008-September/069387.html
+   const HMODULE ntdllHandle = GetModuleHandleW(L"ntdll.dll");
+   assert(ntdllHandle != nullptr && "Could not GetModuleHandleW(L\"ntdll.dll\")");
+   return GetProcAddress(ntdllHandle, "wine_get_version") != nullptr;
+}
+
+bool IsOnWine()
+{
+   static const bool result = IsOnWineInternal();
+   return result;
 }

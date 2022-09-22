@@ -1,6 +1,9 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "meshes/flipperBase.h"
 #include "objloader.h"
+#include "Shader.h"
+#include "IndexBuffer.h"
+#include "VertexBuffer.h"
 
 static constexpr float vertsTipBottomf[13 * 3] =
 {
@@ -88,10 +91,8 @@ Flipper::Flipper()
 
 Flipper::~Flipper()
 {
-   if (m_vertexBuffer)
-      m_vertexBuffer->release();
-   if (m_indexBuffer)
-      m_indexBuffer->release();
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
 }
 
 HRESULT Flipper::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
@@ -110,69 +111,73 @@ HRESULT Flipper::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Flipper::SetDefaults(bool fromMouseClick)
 {
-   static constexpr char regKey[] = "DefaultProps\\Flipper";
+#define regKey regKey[RegName::DefaultPropsFlipper]
 
    SetDefaultPhysics(fromMouseClick);
 
-   m_d.m_StartAngle = fromMouseClick ? LoadValueFloatWithDefault(regKey, "StartAngle", 121.f) : 121.f;
-   m_d.m_EndAngle = fromMouseClick ? LoadValueFloatWithDefault(regKey, "EndAngle", 70.f) : 70.f;
-   m_d.m_BaseRadius = fromMouseClick ? LoadValueFloatWithDefault(regKey, "BaseRadius", 21.5f) : 21.5f; // 15
-   m_d.m_EndRadius = fromMouseClick ? LoadValueFloatWithDefault(regKey, "EndRadius", 13.f) : 13.f; // 6
-   m_d.m_FlipperRadiusMax = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Length", 130.f) : 130.f; // 80
-   m_d.m_FlipperRadiusMin = fromMouseClick ? LoadValueFloatWithDefault(regKey, "MaxDifLength", 0.f) : 0.f;
+   m_d.m_StartAngle = fromMouseClick ? LoadValueFloatWithDefault(regKey, "StartAngle"s, 121.f) : 121.f;
+   m_d.m_EndAngle = fromMouseClick ? LoadValueFloatWithDefault(regKey, "EndAngle"s, 70.f) : 70.f;
+   m_d.m_BaseRadius = fromMouseClick ? LoadValueFloatWithDefault(regKey, "BaseRadius"s, 21.5f) : 21.5f; // 15
+   m_d.m_EndRadius = fromMouseClick ? LoadValueFloatWithDefault(regKey, "EndRadius"s, 13.f) : 13.f; // 6
+   m_d.m_FlipperRadiusMax = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Length"s, 130.f) : 130.f; // 80
+   m_d.m_FlipperRadiusMin = fromMouseClick ? LoadValueFloatWithDefault(regKey, "MaxDifLength"s, 0.f) : 0.f;
 
    m_d.m_FlipperRadius = m_d.m_FlipperRadiusMax;
 
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "TimerEnabled", false) : false;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(regKey, "TimerInterval", 100) : 100;
-   m_d.m_color = fromMouseClick ? LoadValueIntWithDefault(regKey, "Color", RGB(255,255,255)) : RGB(255,255,255);
-   m_d.m_rubbercolor = fromMouseClick ? LoadValueIntWithDefault(regKey, "RubberColor", RGB(128,50,50)) : RGB(128,50,50);
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "TimerEnabled"s, false) : false;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(regKey, "TimerInterval"s, 100) : 100;
+   m_d.m_color = fromMouseClick ? LoadValueIntWithDefault(regKey, "Color"s, RGB(255,255,255)) : RGB(255,255,255);
+   m_d.m_rubbercolor = fromMouseClick ? LoadValueIntWithDefault(regKey, "RubberColor"s, RGB(128,50,50)) : RGB(128,50,50);
 
-   const HRESULT hr = LoadValue(regKey, "Surface", m_d.m_szSurface);
+   const HRESULT hr = LoadValue(regKey, "Surface"s, m_d.m_szSurface);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szSurface.clear();
 
-   m_d.m_height = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Height", 50.f) : 50.f;
-   m_d.m_rubberthickness = fromMouseClick ? LoadValueFloatWithDefault(regKey, "RubberThickness", 7.f) : 7.f;
-   m_d.m_rubberheight = fromMouseClick ? LoadValueFloatWithDefault(regKey, "RubberHeight", 19.f) : 19.f;
-   m_d.m_rubberwidth = fromMouseClick ? LoadValueFloatWithDefault(regKey, "RubberWidth", 24.f) : 24.f;
-   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(regKey, "Visible", true) : true;
-   m_d.m_enabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "Enabled", true) : true;
-   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "ReflectionEnabled", true) : true;
+   m_d.m_height = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Height"s, 50.f) : 50.f;
+   m_d.m_rubberthickness = fromMouseClick ? LoadValueFloatWithDefault(regKey, "RubberThickness"s, 7.f) : 7.f;
+   m_d.m_rubberheight = fromMouseClick ? LoadValueFloatWithDefault(regKey, "RubberHeight"s, 19.f) : 19.f;
+   m_d.m_rubberwidth = fromMouseClick ? LoadValueFloatWithDefault(regKey, "RubberWidth"s, 24.f) : 24.f;
+   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(regKey, "Visible"s, true) : true;
+   m_d.m_enabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "Enabled"s, true) : true;
+   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "ReflectionEnabled"s, true) : true;
+
+#undef regKey
 }
 
 void Flipper::WriteRegDefaults()
 {
-   static constexpr char regKey[] = "DefaultProps\\Flipper";
+#define regKey regKey[RegName::DefaultPropsFlipper]
 
-   SaveValueFloat(regKey, "Scatter", m_d.m_scatter);
-   SaveValueFloat(regKey, "Strength", m_d.m_strength);
-   SaveValueFloat(regKey, "EOSTorque", m_d.m_torqueDamping);
-   SaveValueFloat(regKey, "EOSTorqueAngle", m_d.m_torqueDampingAngle);
-   SaveValueFloat(regKey, "StartAngle", m_d.m_StartAngle);
-   SaveValueFloat(regKey, "EndAngle", m_d.m_EndAngle);
-   SaveValueFloat(regKey, "BaseRadius", m_d.m_BaseRadius);
-   SaveValueFloat(regKey, "EndRadius", m_d.m_EndRadius);
-   SaveValueFloat(regKey, "MaxDifLength", m_d.m_FlipperRadiusMin);
-   SaveValueFloat(regKey, "ReturnStrength", m_d.m_return);
-   SaveValueFloat(regKey, "Length", m_d.m_FlipperRadiusMax);
-   SaveValueFloat(regKey, "Mass", m_d.m_mass);
-   SaveValueFloat(regKey, "Elasticity", m_d.m_elasticity);
-   SaveValueFloat(regKey, "ElasticityFalloff", m_d.m_elasticityFalloff);
-   SaveValueFloat(regKey, "Friction", m_d.m_friction);
-   SaveValueFloat(regKey, "RampUp", m_d.m_rampUp);
-   SaveValueBool(regKey, "TimerEnabled", m_d.m_tdr.m_TimerEnabled);
-   SaveValueInt(regKey, "TimerInterval", m_d.m_tdr.m_TimerInterval);
-   SaveValueInt(regKey, "Color", m_d.m_color);
-   SaveValueInt(regKey, "RubberColor", m_d.m_rubbercolor);
-   SaveValue(regKey, "Surface", m_d.m_szSurface);
-   SaveValueFloat(regKey, "Height", m_d.m_height);
-   SaveValueFloat(regKey, "RubberThickness", m_d.m_rubberthickness);
-   SaveValueFloat(regKey, "RubberHeight", m_d.m_rubberheight);
-   SaveValueFloat(regKey, "RubberWidth", m_d.m_rubberwidth);
-   SaveValueBool(regKey, "Visible", m_d.m_visible);
-   SaveValueBool(regKey, "Enabled", m_d.m_enabled);
-   SaveValueBool(regKey, "ReflectionEnabled", m_d.m_reflectionEnabled);
+   SaveValueFloat(regKey, "Scatter"s, m_d.m_scatter);
+   SaveValueFloat(regKey, "Strength"s, m_d.m_strength);
+   SaveValueFloat(regKey, "EOSTorque"s, m_d.m_torqueDamping);
+   SaveValueFloat(regKey, "EOSTorqueAngle"s, m_d.m_torqueDampingAngle);
+   SaveValueFloat(regKey, "StartAngle"s, m_d.m_StartAngle);
+   SaveValueFloat(regKey, "EndAngle"s, m_d.m_EndAngle);
+   SaveValueFloat(regKey, "BaseRadius"s, m_d.m_BaseRadius);
+   SaveValueFloat(regKey, "EndRadius"s, m_d.m_EndRadius);
+   SaveValueFloat(regKey, "MaxDifLength"s, m_d.m_FlipperRadiusMin);
+   SaveValueFloat(regKey, "ReturnStrength"s, m_d.m_return);
+   SaveValueFloat(regKey, "Length"s, m_d.m_FlipperRadiusMax);
+   SaveValueFloat(regKey, "Mass"s, m_d.m_mass);
+   SaveValueFloat(regKey, "Elasticity"s, m_d.m_elasticity);
+   SaveValueFloat(regKey, "ElasticityFalloff"s, m_d.m_elasticityFalloff);
+   SaveValueFloat(regKey, "Friction"s, m_d.m_friction);
+   SaveValueFloat(regKey, "RampUp"s, m_d.m_rampUp);
+   SaveValueBool(regKey, "TimerEnabled"s, m_d.m_tdr.m_TimerEnabled);
+   SaveValueInt(regKey, "TimerInterval"s, m_d.m_tdr.m_TimerInterval);
+   SaveValueInt(regKey, "Color"s, m_d.m_color);
+   SaveValueInt(regKey, "RubberColor"s, m_d.m_rubbercolor);
+   SaveValue(regKey, "Surface"s, m_d.m_szSurface);
+   SaveValueFloat(regKey, "Height"s, m_d.m_height);
+   SaveValueFloat(regKey, "RubberThickness"s, m_d.m_rubberthickness);
+   SaveValueFloat(regKey, "RubberHeight"s, m_d.m_rubberheight);
+   SaveValueFloat(regKey, "RubberWidth"s, m_d.m_rubberwidth);
+   SaveValueBool(regKey, "Visible"s, m_d.m_visible);
+   SaveValueBool(regKey, "Enabled"s, m_d.m_enabled);
+   SaveValueBool(regKey, "ReflectionEnabled"s, m_d.m_reflectionEnabled);
+
+#undef regKey
 }
 
 
@@ -196,55 +201,44 @@ void Flipper::UpdatePhysicsSettings()
    if (m_d.m_OverridePhysics || (m_ptable->m_overridePhysicsFlipper && m_ptable->m_overridePhysics))
    {
       const int idx = m_d.m_OverridePhysics ? (m_d.m_OverridePhysics-1) : (m_ptable->m_overridePhysics-1);
-      char tmp[256];
 
-      sprintf_s(tmp, 256, "FlipperPhysicsMass%d", idx);
-      m_d.m_OverrideMass = LoadValueFloatWithDefault("Player", tmp, 1.f);
+      m_d.m_OverrideMass = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsMass" + std::to_string(idx), 1.f);
       if (m_d.m_OverrideMass < 0.0f)
          m_d.m_OverrideMass = m_d.m_mass;
 
-      sprintf_s(tmp, 256, "FlipperPhysicsStrength%d", idx);
-      m_d.m_OverrideStrength = LoadValueFloatWithDefault("Player", tmp, 2200.f);
+      m_d.m_OverrideStrength = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsStrength" + std::to_string(idx), 2200.f);
       if (m_d.m_OverrideStrength < 0.0f)
          m_d.m_OverrideStrength = m_d.m_strength;
 
-      sprintf_s(tmp, 256, "FlipperPhysicsElasticity%d", idx);
-      m_d.m_OverrideElasticity = LoadValueFloatWithDefault("Player", tmp, 0.8f);
+      m_d.m_OverrideElasticity = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsElasticity" + std::to_string(idx), 0.8f);
       if (m_d.m_OverrideElasticity < 0.0f)
          m_d.m_OverrideElasticity = m_d.m_elasticity;
 
-      sprintf_s(tmp, 256, "FlipperPhysicsScatter%d", idx);
-      m_d.m_OverrideScatterAngle = LoadValueFloatWithDefault("Player", tmp, 0.f);
+      m_d.m_OverrideScatterAngle = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsScatter" + std::to_string(idx), 0.f);
       if (m_d.m_OverrideScatterAngle < 0.0f)
          m_d.m_OverrideScatterAngle = m_d.m_scatter;
 
-      sprintf_s(tmp, 256, "FlipperPhysicsReturnStrength%d", idx);
-      m_d.m_OverrideReturnStrength = LoadValueFloatWithDefault("Player", tmp, 0.058f);
+      m_d.m_OverrideReturnStrength = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsReturnStrength" + std::to_string(idx), 0.058f);
       if (m_d.m_OverrideReturnStrength < 0.0f)
          m_d.m_OverrideReturnStrength = m_d.m_return;
 
-      sprintf_s(tmp, 256, "FlipperPhysicsElasticityFalloff%d", idx);
-      m_d.m_OverrideElasticityFalloff = LoadValueFloatWithDefault("Player", tmp, 0.43f);
+      m_d.m_OverrideElasticityFalloff = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsElasticityFalloff" + std::to_string(idx), 0.43f);
       if (m_d.m_OverrideElasticityFalloff < 0.0f)
          m_d.m_OverrideElasticityFalloff = m_d.m_elasticityFalloff;
 
-      sprintf_s(tmp, 256, "FlipperPhysicsFriction%d", idx);
-      m_d.m_OverrideFriction = LoadValueFloatWithDefault("Player", tmp, 0.6f);
+      m_d.m_OverrideFriction = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsFriction" + std::to_string(idx), 0.6f);
       if (m_d.m_OverrideFriction < 0.0f)
          m_d.m_OverrideFriction = m_d.m_friction;
 
-      sprintf_s(tmp, 256, "FlipperPhysicsCoilRampUp%d", idx);
-      m_d.m_OverrideCoilRampUp = LoadValueFloatWithDefault("Player", tmp, 3.f);
+      m_d.m_OverrideCoilRampUp = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsCoilRampUp" + std::to_string(idx), 3.f);
       if (m_d.m_OverrideCoilRampUp < 0.0f)
          m_d.m_OverrideCoilRampUp = m_d.m_rampUp;
 
-      sprintf_s(tmp, 256, "FlipperPhysicsEOSTorque%d", idx);
-      m_d.m_OverrideTorqueDamping = LoadValueFloatWithDefault("Player", tmp, 0.75f);
+      m_d.m_OverrideTorqueDamping = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsEOSTorque" + std::to_string(idx), 0.75f);
       if (m_d.m_OverrideTorqueDamping < 0.0f)
          m_d.m_OverrideTorqueDamping = m_d.m_torqueDamping;
 
-      sprintf_s(tmp, 256, "FlipperPhysicsEOSTorqueAngle%d", idx);
-      m_d.m_OverrideTorqueDampingAngle = LoadValueFloatWithDefault("Player", tmp, 6.f);
+      m_d.m_OverrideTorqueDampingAngle = LoadValueFloatWithDefault(regKey[RegName::Player], "FlipperPhysicsEOSTorqueAngle" + std::to_string(idx), 6.f);
       if (m_d.m_OverrideTorqueDampingAngle < 0.0f)
          m_d.m_OverrideTorqueDampingAngle = m_d.m_torqueDampingAngle;
    }
@@ -294,19 +288,9 @@ void Flipper::GetHitShapesDebug(vector<HitObject*> &pvho)
 void Flipper::EndPlay()
 {
    if (m_phitflipper) // Failed player case
-   {
       m_phitflipper = nullptr;
-   }
-   if (m_vertexBuffer)
-   {
-      m_vertexBuffer->release();
-      m_vertexBuffer = nullptr;
-   }
-   if (m_indexBuffer)
-   {
-      m_indexBuffer->release();
-      m_indexBuffer = nullptr;
-   }
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
 
    IEditable::EndPlay();
 }
@@ -540,16 +524,16 @@ void Flipper::PutCenter(const Vertex2D& pv)
 
 void Flipper::SetDefaultPhysics(bool fromMouseClick)
 {
-   static constexpr char regKey[] = "DefaultProps\\Flipper";
+#define regKey regKey[RegName::DefaultPropsFlipper]
 
-   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Scatter", 0.f) : 0.f;
-   m_d.m_strength = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Strength", 2200.f) : 2200.f;
-   m_d.m_torqueDamping = fromMouseClick ? LoadValueFloatWithDefault(regKey, "EOSTorque", 0.75f) : 0.75f;
-   m_d.m_torqueDampingAngle = fromMouseClick ? LoadValueFloatWithDefault(regKey, "EOSTorqueAngle", 6.f) : 6.f;
+   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Scatter"s, 0.f) : 0.f;
+   m_d.m_strength = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Strength"s, 2200.f) : 2200.f;
+   m_d.m_torqueDamping = fromMouseClick ? LoadValueFloatWithDefault(regKey, "EOSTorque"s, 0.75f) : 0.75f;
+   m_d.m_torqueDampingAngle = fromMouseClick ? LoadValueFloatWithDefault(regKey, "EOSTorqueAngle"s, 6.f) : 6.f;
 
    //m_d.m_angleEOS = 0;
 
-   m_d.m_return = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ReturnStrength", 0.058f) : 0.058f;
+   m_d.m_return = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ReturnStrength"s, 0.058f) : 0.058f;
 
    float fTmp;
    HRESULT hr = LoadValue(regKey, "Mass", fTmp);
@@ -557,12 +541,14 @@ void Flipper::SetDefaultPhysics(bool fromMouseClick)
       hr = LoadValue(regKey, "Speed", fTmp); // previously Mass was called Speed, deprecated!
    m_d.m_mass = (hr == S_OK) && fromMouseClick ? fTmp : 1.0f;
 
-   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Elasticity", 0.8f) : 0.8f;
-   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ElasticityFalloff", 0.43f) : 0.43f;
-   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Friction", 0.6f) : 0.6f;
-   m_d.m_rampUp = fromMouseClick ? LoadValueFloatWithDefault(regKey, "RampUp", 3.0f) : 3.0f;
+   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Elasticity"s, 0.8f) : 0.8f;
+   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ElasticityFalloff"s, 0.43f) : 0.43f;
+   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Friction"s, 0.6f) : 0.6f;
+   m_d.m_rampUp = fromMouseClick ? LoadValueFloatWithDefault(regKey, "RampUp"s, 3.0f) : 3.0f;
 
    m_d.m_OverridePhysics = 0;
+
+#undef regKey
 }
 
 STDMETHODIMP Flipper::InterfaceSupportsErrorInfo(REFIID riid)
@@ -572,7 +558,7 @@ STDMETHODIMP Flipper::InterfaceSupportsErrorInfo(REFIID riid)
       &IID_IFlipper,
    };
 
-   for (int i = 0; i < sizeof(arr) / sizeof(arr[0]); i++)
+   for (size_t i = 0; i < sizeof(arr) / sizeof(arr[0]); i++)
    {
       if (InlineIsEqualGUID(*arr[i], riid))
          return S_OK;
@@ -623,8 +609,8 @@ void Flipper::RenderDynamic()
    Texture * const pin = m_ptable->GetImage(m_d.m_szImage);
    if (pin)
    {
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
-      pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+      pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
       pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
 
       //g_pplayer->m_pin3d.SetPrimaryTextureFilter(0, TEXTURE_MODE_TRILINEAR);
@@ -632,11 +618,11 @@ void Flipper::RenderDynamic()
       //pd3dDevice->SetTextureAddressMode(0, RenderDevice::TEX_WRAP);
    }
    else
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
 
-   pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+   pd3dDevice->SetRenderStateDepthBias(0.0f);
    pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
-   pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 
    Matrix3D matTrafo;
    matTrafo.SetIdentity();
@@ -658,9 +644,9 @@ void Flipper::RenderDynamic()
    {
       mat = m_ptable->GetMaterial(m_d.m_szRubberMaterial);
       if (pin)
-        pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
+        pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
       else
-        pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+        pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
       pd3dDevice->basicShader->SetMaterial(mat);
 
       pd3dDevice->basicShader->Begin(0);
@@ -688,7 +674,7 @@ void Flipper::ExportMesh(ObjLoader& loader)
 
    {
    Vertex3D_NoTex2 *const buf = flipper;
-   for (int i = 0; i < flipperBaseVertices; i++)
+   for (unsigned int i = 0; i < flipperBaseVertices; i++)
    {
       Vertex3Ds vert(buf[i].x, buf[i].y, buf[i].z);
       vert = matTrafo.MultiplyVector(vert);
@@ -704,7 +690,7 @@ void Flipper::ExportMesh(ObjLoader& loader)
    }
    }
 
-   string subObjName = name + string("Base");
+   string subObjName = name + "Base"s;
    loader.WriteObjectName(subObjName);
    loader.WriteVertexInfo(flipper, flipperBaseVertices);
    const Material * mat = m_ptable->GetMaterial(m_d.m_szMaterial);
@@ -715,7 +701,7 @@ void Flipper::ExportMesh(ObjLoader& loader)
    if (m_d.m_rubberthickness > 0.f)
    {
       Vertex3D_NoTex2 *buf = &flipper[flipperBaseVertices];
-      for (int i = 0; i < flipperBaseVertices; i++)
+      for (unsigned int i = 0; i < flipperBaseVertices; i++)
       {
          Vertex3Ds vert(buf[i].x, buf[i].y, buf[i].z);
          vert = matTrafo.MultiplyVector(vert);
@@ -730,7 +716,7 @@ void Flipper::ExportMesh(ObjLoader& loader)
          buf[i].nz = vert.z;
       }
 
-      subObjName = name + string("Rubber");
+      subObjName = name + "Rubber"s;
       loader.WriteObjectName(subObjName);
       loader.WriteVertexInfo(&flipper[flipperBaseVertices], flipperBaseVertices);
       mat = m_ptable->GetMaterial(m_d.m_szRubberMaterial);
@@ -754,7 +740,7 @@ static void ApplyFix(Vertex3D_NoTex2& vert, const Vertex2D& center, const float 
    float nAngle = atan2f(vert.ny, vert.nx);
    
    // we want to have angles with same sign as midAngle, fix it:
-   if (midAngle < 0.0)
+   if (midAngle < 0.0f)
    {
    	  if (vAngle > 0.0f)
          vAngle -= (float)(M_PI * 2.0);
@@ -869,15 +855,11 @@ void Flipper::GenerateBaseMesh(Vertex3D_NoTex2 *buf)
 
 void Flipper::RenderSetup()
 {
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
+   m_indexBuffer = IndexBuffer::CreateAndFillIndexBuffer(flipperBaseNumIndices, flipperBaseIndices, PRIMARY_DEVICE);
 
-   if (m_indexBuffer)
-      m_indexBuffer->release();
-   m_indexBuffer = pd3dDevice->CreateAndFillIndexBuffer(flipperBaseNumIndices, flipperBaseIndices);
-
-   if (m_vertexBuffer)
-      m_vertexBuffer->release();
-   pd3dDevice->CreateVertexBuffer(flipperBaseVertices * 2, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   VertexBuffer::CreateVertexBuffer(flipperBaseVertices * 2, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer, PRIMARY_DEVICE);
 
    Vertex3D_NoTex2 *buf;
    m_vertexBuffer->lock(0, 0, (void**)&buf, VertexBuffer::WRITEONLY);
@@ -1441,7 +1423,7 @@ STDMETHODIMP Flipper::get_ElasticityFalloff(float *pVal)
 
 STDMETHODIMP Flipper::put_ElasticityFalloff(float newVal)
 {
-   SetElastacityFalloff(newVal);
+   SetElasticityFalloff(newVal);
 
    return S_OK;
 }

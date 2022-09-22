@@ -17,6 +17,7 @@ add_compile_options(
    $<$<CONFIG:RELEASE>:/Ob2>
    $<$<CONFIG:RELEASE>:/O2>
    $<$<CONFIG:RELEASE>:/Oi>
+   $<$<CONFIG:RELEASE>:/arch:SSE2>
    $<$<CONFIG:RELEASE>:/fp:fast>
    $<$<CONFIG:RELEASE>:/fp:except->
    $<$<CONFIG:RELEASE>:/Ot>
@@ -252,6 +253,7 @@ add_executable(vpinball WIN32
    inc/win32xx/include/wxx_appcore0.h
    inc/win32xx/include/wxx_archive.h
    inc/win32xx/include/wxx_commondlg.h
+   inc/win32xx/include/wxx_criticalsection.h
    inc/win32xx/include/wxx_controls.h
    inc/win32xx/include/wxx_cstring.h
    inc/win32xx/include/wxx_ddx.h
@@ -264,11 +266,15 @@ add_executable(vpinball WIN32
    inc/win32xx/include/wxx_folderdialog.h
    inc/win32xx/include/wxx_frame.h
    inc/win32xx/include/wxx_gdi.h
+   inc/win32xx/include/wxx_hglobal.h
    inc/win32xx/include/wxx_imagelist.h
    inc/win32xx/include/wxx_listview.h
    inc/win32xx/include/wxx_mdi.h
    inc/win32xx/include/wxx_menu.h
    inc/win32xx/include/wxx_menubar.h
+   inc/win32xx/include/wxx_menumetrics.h
+   inc/win32xx/include/wxx_messagepump.h
+   inc/win32xx/include/wxx_messagepump0.h
    inc/win32xx/include/wxx_metafile.h
    inc/win32xx/include/wxx_mutex.h
    inc/win32xx/include/wxx_printdialogs.h
@@ -280,6 +286,7 @@ add_executable(vpinball WIN32
    inc/win32xx/include/wxx_richedit.h
    inc/win32xx/include/wxx_scrollview.h
    inc/win32xx/include/wxx_shared_ptr.h
+   inc/win32xx/include/wxx_setup.h
    inc/win32xx/include/wxx_socket.h
    inc/win32xx/include/wxx_statusbar.h
    inc/win32xx/include/wxx_stdcontrols.h
@@ -287,14 +294,15 @@ add_executable(vpinball WIN32
    inc/win32xx/include/wxx_taskdialog.h
    inc/win32xx/include/wxx_textconv.h
    inc/win32xx/include/wxx_themes.h
+   inc/win32xx/include/wxx_thread.h
    inc/win32xx/include/wxx_time.h
    inc/win32xx/include/wxx_toolbar.h
    inc/win32xx/include/wxx_treeview.h
-   inc/win32xx/include/wxx_wceframe.h
-   inc/win32xx/include/wxx_wcestddef.h
    inc/win32xx/include/wxx_webbrowser.h
    inc/win32xx/include/wxx_wincore.h
    inc/win32xx/include/wxx_wincore0.h
+   IndexBuffer.cpp
+   IndexBuffer.h
    math/bbox.h
    math/math.cpp
    math/math.h
@@ -442,8 +450,14 @@ add_executable(vpinball WIN32
    regutil.h
    RenderDevice.cpp
    RenderDevice.h
+   RenderTarget.cpp
+   RenderTarget.h
    resource.h
    rubber.h
+   Sampler.cpp
+   Sampler.h
+   Shader.cpp
+   Shader.h
    slintf.cpp
    slintf.h
    spinner.cpp
@@ -458,6 +472,8 @@ add_executable(vpinball WIN32
    textbox.h
    Texture.cpp
    Texture.h
+   TextureManager.cpp
+   TextureManager.h
    timer.cpp
    timer.h
    trace.h
@@ -469,6 +485,8 @@ add_executable(vpinball WIN32
    vectorsort.h
    main.cpp
    main.h
+   VertexBuffer.cpp
+   VertexBuffer.h
    vpinball.cpp
    vpinball_h.h
    vpversion.h
@@ -550,6 +568,9 @@ target_link_libraries(vpinball
 
 target_link_options(vpinball PUBLIC
    /SAFESEH:NO
+   $<$<CONFIG:RELEASE>:/INCREMENTAL:NO>
+   $<$<CONFIG:RELEASE>:/OPT:REF>
+   $<$<CONFIG:RELEASE>:/OPT:ICF>
    /LARGEADDRESSAWARE
    $<$<CONFIG:RELEASE>:/LTCG>
    $<$<CONFIG:RELEASE>:/DYNAMICBASE:NO>

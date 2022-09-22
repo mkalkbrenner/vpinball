@@ -24,6 +24,9 @@
 #include "LayersListDialog.h"
 #include "NotesDialog.h"
 #include "Properties/PropertyDialog.h"
+#ifdef ENABLE_SDL
+#include "VROptionsDialog.h"
+#endif
 
 class PinTable;
 class PinTableMDI;
@@ -162,8 +165,8 @@ public:
     SendMessage(m_hwndStatusBar, SB_SETTEXT, 5 | 0, (size_t)textBuf.c_str());
    }
 
-   bool OpenFileDialog(const string& initDir, std::vector<std::string>& filename, const char* const fileFilter, const char* const defaultExt, const DWORD flags, const std::string& windowTitle = string());
-   bool SaveFileDialog(const string& initDir, std::vector<std::string>& filename, const char* const fileFilter, const char* const defaultExt, const DWORD flags, const std::string& windowTitle = string());
+   bool OpenFileDialog(const string& initDir, vector<string>& filename, const char* const fileFilter, const char* const defaultExt, const DWORD flags, const string& windowTitle = string());
+   bool SaveFileDialog(const string& initDir, vector<string>& filename, const char* const fileFilter, const char* const defaultExt, const DWORD flags, const string& windowTitle = string());
 
    CDockProperty* GetPropertiesDocker();
    CDockToolbar *GetToolbarDocker();
@@ -217,7 +220,7 @@ public:
    int m_securitylevel;
 
    string m_szMyPath;
-   std::wstring m_wzMyPath;
+   wstring m_wzMyPath;
    string m_currentTablePath;
 
    int m_autosaveTime;
@@ -237,6 +240,8 @@ public:
    bool m_primaryDisplay; // force use of pixel(0,0) monitor
    bool m_table_played_via_command_line;
    volatile bool m_table_played_via_SelectTableOnStart;
+   bool m_bgles; // override global emission scale by m_fgles below?
+   float m_fgles;
    int m_logicalNumberOfProcessors;
    WCHAR *m_customParameters[MAX_CUSTOM_PARAM_INDEX];
 
@@ -265,7 +270,7 @@ private:
 
    volatile bool m_unloadingTable;
    CMenu m_mainMenu;
-   std::vector<std::string> m_recentTableList;
+   vector<string> m_recentTableList;
 
    HANDLE  m_workerthread;
    unsigned int m_workerthreadid;
@@ -283,6 +288,9 @@ private:
    DimensionDialog m_dimensionDialog;
    MaterialDialog m_materialDialog;
    AboutDialog m_aboutDialog;
+#ifdef ENABLE_SDL
+   VROptionsDialog m_vrOptDialog;
+#endif
 
    ToolbarDialog *m_toolbarDialog = nullptr;
    PropertyDialog *m_propertyDialog = nullptr;

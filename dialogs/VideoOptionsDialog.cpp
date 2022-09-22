@@ -39,6 +39,7 @@ void VideoOptionsDialog::ResetVideoPreferences(const unsigned int profile) // 0 
    SendMessage(GetDlgItem(IDC_TexUnlimited).GetHwnd(), BM_SETCHECK, profile != 1 ? BST_CHECKED : BST_UNCHECKED, 0);
    SendMessage(GetDlgItem(IDC_GLOBAL_REFLECTION_CHECK).GetHwnd(), BM_SETCHECK, profile != 1 ? BST_CHECKED : BST_UNCHECKED, 0);
    SendMessage(GetDlgItem(IDC_GLOBAL_TRAIL_CHECK).GetHwnd(), BM_SETCHECK, true ? BST_CHECKED : BST_UNCHECKED, 0);
+   SendMessage(GetDlgItem(IDC_GLOBAL_DISABLE_LIGHTING_BALLS).GetHwnd(), BM_SETCHECK, false ? BST_CHECKED : BST_UNCHECKED, 0);
    SetDlgItemInt(IDC_ADAPTIVE_VSYNC, 0, FALSE);
    SetDlgItemInt(IDC_MAX_PRE_FRAMES, 0, FALSE);
 
@@ -46,20 +47,20 @@ void VideoOptionsDialog::ResetVideoPreferences(const unsigned int profile) // 0 
    {
    constexpr float ballAspecRatioOffsetX = 0.0f;
    char tmp[256];
-   sprintf_s(tmp, 256, "%f", ballAspecRatioOffsetX);
-   SetDlgItemTextA(IDC_CORRECTION_X, tmp);
+   sprintf_s(tmp, sizeof(tmp), "%f", ballAspecRatioOffsetX);
+   SetDlgItemText(IDC_CORRECTION_X, tmp);
    constexpr float ballAspecRatioOffsetY = 0.0f;
-   sprintf_s(tmp, 256, "%f", ballAspecRatioOffsetY);
-   SetDlgItemTextA(IDC_CORRECTION_Y, tmp);
+   sprintf_s(tmp, sizeof(tmp), "%f", ballAspecRatioOffsetY);
+   SetDlgItemText(IDC_CORRECTION_Y, tmp);
    constexpr float latitude = 52.52f;
-   sprintf_s(tmp, 256, "%f", latitude);
-   SetDlgItemTextA(IDC_DN_LATITUDE, tmp);
+   sprintf_s(tmp, sizeof(tmp), "%f", latitude);
+   SetDlgItemText(IDC_DN_LATITUDE, tmp);
    constexpr float longitude = 13.37f;
-   sprintf_s(tmp, 256, "%f", longitude);
-   SetDlgItemTextA(IDC_DN_LONGITUDE, tmp);
+   sprintf_s(tmp, sizeof(tmp), "%f", longitude);
+   SetDlgItemText(IDC_DN_LONGITUDE, tmp);
    constexpr float nudgeStrength = 2e-2f;
-   sprintf_s(tmp, 256, "%f", nudgeStrength);
-   SetDlgItemTextA(IDC_NUDGE_STRENGTH, tmp);
+   sprintf_s(tmp, sizeof(tmp), "%f", nudgeStrength);
+   SetDlgItemText(IDC_NUDGE_STRENGTH, tmp);
    }
 
    SendMessage(GetDlgItem(IDC_AA_ALL_TABLES).GetHwnd(), BM_SETCHECK, false ? BST_CHECKED : BST_UNCHECKED, 0);
@@ -94,20 +95,20 @@ void VideoOptionsDialog::ResetVideoPreferences(const unsigned int profile) // 0 
    SendMessage(GetDlgItem(IDC_3D_STEREO_Y).GetHwnd(), BM_SETCHECK, false ? BST_CHECKED : BST_UNCHECKED, 0);
    constexpr float stereo3DOfs = 0.0f;
    char tmp[256];
-   sprintf_s(tmp, 256, "%f", stereo3DOfs);
-   SetDlgItemTextA(IDC_3D_STEREO_OFS, tmp);
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DOfs);
+   SetDlgItemText(IDC_3D_STEREO_OFS, tmp);
    constexpr float stereo3DMS = 0.03f;
-   sprintf_s(tmp, 256, "%f", stereo3DMS);
-   SetDlgItemTextA(IDC_3D_STEREO_MS, tmp);
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DMS);
+   SetDlgItemText(IDC_3D_STEREO_MS, tmp);
    constexpr float stereo3DZPD = 0.5f;
-   sprintf_s(tmp, 256, "%f", stereo3DZPD);
-   SetDlgItemTextA(IDC_3D_STEREO_ZPD, tmp);
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DZPD);
+   SetDlgItemText(IDC_3D_STEREO_ZPD, tmp);
    constexpr float stereo3DContrast = 1.0f;
-   sprintf_s(tmp, 256, "%f", stereo3DContrast);
-   SetDlgItemTextA(IDC_3D_STEREO_CONTRAST, tmp);
-   constexpr float stereo3DDeSaturation = 0.0f;
-   sprintf_s(tmp, 256, "%f", stereo3DDeSaturation);
-   SetDlgItemTextA(IDC_3D_STEREO_DESATURATION, tmp);
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DContrast);
+   SetDlgItemText(IDC_3D_STEREO_CONTRAST, tmp);
+   constexpr float stereo3DDesaturation = 0.0f;
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DDesaturation);
+   SetDlgItemText(IDC_3D_STEREO_DESATURATION, tmp);
    SendMessage(GetDlgItem(IDC_USE_NVIDIA_API_CHECK).GetHwnd(), BM_SETCHECK, false ? BST_CHECKED : BST_UNCHECKED, 0);
    }
 
@@ -133,9 +134,10 @@ void VideoOptionsDialog::ResetVideoPreferences(const unsigned int profile) // 0 
    }
 }
 
-void VideoOptionsDialog::FillVideoModesList(const std::vector<VideoMode>& modes, const VideoMode* curSelMode)
+void VideoOptionsDialog::FillVideoModesList(const vector<VideoMode>& modes, const VideoMode* curSelMode)
 {
    const HWND hwndList = GetDlgItem(IDC_SIZELIST).GetHwnd();
+   SendMessage(hwndList, WM_SETREDRAW, FALSE, 0); // to speed up adding the entries :/
    SendMessage(hwndList, LB_RESETCONTENT, 0, 0);
    SendMessage(hwndList, LB_INITSTORAGE, modes.size(), modes.size() * 128); // *128 is artificial
 
@@ -197,9 +199,9 @@ void VideoOptionsDialog::FillVideoModesList(const std::vector<VideoMode>& modes,
       }
 
       if (modes[i].depth) // i.e. is this windowed or not
-         sprintf_s(szT, "%d x %d (%dHz %d:%d)", modes[i].width, modes[i].height, /*modes[i].depth,*/ modes[i].refreshrate, portrait ? fy : fx, portrait ? fx : fy);
+         sprintf_s(szT, sizeof(szT), "%d x %d (%dHz %d:%d)", modes[i].width, modes[i].height, /*modes[i].depth,*/ modes[i].refreshrate, portrait ? fy : fx, portrait ? fx : fy);
       else
-         sprintf_s(szT, "%d x %d (%d:%d %s)", modes[i].width, modes[i].height /*,modes[i].depth*/, portrait ? fy : fx, portrait ? fx : fy, portrait ? "Portrait" : "Landscape");
+         sprintf_s(szT, sizeof(szT), "%d x %d (%d:%d %s)", modes[i].width, modes[i].height /*,modes[i].depth*/, portrait ? fy : fx, portrait ? fx : fy, portrait ? "Portrait" : "Landscape");
 
       SendMessage(hwndList, LB_ADDSTRING, 0, (LPARAM)szT);
       if (curSelMode) {
@@ -218,6 +220,7 @@ void VideoOptionsDialog::FillVideoModesList(const std::vector<VideoMode>& modes,
       }
    }
    SendMessage(hwndList, LB_SETCURSEL, bestMatch, 0);
+   SendMessage(hwndList, WM_SETREDRAW, TRUE, 0);
 }
 
 
@@ -228,6 +231,7 @@ BOOL VideoOptionsDialog::OnInitDialog()
    if (toolTipHwnd)
    {
       SendMessage(toolTipHwnd, TTM_SETMAXTIPWIDTH, 0, 180);
+      AddToolTip("Disable lighting and reflection effects on balls, e.g. to help the visually handicapped.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_GLOBAL_DISABLE_LIGHTING_BALLS).GetHwnd());
       AddToolTip("Activate this if you get the corresponding error message on table start, or if you experience rendering problems.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_USE_NVIDIA_API_CHECK).GetHwnd());
       AddToolTip("Forces the bloom filter to be always off. Only for very low-end graphics cards.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_BLOOM_OFF).GetHwnd());
       AddToolTip("This saves memory on your graphics card but harms quality of the textures.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_TEX_COMPRESS).GetHwnd());
@@ -247,11 +251,11 @@ BOOL VideoOptionsDialog::OnInitDialog()
       AddToolTip("Switches 3D Stereo effect to use the Y Axis.\r\nThis should usually be selected for Cabinets/rotated displays.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_3D_STEREO_Y).GetHwnd());
       if (IsWindows10_1803orAbove())
       {
-          GetDlgItem(IDC_FULLSCREEN).SetWindowText("Force exclusive Fullscreen Mode");
-          AddToolTip("Enforces exclusive Fullscreen Mode.\r\nEnforcing exclusive FS can slightly reduce input lag.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_FULLSCREEN).GetHwnd());
+         GetDlgItem(IDC_FULLSCREEN).SetWindowText("Force exclusive Fullscreen Mode");
+         AddToolTip("Enforces exclusive Fullscreen Mode.\r\nEnforcing exclusive FS can slightly reduce input lag.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_FULLSCREEN).GetHwnd());
       }
       else
-          AddToolTip("Enforces exclusive Fullscreen Mode.\r\nDo not enable if you require to see the VPinMAME or B2S windows for example.\r\nEnforcing exclusive FS can slightly reduce input lag though.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_FULLSCREEN).GetHwnd());
+         AddToolTip("Enforces exclusive Fullscreen Mode.\r\nDo not enable if you require to see the VPinMAME or B2S windows for example.\r\nEnforcing exclusive FS can slightly reduce input lag though.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_FULLSCREEN).GetHwnd());
       AddToolTip("Enforces 10Bit (WCG) rendering.\r\nRequires a corresponding 10Bit output capable graphics card and monitor.\r\nAlso requires to have exclusive fullscreen mode enforced (for now).", hwndDlg, toolTipHwnd, GetDlgItem(IDC_10BIT_VIDEO).GetHwnd());
       AddToolTip("Switches all tables to use the respective Cabinet display setup.\r\nAlso useful if a 270 degree rotated Desktop monitor is used.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_BG_SET).GetHwnd());
       AddToolTip("Enables post-processed Anti-Aliasing.\r\nThis delivers smoother images, at the cost of slight blurring.\r\n'Quality FXAA' and 'Quality SMAA' are recommended and lead to less artifacts,\nbut will harm performance on low-end graphics cards.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_FXAACB).GetHwnd());
@@ -261,7 +265,7 @@ BOOL VideoOptionsDialog::OnInitDialog()
       AddToolTip("Select Display for Video output.", hwndDlg, toolTipHwnd, GetDlgItem(IDC_DISPLAY_ID).GetHwnd());
    }
 
-   const int maxTexDim = LoadValueIntWithDefault("Player", "MaxTexDimension", 0); // default: Don't resize textures
+   const int maxTexDim = LoadValueIntWithDefault(regKey[RegName::Player], "MaxTexDimension"s, 0); // default: Don't resize textures
    switch (maxTexDim)
    {
       case 3072:SendMessage(GetDlgItem(IDC_Tex3072).GetHwnd(), BM_SETCHECK, BST_CHECKED, 0);      break;
@@ -271,67 +275,70 @@ BOOL VideoOptionsDialog::OnInitDialog()
       default:	SendMessage(GetDlgItem(IDC_TexUnlimited).GetHwnd(), BM_SETCHECK, BST_CHECKED, 0); break;
    }
 
-   const bool reflection = LoadValueBoolWithDefault("Player", "BallReflection", true);
+   const bool reflection = LoadValueBoolWithDefault(regKey[RegName::Player], "BallReflection"s, true);
    SendMessage(GetDlgItem(IDC_GLOBAL_REFLECTION_CHECK).GetHwnd(), BM_SETCHECK, reflection ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const bool trail = LoadValueBoolWithDefault("Player", "BallTrail", true);
+   const bool trail = LoadValueBoolWithDefault(regKey[RegName::Player], "BallTrail"s, true);
    SendMessage(GetDlgItem(IDC_GLOBAL_TRAIL_CHECK).GetHwnd(), BM_SETCHECK, trail ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const int vsync = LoadValueIntWithDefault("Player", "AdaptiveVSync", 0);
+   const bool disableLighting = LoadValueBoolWithDefault(regKey[RegName::Player], "DisableLightingForBalls"s, false);
+   SendMessage(GetDlgItem(IDC_GLOBAL_DISABLE_LIGHTING_BALLS).GetHwnd(), BM_SETCHECK, disableLighting ? BST_CHECKED : BST_UNCHECKED, 0);
+
+   const int vsync = LoadValueIntWithDefault(regKey[RegName::Player], "AdaptiveVSync"s, 0);
    SetDlgItemInt(IDC_ADAPTIVE_VSYNC, vsync, FALSE);
 
-   const int maxPrerenderedFrames = LoadValueIntWithDefault("Player", "MaxPrerenderedFrames", 0);
+   const int maxPrerenderedFrames = LoadValueIntWithDefault(regKey[RegName::Player], "MaxPrerenderedFrames"s, 0);
    SetDlgItemInt(IDC_MAX_PRE_FRAMES, maxPrerenderedFrames, FALSE);
 
    char tmp[256];
 
-   const float ballAspecRatioOffsetX = LoadValueFloatWithDefault("Player", "BallCorrectionX", 0.f);
-   sprintf_s(tmp, 256, "%f", ballAspecRatioOffsetX);
-   SetDlgItemTextA(IDC_CORRECTION_X, tmp);
+   const float ballAspecRatioOffsetX = LoadValueFloatWithDefault(regKey[RegName::Player], "BallCorrectionX"s, 0.f);
+   sprintf_s(tmp, sizeof(tmp), "%f", ballAspecRatioOffsetX);
+   SetDlgItemText(IDC_CORRECTION_X, tmp);
 
-   const float ballAspecRatioOffsetY = LoadValueFloatWithDefault("Player", "BallCorrectionY", 0.f);
-   sprintf_s(tmp, 256, "%f", ballAspecRatioOffsetY);
-   SetDlgItemTextA(IDC_CORRECTION_Y, tmp);
+   const float ballAspecRatioOffsetY = LoadValueFloatWithDefault(regKey[RegName::Player], "BallCorrectionY"s, 0.f);
+   sprintf_s(tmp, sizeof(tmp), "%f", ballAspecRatioOffsetY);
+   SetDlgItemText(IDC_CORRECTION_Y, tmp);
 
-   const float latitude = LoadValueFloatWithDefault("Player", "Latitude", 52.52f);
-   sprintf_s(tmp, 256, "%f", latitude);
-   SetDlgItemTextA(IDC_DN_LATITUDE, tmp);
+   const float latitude = LoadValueFloatWithDefault(regKey[RegName::Player], "Latitude"s, 52.52f);
+   sprintf_s(tmp, sizeof(tmp), "%f", latitude);
+   SetDlgItemText(IDC_DN_LATITUDE, tmp);
 
-   const float longitude = LoadValueFloatWithDefault("Player", "Longitude", 13.37f);
-   sprintf_s(tmp, 256, "%f", longitude);
-   SetDlgItemTextA(IDC_DN_LONGITUDE, tmp);
+   const float longitude = LoadValueFloatWithDefault(regKey[RegName::Player], "Longitude"s, 13.37f);
+   sprintf_s(tmp, sizeof(tmp), "%f", longitude);
+   SetDlgItemText(IDC_DN_LONGITUDE, tmp);
 
-   const float nudgeStrength = LoadValueFloatWithDefault("Player", "NudgeStrength", 2e-2f);
-   sprintf_s(tmp, 256, "%f", nudgeStrength);
-   SetDlgItemTextA(IDC_NUDGE_STRENGTH, tmp);
+   const float nudgeStrength = LoadValueFloatWithDefault(regKey[RegName::Player], "NudgeStrength"s, 2e-2f);
+   sprintf_s(tmp, sizeof(tmp), "%f", nudgeStrength);
+   SetDlgItemText(IDC_NUDGE_STRENGTH, tmp);
 
-   const int useAA = LoadValueIntWithDefault("Player", "USEAA", 0);
+   const int useAA = LoadValueIntWithDefault(regKey[RegName::Player], "USEAA"s, 0);
    SendMessage(GetDlgItem(IDC_AA_ALL_TABLES).GetHwnd(), BM_SETCHECK, (useAA != 0) ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const int useDN = LoadValueIntWithDefault("Player", "DynamicDayNight", 0);
+   const int useDN = LoadValueIntWithDefault(regKey[RegName::Player], "DynamicDayNight"s, 0);
    SendMessage(GetDlgItem(IDC_DYNAMIC_DN).GetHwnd(), BM_SETCHECK, (useDN != 0) ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   bool useAO = LoadValueBoolWithDefault("Player", "DynamicAO", false);
+   bool useAO = LoadValueBoolWithDefault(regKey[RegName::Player], "DynamicAO"s, false);
    SendMessage(GetDlgItem(IDC_DYNAMIC_AO).GetHwnd(), BM_SETCHECK, useAO ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   useAO = LoadValueBoolWithDefault("Player", "DisableAO", false);
+   useAO = LoadValueBoolWithDefault(regKey[RegName::Player], "DisableAO"s, false);
    SendMessage(GetDlgItem(IDC_ENABLE_AO).GetHwnd(), BM_SETCHECK, useAO ? BST_UNCHECKED : BST_CHECKED, 0); // inverted logic
 
-   const bool ssreflection = LoadValueBoolWithDefault("Player", "SSRefl", false);
+   const bool ssreflection = LoadValueBoolWithDefault(regKey[RegName::Player], "SSRefl"s, false);
    SendMessage(GetDlgItem(IDC_GLOBAL_SSREFLECTION_CHECK).GetHwnd(), BM_SETCHECK, ssreflection ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const bool pfreflection = LoadValueBoolWithDefault("Player", "PFRefl", true);
+   const bool pfreflection = LoadValueBoolWithDefault(regKey[RegName::Player], "PFRefl"s, true);
    SendMessage(GetDlgItem(IDC_GLOBAL_PFREFLECTION_CHECK).GetHwnd(), BM_SETCHECK, pfreflection ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const bool overwiteBallImage = LoadValueBoolWithDefault("Player", "OverwriteBallImage", false);
+   const bool overwiteBallImage = LoadValueBoolWithDefault(regKey[RegName::Player], "OverwriteBallImage"s, false);
    SendMessage(GetDlgItem(IDC_OVERWRITE_BALL_IMAGE_CHECK).GetHwnd(), BM_SETCHECK, overwiteBallImage ? BST_CHECKED : BST_UNCHECKED, 0);
 
    string imageName;
-   HRESULT hr = LoadValue("Player", "BallImage", imageName);
+   HRESULT hr = LoadValue(regKey[RegName::Player], "BallImage"s, imageName);
    if (hr != S_OK)
       imageName.clear();
    SetDlgItemText(IDC_BALL_IMAGE_EDIT, imageName.c_str());
-   hr = LoadValue("Player", "DecalImage", imageName);
+   hr = LoadValue(regKey[RegName::Player], "DecalImage"s, imageName);
    if (hr != S_OK)
       imageName.clear();
    SetDlgItemText(IDC_BALL_DECAL_EDIT, imageName.c_str());
@@ -343,7 +350,7 @@ BOOL VideoOptionsDialog::OnInitDialog()
       ::EnableWindow(GetDlgItem(IDC_BALL_DECAL_EDIT).GetHwnd(), FALSE);
    }
 
-   const int fxaa = LoadValueIntWithDefault("Player", "FXAA", Standard_FXAA);
+   const int fxaa = LoadValueIntWithDefault(regKey[RegName::Player], "FXAA"s, Standard_FXAA);
    HWND hwnd = GetDlgItem(IDC_FXAACB).GetHwnd();
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Disabled");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Fast FXAA");
@@ -354,24 +361,26 @@ BOOL VideoOptionsDialog::OnInitDialog()
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Quality SMAA");
    SendMessage(hwnd, CB_SETCURSEL, fxaa, 0);
 
-   const int sharpen = LoadValueIntWithDefault("Player", "Sharpen", 0);
+   const int sharpen = LoadValueIntWithDefault(regKey[RegName::Player], "Sharpen"s, 0);
    hwnd = GetDlgItem(IDC_SHARPENCB).GetHwnd();
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Disabled");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"CAS");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Bilateral CAS");
    SendMessage(hwnd, CB_SETCURSEL, sharpen, 0);
 
-   const bool scaleFX_DMD = LoadValueBoolWithDefault("Player", "ScaleFXDMD", false);
+   const bool scaleFX_DMD = LoadValueBoolWithDefault(regKey[RegName::Player], "ScaleFXDMD"s, false);
    SendMessage(GetDlgItem(IDC_SCALE_FX_DMD).GetHwnd(), BM_SETCHECK, scaleFX_DMD ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const int bgset = LoadValueIntWithDefault("Player", "BGSet", 0);
+   const int bgset = LoadValueIntWithDefault(regKey[RegName::Player], "BGSet"s, 0);
    SendMessage(GetDlgItem(IDC_BG_SET).GetHwnd(), BM_SETCHECK, (bgset != 0) ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const int stereo3D = LoadValueIntWithDefault("Player", "Stereo3D", 0);
+   const int stereo3D = LoadValueIntWithDefault(regKey[RegName::Player], "Stereo3D"s, 0);
    hwnd = GetDlgItem(IDC_3D_STEREO).GetHwnd();
+   SendMessage(hwnd, WM_SETREDRAW, FALSE, 0); // to speed up adding the entries :/
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Disabled");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"TB (Top / Bottom)");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Interlaced (e.g. LG TVs)");
+   SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Flipped Interlaced (e.g. LG TVs)");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"SBS (Side by Side)");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Anaglyph Red/Cyan");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Anaglyph Green/Magenta");
@@ -388,57 +397,58 @@ BOOL VideoOptionsDialog::OnInitDialog()
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Anaglyph Deghosted Magenta/Green");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"Anaglyph Amber/Blue");
    SendMessage(hwnd, CB_SETCURSEL, stereo3D, 0);
+   SendMessage(hwnd, WM_SETREDRAW, TRUE, 0);
 
-   const bool stereo3DY = LoadValueBoolWithDefault("Player", "Stereo3DYAxis", false);
+   const bool stereo3DY = LoadValueBoolWithDefault(regKey[RegName::Player], "Stereo3DYAxis"s, false);
    SendMessage(GetDlgItem(IDC_3D_STEREO_Y).GetHwnd(), BM_SETCHECK, stereo3DY ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const float stereo3DOfs = LoadValueFloatWithDefault("Player", "Stereo3DOffset", 0.f);
-   sprintf_s(tmp, 256, "%f", stereo3DOfs);
-   SetDlgItemTextA(IDC_3D_STEREO_OFS, tmp);
+   const float stereo3DOfs = LoadValueFloatWithDefault(regKey[RegName::Player], "Stereo3DOffset"s, 0.f);
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DOfs);
+   SetDlgItemText(IDC_3D_STEREO_OFS, tmp);
 
-   const float stereo3DMS = LoadValueFloatWithDefault("Player", "Stereo3DMaxSeparation", 0.03f);
-   sprintf_s(tmp, 256, "%f", stereo3DMS);
-   SetDlgItemTextA(IDC_3D_STEREO_MS, tmp);
+   const float stereo3DMS = LoadValueFloatWithDefault(regKey[RegName::Player], "Stereo3DMaxSeparation"s, 0.03f);
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DMS);
+   SetDlgItemText(IDC_3D_STEREO_MS, tmp);
 
-   const float stereo3DZPD = LoadValueFloatWithDefault("Player", "Stereo3DZPD", 0.5f);
-   sprintf_s(tmp, 256, "%f", stereo3DZPD);
-   SetDlgItemTextA(IDC_3D_STEREO_ZPD, tmp);
+   const float stereo3DZPD = LoadValueFloatWithDefault(regKey[RegName::Player], "Stereo3DZPD"s, 0.5f);
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DZPD);
+   SetDlgItemText(IDC_3D_STEREO_ZPD, tmp);
 
-   const float stereo3DContrast = LoadValueFloatWithDefault("Player", "Stereo3DContrast", 1.0f);
-   sprintf_s(tmp, 256, "%f", stereo3DContrast);
-   SetDlgItemTextA(IDC_3D_STEREO_CONTRAST, tmp);
+   const float stereo3DContrast = LoadValueFloatWithDefault(regKey[RegName::Player], "Stereo3DContrast"s, 1.0f);
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DContrast);
+   SetDlgItemText(IDC_3D_STEREO_CONTRAST, tmp);
 
-   const float stereo3DDesaturation = LoadValueFloatWithDefault("Player", "Stereo3DDesaturation", 0.0f);
-   sprintf_s(tmp, 256, "%f", stereo3DDesaturation);
-   SetDlgItemTextA(IDC_3D_STEREO_DESATURATION, tmp);
+   const float stereo3DDesaturation = LoadValueFloatWithDefault(regKey[RegName::Player], "Stereo3DDesaturation"s, 0.0f);
+   sprintf_s(tmp, sizeof(tmp), "%f", stereo3DDesaturation);
+   SetDlgItemText(IDC_3D_STEREO_DESATURATION, tmp);
 
-   const bool disableDWM = LoadValueBoolWithDefault("Player", "DisableDWM", false);
+   const bool disableDWM = LoadValueBoolWithDefault(regKey[RegName::Player], "DisableDWM"s, false);
    SendMessage(GetDlgItem(IDC_DISABLE_DWM).GetHwnd(), BM_SETCHECK, disableDWM ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const bool nvidiaApi = LoadValueBoolWithDefault("Player", "UseNVidiaAPI", false);
+   const bool nvidiaApi = LoadValueBoolWithDefault(regKey[RegName::Player], "UseNVidiaAPI"s, false);
    SendMessage(GetDlgItem(IDC_USE_NVIDIA_API_CHECK).GetHwnd(), BM_SETCHECK, nvidiaApi ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const bool bloomOff = LoadValueBoolWithDefault("Player", "ForceBloomOff", false);
+   const bool bloomOff = LoadValueBoolWithDefault(regKey[RegName::Player], "ForceBloomOff"s, false);
    SendMessage(GetDlgItem(IDC_BLOOM_OFF).GetHwnd(), BM_SETCHECK, bloomOff ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const bool forceAniso = LoadValueBoolWithDefault("Player", "ForceAnisotropicFiltering", true);
+   const bool forceAniso = LoadValueBoolWithDefault(regKey[RegName::Player], "ForceAnisotropicFiltering"s, true);
    SendMessage(GetDlgItem(IDC_FORCE_ANISO).GetHwnd(), BM_SETCHECK, forceAniso ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const bool compressTextures = LoadValueBoolWithDefault("Player", "CompressTextures", false);
+   const bool compressTextures = LoadValueBoolWithDefault(regKey[RegName::Player], "CompressTextures"s, false);
    SendMessage(GetDlgItem(IDC_TEX_COMPRESS).GetHwnd(), BM_SETCHECK, compressTextures ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const bool softwareVP = LoadValueBoolWithDefault("Player", "SoftwareVertexProcessing", false);
+   const bool softwareVP = LoadValueBoolWithDefault(regKey[RegName::Player], "SoftwareVertexProcessing"s, false);
    SendMessage(GetDlgItem(IDC_SOFTWARE_VP).GetHwnd(), BM_SETCHECK, softwareVP ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const bool video10bit = LoadValueBoolWithDefault("Player", "Render10Bit", false);
+   const bool video10bit = LoadValueBoolWithDefault(regKey[RegName::Player], "Render10Bit"s, false);
    SendMessage(GetDlgItem(IDC_10BIT_VIDEO).GetHwnd(), BM_SETCHECK, video10bit ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const int depthcur = LoadValueIntWithDefault("Player", "ColorDepth", 32);
-   const int refreshrate = LoadValueIntWithDefault("Player", "RefreshRate", 0);
-   
+   const int depthcur = LoadValueIntWithDefault(regKey[RegName::Player], "ColorDepth"s, 32);
+   const int refreshrate = LoadValueIntWithDefault(regKey[RegName::Player], "RefreshRate"s, 0);
+
    int display;
-   hr = LoadValue("Player", "Display", display);
-   std::vector<DisplayConfig> displays;
+   hr = LoadValue(regKey[RegName::Player], "Display"s, display);
+   vector<DisplayConfig> displays;
    getDisplayList(displays);
    if ((hr != S_OK) || ((int)displays.size() <= display))
       display = -1;
@@ -446,21 +456,21 @@ BOOL VideoOptionsDialog::OnInitDialog()
    hwnd = GetDlgItem(IDC_DISPLAY_ID).GetHwnd();
    SendMessage(hwnd, CB_RESETCONTENT, 0, 0);
 
-   for (std::vector<DisplayConfig>::iterator dispConf = displays.begin(); dispConf != displays.end(); ++dispConf)
+   for (vector<DisplayConfig>::iterator dispConf = displays.begin(); dispConf != displays.end(); ++dispConf)
    {
       if (display == -1 && dispConf->isPrimary)
          display = dispConf->display;
       char displayName[256];
-      sprintf_s(displayName, "Display %d%s %dx%d %s", dispConf->display + 1, (dispConf->isPrimary) ? "*" : "", dispConf->width, dispConf->height, dispConf->GPU_Name);
+      sprintf_s(displayName, sizeof(displayName), "Display %d%s %dx%d %s", dispConf->display + 1, (dispConf->isPrimary) ? "*" : "", dispConf->width, dispConf->height, dispConf->GPU_Name);
       SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)displayName);
    }
    SendMessage(hwnd, CB_SETCURSEL, display, 0);
 
-   const bool fullscreen = LoadValueBoolWithDefault("Player", "FullScreen", IsWindows10_1803orAbove());
+   const bool fullscreen = LoadValueBoolWithDefault(regKey[RegName::Player], "FullScreen"s, IsWindows10_1803orAbove());
    SendMessage(hwndDlg, fullscreen ? GET_FULLSCREENMODES : GET_WINDOW_MODES, 0, 0);
    SendMessage(GetDlgItem(IDC_FULLSCREEN).GetHwnd(), BM_SETCHECK, fullscreen ? BST_CHECKED : BST_UNCHECKED, 0);
 
-   const int alphaRampsAccuracy = LoadValueIntWithDefault("Player", "AlphaRampAccuracy", 10);
+   const int alphaRampsAccuracy = LoadValueIntWithDefault(regKey[RegName::Player], "AlphaRampAccuracy"s, 10);
    const HWND hwndARASlider = GetDlgItem(IDC_ARASlider).GetHwnd();
    SendMessage(hwndARASlider, TBM_SETRANGE, fTrue, MAKELONG(0, 10));
    SendMessage(hwndARASlider, TBM_SETTICFREQ, 1, 0);
@@ -469,7 +479,7 @@ BOOL VideoOptionsDialog::OnInitDialog()
    SendMessage(hwndARASlider, TBM_SETTHUMBLENGTH, 5, 0);
    SendMessage(hwndARASlider, TBM_SETPOS, TRUE, alphaRampsAccuracy);
 
-   const int ballStretchMode = LoadValueIntWithDefault("Player", "BallStretchMode", 0);
+   const int ballStretchMode = LoadValueIntWithDefault(regKey[RegName::Player], "BallStretchMode"s, 0);
    switch (ballStretchMode)
    {
       default:
@@ -480,7 +490,7 @@ BOOL VideoOptionsDialog::OnInitDialog()
 
    // set selected Monitors
    // Monitors: 4:3, 16:9, 16:10, 21:10, 21:9
-   /*const int selected = LoadValueIntWithDefault("Player", "BallStretchMonitor", 1); // assume 16:9 as standard
+   /*const int selected = LoadValueIntWithDefault(regKey[RegName::Player], "BallStretchMonitor"s, 1); // assume 16:9 as standard
    HWND hwnd = GetDlgItem(IDC_MonitorCombo).GetHwnd();
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"4:3");
    SendMessage(hwnd, CB_ADDSTRING, 0, (LPARAM)"16:9");
@@ -516,8 +526,8 @@ INT_PTR VideoOptionsDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
          int x, y;
          getDisplaySetupByID(display, x, y, screenwidth, screenheight);
 
-         const int widthcur  = LoadValueIntWithDefault("Player", "Width", DEFAULT_PLAYER_WIDTH);
-         const int heightcur = LoadValueIntWithDefault("Player", "Height", widthcur * 9 / 16);
+         const int widthcur  = LoadValueIntWithDefault(regKey[RegName::Player], "Width"s, DEFAULT_PLAYER_WIDTH);
+         const int heightcur = LoadValueIntWithDefault(regKey[RegName::Player], "Height"s, widthcur * 9 / 16);
 
          allVideoModes.clear();
 
@@ -557,7 +567,7 @@ INT_PTR VideoOptionsDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
          {
             const int xsize = rgwindowsize[i/5];
             
-            int mulx=1, divy=1;
+            int mulx = 1, divy = 1;
             switch (i%5)
             {
                case 0: mulx = 3;  divy = 4;  break;
@@ -595,7 +605,7 @@ INT_PTR VideoOptionsDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
          mode.refreshrate = 0;
 
          char szT[128];
-         sprintf_s(szT, "%d x %d (Windowed Fullscreen)", mode.width, mode.height);
+         sprintf_s(szT, sizeof(szT), "%d x %d (Windowed Fullscreen)", mode.width, mode.height);
          SendMessage(hwndList, LB_ADDSTRING, 0, (LPARAM)szT);
          if (indx == -1 || (mode.width == widthcur && mode.height == heightcur))
             indx = allVideoModes.size();
@@ -610,10 +620,10 @@ INT_PTR VideoOptionsDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
          const int display = (int)SendMessage(GetDlgItem(IDC_DISPLAY_ID).GetHwnd(), CB_GETCURSEL, 0, 0);
          EnumerateDisplayModes(display, allVideoModes);
 
-         const int depthcur = LoadValueIntWithDefault("Player", "ColorDepth", 32);
-         const int refreshrate = LoadValueIntWithDefault("Player", "RefreshRate", 0);
-         const int widthcur = LoadValueIntWithDefault("Player", "Width", -1);
-         const int heightcur = LoadValueIntWithDefault("Player", "Height", -1);
+         const int depthcur    = LoadValueIntWithDefault(regKey[RegName::Player], "ColorDepth"s, 32);
+         const int refreshrate = LoadValueIntWithDefault(regKey[RegName::Player], "RefreshRate"s, 0);
+         const int widthcur    = LoadValueIntWithDefault(regKey[RegName::Player], "Width"s, -1);
+         const int heightcur   = LoadValueIntWithDefault(regKey[RegName::Player], "Height"s, -1);
 
          VideoMode curSelMode;
          curSelMode.width = widthcur;
@@ -655,8 +665,8 @@ BOOL VideoOptionsDialog::OnCommand(WPARAM wParam, LPARAM lParam)
       }
       case IDC_RESET_WINDOW:
       {
-         (void)DeleteValue("Player", "WindowPosX");
-         (void)DeleteValue("Player", "WindowPosY");
+         (void)DeleteValue(regKey[RegName::Player], "WindowPosX"s);
+         (void)DeleteValue(regKey[RegName::Player], "WindowPosY"s);
          break;
       }
       case IDC_OVERWRITE_BALL_IMAGE_CHECK:
@@ -673,8 +683,7 @@ BOOL VideoOptionsDialog::OnCommand(WPARAM wParam, LPARAM lParam)
          char szFileName[MAXSTRING];
          szFileName[0] = '\0';
 
-         OPENFILENAME ofn;
-         ZeroMemory(&ofn, sizeof(OPENFILENAME));
+         OPENFILENAME ofn = {};
          ofn.lStructSize = sizeof(OPENFILENAME);
          ofn.hInstance = g_pvp->theInstance;
          ofn.hwndOwner = g_pvp->GetHwnd();
@@ -696,8 +705,7 @@ BOOL VideoOptionsDialog::OnCommand(WPARAM wParam, LPARAM lParam)
          char szFileName[MAXSTRING];
          szFileName[0] = '\0';
 
-         OPENFILENAME ofn;
-         ZeroMemory(&ofn, sizeof(OPENFILENAME));
+         OPENFILENAME ofn = {};
          ofn.lStructSize = sizeof(OPENFILENAME);
          ofn.hInstance = g_pvp->theInstance;
          ofn.hwndOwner = g_pvp->GetHwnd();
@@ -732,22 +740,22 @@ void VideoOptionsDialog::OnOK()
    BOOL nothing = 0;
 
    const bool fullscreen = (SendMessage(GetDlgItem(IDC_FULLSCREEN).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "FullScreen", fullscreen);
+   SaveValueBool(regKey[RegName::Player], "FullScreen"s, fullscreen);
 
    const size_t index = SendMessage(GetDlgItem(IDC_SIZELIST).GetHwnd(), LB_GETCURSEL, 0, 0);
    const VideoMode* const pvm = &allVideoModes[index];
-   SaveValueInt("Player", "Width", pvm->width);
-   SaveValueInt("Player", "Height", pvm->height);
+   SaveValueInt(regKey[RegName::Player], "Width"s, pvm->width);
+   SaveValueInt(regKey[RegName::Player], "Height"s, pvm->height);
    if (fullscreen)
    {
-      SaveValueInt("Player", "ColorDepth", pvm->depth);
-      SaveValueInt("Player", "RefreshRate", pvm->refreshrate);
+      SaveValueInt(regKey[RegName::Player], "ColorDepth"s, pvm->depth);
+      SaveValueInt(regKey[RegName::Player], "RefreshRate"s, pvm->refreshrate);
    }
    const size_t display = SendMessage(GetDlgItem(IDC_DISPLAY_ID).GetHwnd(), CB_GETCURSEL, 0, 0);
-   SaveValueInt("Player", "Display", (int)display);
+   SaveValueInt(regKey[RegName::Player], "Display"s, (int)display);
 
    const bool video10bit = (SendMessage(GetDlgItem(IDC_10BIT_VIDEO).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "Render10Bit", video10bit);
+   SaveValueBool(regKey[RegName::Player], "Render10Bit"s, video10bit);
 
    //const HWND maxTexDimUnlimited = GetDlgItem(hwndDlg, IDC_TexUnlimited);
    int maxTexDim = 0;
@@ -757,114 +765,97 @@ void VideoOptionsDialog::OnOK()
       maxTexDim = 1024;
    if (SendMessage(GetDlgItem(IDC_Tex2048).GetHwnd(), BM_GETCHECK, 0, 0) == BST_CHECKED)
       maxTexDim = 2048;
-   SaveValueInt("Player", "MaxTexDimension", maxTexDim);
+   SaveValueInt(regKey[RegName::Player], "MaxTexDimension"s, maxTexDim);
 
    const bool reflection = (SendMessage(GetDlgItem(IDC_GLOBAL_REFLECTION_CHECK).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "BallReflection", reflection);
+   SaveValueBool(regKey[RegName::Player], "BallReflection"s, reflection);
 
    const bool trail = (SendMessage(GetDlgItem(IDC_GLOBAL_TRAIL_CHECK).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "BallTrail", trail);
+   SaveValueBool(regKey[RegName::Player], "BallTrail"s, trail);
+
+   const bool disableLighting = (SendMessage(GetDlgItem(IDC_GLOBAL_DISABLE_LIGHTING_BALLS).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
+   SaveValueBool(regKey[RegName::Player], "DisableLightingForBalls"s, disableLighting);
 
    const int vsync = GetDlgItemInt(IDC_ADAPTIVE_VSYNC, nothing, TRUE);
-   SaveValueInt("Player", "AdaptiveVSync", vsync);
+   SaveValueInt(regKey[RegName::Player], "AdaptiveVSync"s, vsync);
 
    const int maxPrerenderedFrames = GetDlgItemInt(IDC_MAX_PRE_FRAMES, nothing, TRUE);
-   SaveValueInt("Player", "MaxPrerenderedFrames", maxPrerenderedFrames);
+   SaveValueInt(regKey[RegName::Player], "MaxPrerenderedFrames"s, maxPrerenderedFrames);
 
-   CString tmpStr;
-   tmpStr = GetDlgItemTextA(IDC_CORRECTION_X);
-   SaveValue("Player", "BallCorrectionX", tmpStr);
+   SaveValue(regKey[RegName::Player], "BallCorrectionX"s, GetDlgItemText(IDC_CORRECTION_X).c_str());
+   SaveValue(regKey[RegName::Player], "BallCorrectionY"s, GetDlgItemText(IDC_CORRECTION_Y).c_str());
+   SaveValue(regKey[RegName::Player], "Longitude"s, GetDlgItemText(IDC_DN_LONGITUDE).c_str());
+   SaveValue(regKey[RegName::Player], "Latitude"s, GetDlgItemText(IDC_DN_LATITUDE).c_str());
+   SaveValue(regKey[RegName::Player], "NudgeStrength"s, GetDlgItemText(IDC_NUDGE_STRENGTH).c_str());
 
-   tmpStr = GetDlgItemTextA(IDC_CORRECTION_Y);
-   SaveValue("Player", "BallCorrectionY", tmpStr);
-
-   tmpStr = GetDlgItemTextA(IDC_DN_LONGITUDE);
-   SaveValue("Player", "Longitude", tmpStr);
-
-   tmpStr = GetDlgItemTextA(IDC_DN_LATITUDE);
-   SaveValue("Player", "Latitude", tmpStr);
-
-   tmpStr = GetDlgItemTextA(IDC_NUDGE_STRENGTH);
-   SaveValue("Player", "NudgeStrength", tmpStr);
-
-   size_t fxaa = SendMessage(GetDlgItem(IDC_FXAACB).GetHwnd(), CB_GETCURSEL, 0, 0);
+   LRESULT fxaa = SendMessage(GetDlgItem(IDC_FXAACB).GetHwnd(), CB_GETCURSEL, 0, 0);
    if (fxaa == LB_ERR)
       fxaa = Standard_FXAA;
-   SaveValueInt("Player", "FXAA", (int)fxaa);
+   SaveValueInt(regKey[RegName::Player], "FXAA"s, (int)fxaa);
 
-   size_t sharpen = SendMessage(GetDlgItem(IDC_SHARPENCB).GetHwnd(), CB_GETCURSEL, 0, 0);
+   LRESULT sharpen = SendMessage(GetDlgItem(IDC_SHARPENCB).GetHwnd(), CB_GETCURSEL, 0, 0);
    if (sharpen == LB_ERR)
       sharpen = 0;
-   SaveValueInt("Player", "Sharpen", (int)sharpen);
+   SaveValueInt(regKey[RegName::Player], "Sharpen"s, (int)sharpen);
 
    const bool scaleFX_DMD = (SendMessage(GetDlgItem(IDC_SCALE_FX_DMD).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "ScaleFXDMD", scaleFX_DMD);
+   SaveValueBool(regKey[RegName::Player], "ScaleFXDMD"s, scaleFX_DMD);
 
    const size_t BGSet = SendMessage(GetDlgItem(IDC_BG_SET).GetHwnd(), BM_GETCHECK, 0, 0);
-   SaveValueInt("Player", "BGSet", (int)BGSet);
+   SaveValueInt(regKey[RegName::Player], "BGSet"s, (int)BGSet);
 
    const size_t useAA = SendMessage(GetDlgItem(IDC_AA_ALL_TABLES).GetHwnd(), BM_GETCHECK, 0, 0);
-   SaveValueInt("Player", "USEAA", (int)useAA);
+   SaveValueInt(regKey[RegName::Player], "USEAA"s, (int)useAA);
 
    const bool useDN = (SendMessage(GetDlgItem(IDC_DYNAMIC_DN).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "DynamicDayNight", useDN);
+   SaveValueBool(regKey[RegName::Player], "DynamicDayNight"s, useDN);
 
    bool useAO = (SendMessage(GetDlgItem(IDC_DYNAMIC_AO).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "DynamicAO", useAO);
+   SaveValueBool(regKey[RegName::Player], "DynamicAO"s, useAO);
 
    useAO = SendMessage(GetDlgItem(IDC_ENABLE_AO).GetHwnd(), BM_GETCHECK, 0, 0) ? false : true; // inverted logic
-   SaveValueBool("Player", "DisableAO", useAO);
+   SaveValueBool(regKey[RegName::Player], "DisableAO"s, useAO);
 
    const bool ssreflection = (SendMessage(GetDlgItem(IDC_GLOBAL_SSREFLECTION_CHECK).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "SSRefl", ssreflection);
+   SaveValueBool(regKey[RegName::Player], "SSRefl"s, ssreflection);
 
    const bool pfreflection = (SendMessage(GetDlgItem(IDC_GLOBAL_PFREFLECTION_CHECK).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "PFRefl", pfreflection);
+   SaveValueBool(regKey[RegName::Player], "PFRefl"s, pfreflection);
 
-   size_t stereo3D = SendMessage(GetDlgItem(IDC_3D_STEREO).GetHwnd(), CB_GETCURSEL, 0, 0);
+   LRESULT stereo3D = SendMessage(GetDlgItem(IDC_3D_STEREO).GetHwnd(), CB_GETCURSEL, 0, 0);
    if (stereo3D == LB_ERR)
       stereo3D = 0;
-   SaveValueInt("Player", "Stereo3D", (int)stereo3D);
-   SaveValueInt("Player", "Stereo3DEnabled", (int)stereo3D);
+   SaveValueInt(regKey[RegName::Player], "Stereo3D"s, (int)stereo3D);
+   SaveValueInt(regKey[RegName::Player], "Stereo3DEnabled"s, (int)stereo3D);
 
    const bool stereo3DY = (SendMessage(GetDlgItem(IDC_3D_STEREO_Y).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "Stereo3DYAxis", stereo3DY);
+   SaveValueBool(regKey[RegName::Player], "Stereo3DYAxis"s, stereo3DY);
 
    const bool forceAniso = (SendMessage(GetDlgItem(IDC_FORCE_ANISO).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "ForceAnisotropicFiltering", forceAniso);
+   SaveValueBool(regKey[RegName::Player], "ForceAnisotropicFiltering"s, forceAniso);
 
    const bool texCompress = (SendMessage(GetDlgItem(IDC_TEX_COMPRESS).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "CompressTextures", texCompress);
+   SaveValueBool(regKey[RegName::Player], "CompressTextures"s, texCompress);
 
    const bool softwareVP = (SendMessage(GetDlgItem(IDC_SOFTWARE_VP).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "SoftwareVertexProcessing", softwareVP);
+   SaveValueBool(regKey[RegName::Player], "SoftwareVertexProcessing"s, softwareVP);
 
    const size_t alphaRampsAccuracy = SendMessage(GetDlgItem(IDC_ARASlider).GetHwnd(), TBM_GETPOS, 0, 0);
-   SaveValueInt("Player", "AlphaRampAccuracy", (int)alphaRampsAccuracy);
-
-   tmpStr = GetDlgItemTextA(IDC_3D_STEREO_OFS);
-   SaveValue("Player", "Stereo3DOffset", tmpStr);
-
-   tmpStr = GetDlgItemTextA(IDC_3D_STEREO_MS);
-   SaveValue("Player", "Stereo3DMaxSeparation", tmpStr);
-
-   tmpStr = GetDlgItemTextA(IDC_3D_STEREO_ZPD);
-   SaveValue("Player", "Stereo3DZPD", tmpStr);
-
-   tmpStr = GetDlgItemTextA(IDC_3D_STEREO_CONTRAST);
-   SaveValue("Player", "Stereo3DContrast", tmpStr);
-
-   tmpStr = GetDlgItemTextA(IDC_3D_STEREO_DESATURATION);
-   SaveValue("Player", "Stereo3DDesaturation", tmpStr);
+   SaveValueInt(regKey[RegName::Player], "AlphaRampAccuracy"s, (int)alphaRampsAccuracy);
+   SaveValue(regKey[RegName::Player], "Stereo3DOffset"s, GetDlgItemText(IDC_3D_STEREO_OFS).c_str());
+   SaveValue(regKey[RegName::Player], "Stereo3DMaxSeparation"s, GetDlgItemText(IDC_3D_STEREO_MS).c_str());
+   SaveValue(regKey[RegName::Player], "Stereo3DZPD"s, GetDlgItemText(IDC_3D_STEREO_ZPD).c_str());
+   SaveValue(regKey[RegName::Player], "Stereo3DContrast"s, GetDlgItemText(IDC_3D_STEREO_CONTRAST).c_str());
+   SaveValue(regKey[RegName::Player], "Stereo3DDesaturation"s, GetDlgItemText(IDC_3D_STEREO_DESATURATION).c_str());
 
    const bool disableDWM = (SendMessage(GetDlgItem(IDC_DISABLE_DWM).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "DisableDWM", disableDWM);
+   SaveValueBool(regKey[RegName::Player], "DisableDWM"s, disableDWM);
 
    const bool nvidiaApi = (SendMessage(GetDlgItem(IDC_USE_NVIDIA_API_CHECK).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "UseNVidiaAPI", nvidiaApi);
+   SaveValueBool(regKey[RegName::Player], "UseNVidiaAPI"s, nvidiaApi);
 
    const bool bloomOff = (SendMessage(GetDlgItem(IDC_BLOOM_OFF).GetHwnd(), BM_GETCHECK, 0, 0) != 0);
-   SaveValueBool("Player", "ForceBloomOff", bloomOff);
+   SaveValueBool(regKey[RegName::Player], "ForceBloomOff"s, bloomOff);
 
    //HWND hwndBallStretchNo = GetDlgItem(hwndDlg, IDC_StretchNo);
    int ballStretchMode = 0;
@@ -872,26 +863,25 @@ void VideoOptionsDialog::OnOK()
       ballStretchMode = 1;
    if (SendMessage(GetDlgItem(IDC_StretchMonitor).GetHwnd(), BM_GETCHECK, 0, 0) == BST_CHECKED)
       ballStretchMode = 2;
-   SaveValueInt("Player", "BallStretchMode", ballStretchMode);
+   SaveValueInt(regKey[RegName::Player], "BallStretchMode"s, ballStretchMode);
 
    // get selected Monitors
    // Monitors: 4:3, 16:9, 16:10, 21:10, 21:9
    /*size_t selected = SendMessage(GetDlgItem(IDC_MonitorCombo).GetHwnd(), CB_GETCURSEL, 0, 0);
    if (selected == LB_ERR)
       selected = 1; // assume a 16:9 Monitor as standard
-   SaveValueInt("Player", "BallStretchMonitor", (int)selected);*/
+   SaveValueInt(regKey[RegName::Player], "BallStretchMonitor"s, (int)selected);*/
 
    const bool overwriteEnabled = IsDlgButtonChecked(IDC_OVERWRITE_BALL_IMAGE_CHECK) == BST_CHECKED;
    if (overwriteEnabled)
    {
-      SaveValueBool("Player", "OverwriteBallImage", true);
-      tmpStr = GetDlgItemText(IDC_BALL_IMAGE_EDIT);
-      SaveValue("Player", "BallImage", tmpStr);
-      tmpStr = GetDlgItemText(IDC_BALL_DECAL_EDIT);
-      SaveValue("Player", "DecalImage", tmpStr);
+      SaveValueBool(regKey[RegName::Player], "OverwriteBallImage"s, true);
+
+      SaveValue(regKey[RegName::Player], "BallImage"s, GetDlgItemText(IDC_BALL_IMAGE_EDIT).c_str());
+      SaveValue(regKey[RegName::Player], "DecalImage"s, GetDlgItemText(IDC_BALL_DECAL_EDIT).c_str());
    }
    else
-      SaveValueBool("Player", "OverwriteBallImage", false);
+      SaveValueBool(regKey[RegName::Player], "OverwriteBallImage"s, false);
 
    CDialog::OnOK();
 }

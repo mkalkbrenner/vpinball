@@ -25,7 +25,7 @@ public:
     }
     virtual void UpdateProperties(const int dispid) = 0;
     virtual void UpdateVisuals(const int dispid=-1) = 0;
-    virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam)
+    virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam) override
     {
         UNREFERENCED_PARAMETER(lParam);
         const int dispID = LOWORD(wParam);
@@ -61,9 +61,9 @@ public:
     void UpdateBaseVisuals(ISelect *psel, BaseProperty *property, const int dispid = -1);
 
     const VectorProtected<ISelect>* m_pvsel;
-    static bool               m_disableEvents;
+    static bool m_disableEvents;
 protected:
-    virtual INT_PTR DialogProc(UINT msg, WPARAM wparam, LPARAM lparam);
+    INT_PTR DialogProc(UINT msg, WPARAM wparam, LPARAM lparam) override;
 
     EditBox   *m_baseHitThresholdEdit;
     EditBox   *m_baseElasticityEdit;
@@ -182,11 +182,10 @@ public:
             rect.bottom -= iChange;
             dc.DrawFocusRect(rect);
         }
-        unsigned char r, g, b;
 
-        r = GetRValue(m_color);
-        g = GetGValue(m_color);
-        b = GetBValue(m_color);
+        unsigned char r = GetRValue(m_color);
+        unsigned char g = GetGValue(m_color);
+        unsigned char b = GetBValue(m_color);
         vertex[0].x = rect.TopLeft().x;
         vertex[0].y = rect.TopLeft().y;
         vertex[0].Red   = ((unsigned int)r << 8) + r;
@@ -278,7 +277,7 @@ public:
     
     static float GetFloatTextbox(const CEdit &textbox)
     {
-        const float fv = sz2f(string(textbox.GetWindowText()));
+        const float fv = sz2f(textbox.GetWindowText().c_str());
         return fv;
     }
 
@@ -291,9 +290,7 @@ public:
 
     static void SetFloatTextbox(const CEdit &textbox, const float value)
     {
-        string strValue;
-        f2sz(value, strValue);
-        textbox.SetWindowText(strValue.c_str());
+        textbox.SetWindowText(f2sz(value).c_str());
     }
 
     static void SetIntTextbox(const CEdit &textbox, const int value)

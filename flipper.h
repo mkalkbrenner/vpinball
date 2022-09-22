@@ -9,7 +9,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Flipper     // main symbols
 
-class FlipperData : public BaseProperty
+class FlipperData final : public BaseProperty
 {
 public:
    float m_BaseRadius;
@@ -23,11 +23,11 @@ public:
    Vertex2D m_Center;
    TimerDataRoot m_tdr;
 
-   std::string m_szSurface;
+   string m_szSurface;
    COLORREF m_color;
 
    COLORREF m_rubbercolor;
-   std::string  m_szRubberMaterial;
+   string m_szRubberMaterial;
    float m_rubberthickness;
    float m_rubberheight;
    float m_rubberwidth;
@@ -90,15 +90,15 @@ public:
          CONNECTION_POINT_ENTRY(DIID_IFlipperEvents)
       END_CONNECTION_POINT_MAP()
 
-      virtual void MoveOffset(const float dx, const float dy);
-      virtual void SetObjectPos();
+      void MoveOffset(const float dx, const float dy) final;
+      void SetObjectPos() final;
       // Multi-object manipulation
-      virtual Vertex2D GetCenter() const;
-      virtual void PutCenter(const Vertex2D& pv);
-      virtual void SetDefaultPhysics(bool fromMouseClick);
-      virtual void ExportMesh(ObjLoader& loader);
+      Vertex2D GetCenter() const final;
+      void PutCenter(const Vertex2D &pv) final;
+      void SetDefaultPhysics(bool fromMouseClick) final;
+      void ExportMesh(ObjLoader &loader) final;
 
-      virtual unsigned long long GetMaterialID() const
+      unsigned long long GetMaterialID() const final
       {
 		  const unsigned long long m1 = m_ptable->GetMaterial(m_d.m_szMaterial)->hash();
 		  const unsigned long long m2 = m_ptable->GetMaterial(m_d.m_szRubberMaterial)->hash();
@@ -107,23 +107,23 @@ public:
 		  else
 			  return 0;
       }
-      virtual unsigned long long GetImageID() const { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
-      virtual ItemTypeEnum HitableGetItemType() const { return eItemFlipper; }
-      virtual void WriteRegDefaults();
+      unsigned long long GetImageID() const final { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
+      ItemTypeEnum HitableGetItemType() const final { return eItemFlipper; }
+      void WriteRegDefaults() final;
 
-      //DECLARE_NOT_AGGREGATABLE(Flipper) 
-      // Remove the comment from the line above if you don't want your object to 
-      // support aggregation. 
+      //DECLARE_NOT_AGGREGATABLE(Flipper)
+      // Remove the comment from the line above if you don't want your object to
+      // support aggregation.
 
       DECLARE_REGISTRY_RESOURCEID(IDR_FLIPPER)
       // ISupportsErrorInfo
       STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid);
 
-      float     GetElastacityFalloff() const
+      float GetElasticityFalloff() const
       {
           return m_phitflipper ? m_phitflipper->m_elasticityFalloff : m_d.m_elasticityFalloff;
       }
-      void      SetElastacityFalloff(const float newVal)
+      void SetElasticityFalloff(const float newVal)
       {
           if (m_phitflipper)
           {
@@ -135,11 +135,12 @@ public:
               m_d.m_elasticityFalloff = newVal;
           }
       }
-      float     GetRampUp() const
+
+      float GetRampUp() const
       {
           return (m_d.m_OverridePhysics || (m_ptable->m_overridePhysicsFlipper && m_ptable->m_overridePhysics)) ? m_d.m_OverrideCoilRampUp : m_d.m_rampUp;
       }
-      void      SetRampUp(const float value)
+      void SetRampUp(const float value)
       {
           if (m_phitflipper)
           {
@@ -151,7 +152,9 @@ public:
               m_d.m_rampUp = value;
           }
       }
-      void      SetReturn(const float value)
+
+      float GetReturn() const { return m_d.m_return; }
+      void SetReturn(const float value)
       {
           if (m_phitflipper)
           {
@@ -161,13 +164,9 @@ public:
           else
               m_d.m_return = clamp(value, 0.0f, 1.0f);
       }
-      float     GetReturn(void) const 
-      {
-          return m_d.m_return;
-      }
 
-      float     GetFlipperRadiusMin() const { return m_d.m_FlipperRadiusMin; }
-      void      SetFlipperRadiusMin(const float value)
+      float GetFlipperRadiusMin() const { return m_d.m_FlipperRadiusMin; }
+      void SetFlipperRadiusMin(const float value)
       {
           m_d.m_FlipperRadiusMin = max(value,0.0f);
       }

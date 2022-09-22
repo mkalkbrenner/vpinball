@@ -288,7 +288,7 @@ BEGIN
     CTEXT           "This application uses Visual Basic Scripting Edition by Microsoft",IDC_STATIC,23,318,119,17
     CONTROL         IDC_RIGHTFLIPPERBUTTON,IDC_STATIC,"Static",SS_BITMAP | SS_CENTERIMAGE,7,7,218,49
     LTEXT           "A Randy Davis and Visual Pinball team Production",IDC_STATIC,7,65,161,8
-    LTEXT           "Version 10.7.0 Final",IDC_ABOUT_VERSION,7,75,200,10
+    LTEXT           "Version 10.7.2 Final",IDC_ABOUT_VERSION,7,75,200,10
     GROUPBOX        "Credits",IDC_STATIC,7,91,216,116
     LTEXT           "Original VP8/VP9 Team",IDC_STATIC,68,99,88,9
     LTEXT           "Randy Davis",IDC_STATIC,13,110,59,9
@@ -311,7 +311,7 @@ BEGIN
     LTEXT           "DJRobX",IDC_STATIC,48,172,32,8
     CTEXT           "Mukuste",IDC_STATIC,82,172,42,9
     LTEXT           "Brandrew",IDC_STATIC,150,172,42,9
-    CTEXT           "Copyright (C) 2000-2021 Randy Davis and the\nVisual Pinball team. All rights reserved (see license.txt)",IDC_STATIC,1,293,167,25
+    CTEXT           "Copyright (C) 2000-2022 Randy Davis and the\nVisual Pinball team. All rights reserved (see license.txt)",IDC_STATIC,1,293,167,25
     LTEXT           "Translator's Name - Translation",IDC_TRANSNAME,171,65,52,9,NOT WS_VISIBLE | WS_DISABLED
     LTEXT           "Translator's web site address",IDC_TRANSWEBSITE,0,328,32,8,NOT WS_VISIBLE | WS_DISABLED
     LTEXT           "VP10 Active Development",IDC_STATIC,65,183,102,9
@@ -360,8 +360,8 @@ BEGIN
     LTEXT           "Anaglyph Desaturation",IDC_STATIC,16,381,74,10
     EDITTEXT        IDC_3D_STEREO_DESATURATION,93,380,40,12,ES_RIGHT | ES_AUTOHSCROLL
     CONTROL         "Reflect Ball on Playfield",IDC_GLOBAL_REFLECTION_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,159,18,91,10
-    CONTROL         "Ball Trails/Motion Blur",IDC_GLOBAL_TRAIL_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,159,29,91,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,159,18,86,10
+    CONTROL         "Ball Trails/Motion Blur",IDC_GLOBAL_TRAIL_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,159,29,86,10
     CONTROL         "Overwrite Ball Image",IDC_OVERWRITE_BALL_IMAGE_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,159,40,81,10
     PUSHBUTTON      "...",IDC_BROWSE_BALL_IMAGE,227,60,17,12
@@ -370,6 +370,8 @@ BEGIN
     PUSHBUTTON      "...",IDC_BROWSE_BALL_DECAL,227,84,17,12
     EDITTEXT        IDC_BALL_DECAL_EDIT,159,84,65,12,ES_AUTOHSCROLL
     LTEXT           "Ball Decal",IDC_STATIC,159,76,33,8
+    CONTROL         "Disable Lighting",IDC_GLOBAL_DISABLE_LIGHTING_BALLS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,159,101,86,10
     GROUPBOX        "Ambient Occlusion",IDC_STATIC,253,7,94,38
     CONTROL         "Enable",IDC_ENABLE_AO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,258,18,72,10
     CONTROL         "Update in-game (quality)",IDC_DYNAMIC_AO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,258,29,87,10
@@ -380,49 +382,49 @@ BEGIN
     LTEXT           "on Playfield (quality)",IDC_STATIC,264,70,80,10
     LTEXT           "Visual Nudge \nStrength",IDC_STATIC,254,82,44,19
     EDITTEXT        IDC_NUDGE_STRENGTH,304,84,36,12,ES_RIGHT | ES_AUTOHSCROLL
-    CONTROL         "Enable",IDC_DYNAMIC_DN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,115,36,10
-    LTEXT           "Latitude",IDC_STATIC,172,129,33,10
-    EDITTEXT        IDC_DN_LATITUDE,223,127,36,12,ES_RIGHT | ES_AUTOHSCROLL
-    LTEXT           "Longitude",IDC_STATIC,266,129,35,10
-    EDITTEXT        IDC_DN_LONGITUDE,304,127,36,12,ES_RIGHT | ES_AUTOHSCROLL
-    LTEXT           "FPS Limiter/VSync",IDC_STATIC,162,157,75,10
-    EDITTEXT        IDC_ADAPTIVE_VSYNC,304,155,20,12,ES_RIGHT | ES_AUTOHSCROLL
-    LTEXT           "Maximum pre-rendered Frames",IDC_STATIC,162,170,120,8
-    EDITTEXT        IDC_MAX_PRE_FRAMES,304,168,20,12,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "Enable",IDC_DYNAMIC_DN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,134,36,10
+    LTEXT           "Latitude",IDC_STATIC,172,148,33,10
+    EDITTEXT        IDC_DN_LATITUDE,223,146,36,12,ES_RIGHT | ES_AUTOHSCROLL
+    LTEXT           "Longitude",IDC_STATIC,266,148,35,10
+    EDITTEXT        IDC_DN_LONGITUDE,304,146,36,12,ES_RIGHT | ES_AUTOHSCROLL
+    LTEXT           "FPS Limiter/VSync",IDC_STATIC,162,176,75,10
+    EDITTEXT        IDC_ADAPTIVE_VSYNC,304,174,20,12,ES_RIGHT | ES_AUTOHSCROLL
+    LTEXT           "Maximum pre-rendered Frames",IDC_STATIC,162,189,120,8
+    EDITTEXT        IDC_MAX_PRE_FRAMES,304,187,20,12,ES_RIGHT | ES_AUTOHSCROLL
     CONTROL         "Texture Compression (performance)",IDC_TEX_COMPRESS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,180,124,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,199,124,10
     CONTROL         "Force Anisotropic Texture Filtering (quality)",IDC_FORCE_ANISO,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,190,150,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,209,150,10
     CONTROL         "Force Bloom Filter off (performance)",IDC_BLOOM_OFF,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,200,127,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,219,127,10
     CONTROL         "Alternative Depth Buffer processing",IDC_USE_NVIDIA_API_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,210,127,10
-    CONTROL         "Software Vertex processing",IDC_SOFTWARE_VP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,220,104,10
-    CONTROL         "Disable Desktop Composition",IDC_DISABLE_DWM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,242,127,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,229,127,10
+    CONTROL         "Software Vertex processing",IDC_SOFTWARE_VP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,239,104,10
+    CONTROL         "Disable Desktop Composition",IDC_DISABLE_DWM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,261,127,10
     CONTROL         "Force exclusive Fullscreen Mode (less compatible)",IDC_FULLSCREEN,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,252,177,10
-    CONTROL         "Force 10Bit-Monitor support",IDC_10BIT_VIDEO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,262,127,10
-    CONTROL         "Unlimited",IDC_TexUnlimited,"Button",BS_AUTORADIOBUTTON | WS_GROUP,166,290,45,10
-    CONTROL         "3072",IDC_Tex3072,"Button",BS_AUTORADIOBUTTON,215,290,28,10
-    CONTROL         "2048",IDC_Tex2048,"Button",BS_AUTORADIOBUTTON,255,290,32,10
-    CONTROL         "1024",IDC_Tex1024,"Button",BS_AUTORADIOBUTTON,294,290,32,10
-    CONTROL         "",IDC_ARASlider,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,155,319,191,18
-    PUSHBUTTON      "Reset to Defaults",IDC_DEFAULTS,154,349,61,14
-    PUSHBUTTON      "Set for LowEnd PC",IDC_DEFAULTS_LOW,216,349,65,14
-    PUSHBUTTON      "Set for HighEnd PC",IDC_DEFAULTS_HIGH,282,349,65,14
-    PUSHBUTTON      "Reset PlayerWindow Pos",IDC_RESET_WINDOW,154,368,88,14
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,271,177,10
+    CONTROL         "Force 10Bit-Monitor support",IDC_10BIT_VIDEO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,281,127,10
+    CONTROL         "Unlimited",IDC_TexUnlimited,"Button",BS_AUTORADIOBUTTON | WS_GROUP,166,309,45,10
+    CONTROL         "3072",IDC_Tex3072,"Button",BS_AUTORADIOBUTTON,215,309,28,10
+    CONTROL         "2048",IDC_Tex2048,"Button",BS_AUTORADIOBUTTON,255,309,32,10
+    CONTROL         "1024",IDC_Tex1024,"Button",BS_AUTORADIOBUTTON,294,309,32,10
+    CONTROL         "",IDC_ARASlider,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,155,338,191,18
+    PUSHBUTTON      "Reset to Defaults",IDC_DEFAULTS,154,368,61,14
+    PUSHBUTTON      "Set for LowEnd PC",IDC_DEFAULTS_LOW,216,368,65,14
+    PUSHBUTTON      "Set for HighEnd PC",IDC_DEFAULTS_HIGH,282,368,65,14
+    PUSHBUTTON      "Reset PlayerWindow Pos",IDC_RESET_WINDOW,154,387,88,14
     DEFPUSHBUTTON   "OK",IDOK,245,387,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,297,387,50,14
     GROUPBOX        "Display",IDC_STATIC,7,7,142,394
-    GROUPBOX        "Ball Rendering",IDC_STATIC,154,7,94,92
+    GROUPBOX        "Ball Rendering",IDC_STATIC,154,7,94,109
     GROUPBOX        "3D Stereo Output",IDC_STATIC,12,289,132,107
-    GROUPBOX        "Performance and Troubleshooting",IDC_STATIC,154,148,193,192
-    GROUPBOX        "Max Texture Dimension (for low-end gfx boards)",IDC_STATIC,159,280,183,25
-    LTEXT           "Elements Detail Level (decrease = performance)",IDC_STATIC,163,311,156,8
+    GROUPBOX        "Performance and Troubleshooting",IDC_STATIC,154,167,193,192
+    GROUPBOX        "Max Texture Dimension (for low-end gfx boards)",IDC_STATIC,159,299,183,25
+    LTEXT           "Elements Detail Level (decrease = performance)",IDC_STATIC,163,330,156,8
     GROUPBOX        "Ball aspect ratio for stretched Tables",IDC_STATIC,12,212,132,75
-    GROUPBOX        "Automatic Night->Day cycle",IDC_STATIC,154,104,193,39
+    GROUPBOX        "Automatic Night->Day cycle",IDC_STATIC,154,123,193,39
     LTEXT           "(Cabinet/Rotated Screen usage)",IDC_STATIC,24,123,121,8
-    GROUPBOX        "Fullscreen",IDC_STATIC,159,232,183,43
+    GROUPBOX        "Fullscreen",IDC_STATIC,159,251,183,43
     LTEXT           "(post-processed Anti-Aliasing)",IDC_STATIC,29,195,101,8
     GROUPBOX        "Anti-Aliasing",IDC_STATIC,12,135,132,74
 END
@@ -1069,9 +1071,9 @@ STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     COMBOBOX        6,33,4,89,60,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        DISPID_Image,2,27,120,60,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Material",IDC_STATIC1,2,41,26,8
     COMBOBOX        IDC_MATERIAL_COMBO,2,50,120,60,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        DISPID_Image,2,27,120,60,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        8,33,66,89,60,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Apply Ima&ge to Wall",9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,2,82,82,10
     CONTROL         "Visible",IDC_VISIBLE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,2,94,40,10
@@ -1721,7 +1723,7 @@ BEGIN
     EDITTEXT        DISPID_ROTRA9,24,184,60,12,ES_AUTOHSCROLL
 END
 
-IDD_PROPPRIMITIVE_VISUALS DIALOGEX 0, 0, 125, 232
+IDD_PROPPRIMITIVE_VISUALS DIALOGEX 0, 0, 125, 259
 STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
@@ -1730,6 +1732,8 @@ BEGIN
     PUSHBUTTON      "Export Mesh",IDC_EXPORT_MESH_BUTTON,69,12,46,14
     LTEXT           "Image",IDC_STATIC2,3,33,20,8
     COMBOBOX        DISPID_Image,3,43,117,124,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Display &Image (not perfect)",IDC_DISPLAY_TEXTURE_CHECKBOX,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,57,105,10
     LTEXT           "Normal Map",IDC_STATIC3,3,71,39,8
     CONTROL         "Object Space",IDC_OBJECT_SPACE_NORMALMAP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,63,70,55,10
     COMBOBOX        DISPID_Image2,3,81,117,69,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
@@ -1753,8 +1757,11 @@ BEGIN
     EDITTEXT        IDC_PRIMITIVE_LEGACY_SIDES_EDIT,53,211,20,12,ES_AUTOHSCROLL
     RTEXT           "Editor",IDC_STATIC10,77,213,20,8
     EDITTEXT        IDC_EDGE_FACTOR_UI,98,211,20,12,ES_AUTOHSCROLL
-    CONTROL         "Display &Image (not perfect)",IDC_DISPLAY_TEXTURE_CHECKBOX,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,57,105,10
+    CONTROL         "Additive Blend",IDC_ADDBLEND,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,229,61,10
+    LTEXT           "&Modulate",IDC_STATIC13,13,243,31,8
+    CONTROL         "",IDC_COLOR_BUTTON1,"Button",BS_OWNERDRAW | WS_TABSTOP,44,239,36,14,WS_EX_DLGMODALFRAME | WS_EX_RIGHT
+    LTEXT           "Opacity",IDC_STATIC11,86,230,25,8
+    EDITTEXT        IDC_ALPHA_EDIT,83,240,34,12,ES_AUTOHSCROLL
 END
 
 IDD_PROPPLUNGER_VISUALS DIALOGEX 0, 0, 125, 337
@@ -1978,48 +1985,49 @@ BEGIN
     PUSHBUTTON      "&Cancel",IDCANCEL,469,304,50,14
 END
 
-IDD_CODEVIEW_PREFS DIALOGEX 0, 0, 233, 124
+IDD_CODEVIEW_PREFS DIALOGEX 0, 0, 233, 142
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Code Viewer Options"
 FONT 8, "MS Sans Serif", 400, 0, 0x0
 BEGIN
     CONTROL         "Components",IDC_CVP_CHKB_COMP,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,26,77,10,WS_EX_RIGHT
-    CONTROL         "Subs and Functions",IDC_CVP_CHKB_SUBS,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,39,77,10,WS_EX_RIGHT
-    CONTROL         "Visual Basic Script",IDC_CVP_CHECKBOX_VBS,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,52,77,10,WS_EX_RIGHT
-    CONTROL         "Comments",IDC_CVP_CHKB_COMMENTS,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,65,77,10,WS_EX_RIGHT
-    CONTROL         "Literals",IDC_CVP_CHKB_LITERALS,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,78,77,10,WS_EX_RIGHT
-    CONTROL         "VPinball Core",IDC_CVP_CHKB_VPCORE,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,91,77,10,WS_EX_RIGHT
     PUSHBUTTON      "",IDC_CVP_BUT_COL_COMPS,87,26,12,11,WS_GROUP
-    PUSHBUTTON      "",IDC_CVP_BUT_COL_SUBS,87,39,12,11,WS_GROUP
-    PUSHBUTTON      "",IDC_CVP_BUT_COL_VBS,87,52,12,11,WS_GROUP
-    PUSHBUTTON      "",IDC_CVP_BUT_COL_COMMENTS,87,65,12,11,WS_GROUP
-    PUSHBUTTON      "",IDC_CVP_BUT_COL_LITERALS,87,78,12,11,WS_GROUP
-    PUSHBUTTON      "",IDC_CVP_BUT_COL_VPCORE,87,91,12,11,WS_GROUP
     PUSHBUTTON      "",IDC_CVP_BUT_FONT_COMPS,105,26,12,11
+    CONTROL         "Subs and Functions",IDC_CVP_CHKB_SUBS,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,39,77,10,WS_EX_RIGHT
+    PUSHBUTTON      "",IDC_CVP_BUT_COL_SUBS,87,39,12,11,WS_GROUP
     PUSHBUTTON      "",IDC_CVP_BUT_FONT_SUBS,105,39,12,11
+    CONTROL         "Visual Basic Script",IDC_CVP_CHECKBOX_VBS,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,52,77,10,WS_EX_RIGHT
+    PUSHBUTTON      "",IDC_CVP_BUT_COL_VBS,87,52,12,11,WS_GROUP
     PUSHBUTTON      "",IDC_CVP_BUT_FONT_VBS,105,52,12,11
+    CONTROL         "Comments",IDC_CVP_CHKB_COMMENTS,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,65,77,10,WS_EX_RIGHT
+    PUSHBUTTON      "",IDC_CVP_BUT_COL_COMMENTS,87,65,12,11,WS_GROUP
     PUSHBUTTON      "",IDC_CVP_BUT_FONT_COMMENTS,105,65,12,11
+    CONTROL         "Literals",IDC_CVP_CHKB_LITERALS,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,78,77,10,WS_EX_RIGHT
+    PUSHBUTTON      "",IDC_CVP_BUT_COL_LITERALS,87,78,12,11,WS_GROUP
     PUSHBUTTON      "",IDC_CVP_BUT_FONT_LITERALS,105,78,12,11
+    CONTROL         "VPinball Core",IDC_CVP_CHKB_VPCORE,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,4,91,77,10,WS_EX_RIGHT
+    PUSHBUTTON      "",IDC_CVP_BUT_COL_VPCORE,87,91,12,11,WS_GROUP
     PUSHBUTTON      "",IDC_CVP_BUT_FONT_VPCORE,105,91,12,11
+    LTEXT           "Default Text:",IDC_STATIC,38,105,42,8,0,WS_EX_RIGHT
+    PUSHBUTTON      "",IDC_CVP_BUT_COL_EVERYTHINGELSE,87,104,12,11,WS_GROUP
+    PUSHBUTTON      "",IDC_CVP_BUT_FONT_EVERYTHINGELSE,105,104,12,11
+    RTEXT           "Background Col/Select:",IDC_STATIC,4,124,76,8
+    PUSHBUTTON      "",IDC_CVP_BUT_COL_BACKGROUND,87,123,12,11,WS_GROUP
+    PUSHBUTTON      "",IDC_CVP_BUT_COL_BACKGROUND_SEL,105,123,12,11
     CONTROL         "Automatic",IDC_CVP_CHKBOX_SHOWAUTOCOMPLETE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,19,47,10
     EDITTEXT        IDC_CVP_EDIT_AUTOCHARS,171,30,15,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Display after",IDC_CVP_CHKBOX_DISPLAYDWELL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,61,57,10
     EDITTEXT        IDC_CVP_EDIT_MOUSEDWELL,147,72,21,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Display help with dwell",IDC_CVP_CHKBOX_HELPWITHDWELL,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,86,87,10
-    PUSHBUTTON      "",IDC_CVP_BUT_COL_EVERYTHINGELSE,87,104,12,11,WS_GROUP
-    PUSHBUTTON      "",IDC_CVP_BUT_FONT_EVERYTHINGELSE,105,104,12,11
-    PUSHBUTTON      "Ok",IDC_CVP_BUT_OK,133,103,46,17
-    PUSHBUTTON      "Cancel",IDC_CVP_BUT_CANCEL,182,103,46,17
+    PUSHBUTTON      "&OK",IDC_CVP_BUT_OK,133,121,46,17
+    PUSHBUTTON      "&Cancel",IDC_CVP_BUT_CANCEL,182,121,46,17
     LTEXT           "Color",IDC_STATIC,85,14,17,8,NOT WS_GROUP
     LTEXT           "Font",IDC_STATIC,103,14,15,8
-    LTEXT           "Default Text:",IDC_STATIC,38,105,42,8,0,WS_EX_RIGHT
-    PUSHBUTTON      "",IDC_CVP_BUT_COL_BACKGROUND,199,108,12,11,NOT WS_VISIBLE | WS_GROUP
-    LTEXT           "Background Color:",IDC_STATIC,134,108,60,8,NOT WS_VISIBLE
     LTEXT           "Start after",IDC_STATIC,138,32,31,11
     LTEXT           "characters",IDC_STATIC,187,32,36,8
     LTEXT           "milliseconds",IDC_STATIC,171,74,38,8
-    GROUPBOX        "Highlighting",IDC_STATIC,5,7,124,112
+    GROUPBOX        "Highlighting",IDC_STATIC,5,7,124,131
     GROUPBOX        "Mouse Dwell",IDC_STATIC,133,49,95,51
     GROUPBOX        "Autocomplete",IDC_STATIC,133,7,95,39
 END
@@ -2231,7 +2239,7 @@ FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     CONTROL         "S&mooth",3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,40,10
     CONTROL         "Auto Texture Coord.",4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,18,80,10
-    EDITTEXT        5,54,35,64,12,ES_AUTOHSCROLL
+    EDITTEXT        5,58,35,60,12,ES_AUTOHSCROLL
     LTEXT           "&Texture Coord.",IDC_STATIC1,7,37,48,8
     GROUPBOX        "Position",IDC_STATIC2,4,54,117,79
     EDITTEXT        1,52,65,38,12,ES_AUTOHSCROLL
@@ -2589,7 +2597,7 @@ BEGIN
 
     IDD_PROPPRIMITIVE_VISUALS, DIALOG
     BEGIN
-        BOTTOMMARGIN, 229
+        BOTTOMMARGIN, 256
     END
 
     IDD_PROPPLUNGER_VISUALS, DIALOG
@@ -2623,7 +2631,7 @@ BEGIN
         LEFTMARGIN, 4
         RIGHTMARGIN, 228
         TOPMARGIN, 7
-        BOTTOMMARGIN, 120
+        BOTTOMMARGIN, 138
     END
 
     IDD_PROPHITTARGET_VISUALS, DIALOG
@@ -2734,8 +2742,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 10,7,0,0
- PRODUCTVERSION 10,7,0,0
+ FILEVERSION 10,7,2,0
+ PRODUCTVERSION 10,7,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2750,13 +2758,13 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "FileDescription", "Visual Pinball 10.7.0"
-            VALUE "FileVersion", "10, 7, 0, 0"
+            VALUE "FileDescription", "Visual Pinball 10.7.2"
+            VALUE "FileVersion", "10, 7, 2, 0"
             VALUE "InternalName", "Visual Pinball"
-            VALUE "LegalCopyright", "Copyright 2000-2021"
+            VALUE "LegalCopyright", "Copyright 2000-2022"
             VALUE "OriginalFilename", "VPinballX.exe"
             VALUE "ProductName", "Visual Pinball"
-            VALUE "ProductVersion", "10, 7, 0, 0"
+            VALUE "ProductVersion", "10, 7, 2, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2988,6 +2996,8 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Comment\tCtrl+W",             ID_ADD_COMMENT
         MENUITEM "UnComment\tCtrl+E",           ID_REMOVE_COMMENT
+        MENUITEM SEPARATOR
+        MENUITEM "Go To Definition\tF12",       ID_GO_TO_DEFINITION
     END
 END
 
@@ -3123,6 +3133,7 @@ BEGIN
     "S",            ID_SAVE,                VIRTKEY, CONTROL, NOINVERT
     VK_SPACE,       ID_SHOWAUTOCOMPLETE,    VIRTKEY, CONTROL, NOINVERT
     VK_F5,          ID_TABLE_PLAY,          VIRTKEY, NOINVERT
+    VK_F12,         ID_GO_TO_DEFINITION,    VIRTKEY, NOINVERT
 END
 
 IDR_VPSIMPELACCEL ACCELERATORS
@@ -3693,17 +3704,33 @@ STRINGTABLE
 BEGIN
     IDS_PROJNAME            "Visual Pinball"
     IDS_TB_TIMER            "Timer"
-    IDS_DRAGPOINT_DESC      "DragPoint Class"
     IDS_TB_SELECT           "Select"
     IDS_TB_WALL             "Wall"
     IDS_TB_FLIPPER          "Flipper"
     IDS_TB_PLAY             "Play"
-    IDS_FLIPPER_DESC        "Flipper Class"
+    IDS_TB_LIGHTSEQ         "LightSeq"
+    IDS_TB_PRIMITIVE        "Primitive"
+    IDS_TB_PLUNGER          "Plunger"
+    IDS_TB_TEXTBOX          "TextBox"
+    IDS_TB_BUMPER           "Bumper"
+    IDS_TB_DISPREEL         "EMReel"
+    IDS_TB_TRIGGER          "Trigger"
+    IDS_TB_LIGHT            "Light"
+    IDS_TB_KICKER           "Kicker"
+    IDS_TB_TARGET           "Target"
+    IDS_TB_DECAL            "Decal"
+    IDS_TB_PROPERTIES       "Options"
+    IDS_TB_MAGNIFY          "Magnify"
+    IDS_TB_GATE             "Gate"
+    IDS_TB_FLASHER          "Flasher"
+    IDS_TB_SPINNER          "Spinner"
+    IDS_TB_RAMP             "Ramp"
+    IDS_TB_RUBBER           "Rubber"
+    IDS_TB_BACKGLASS        "Backglass/POV"
 END
 
 STRINGTABLE
 BEGIN
-    IDS_TB_LIGHTSEQ         "LightSeq"
     IDS_REPLACEALL          "Replaced"
     IDS_REPLACEALL2         "occurrences in script."
 END
@@ -3714,13 +3741,11 @@ BEGIN
     IDS_LOCK                "&Lock"
     IDS_MISC                "Misc"
     IDS_IMAGESIZE           "Image Size"
-    IDS_LIGHTSEQ_DESC       "LightSequencer Class"
     IDS_COPY_ELEMENT        "Copy\tCtrl+C"
     IDS_VISUALS             "Colors & Formatting"
     IDS_POSITION            "Position"
     IDS_STATE               "State & Physics"
     IDS_PHYSICS             "Physics"
-    IDS_TB_PRIMITIVE        "Primitive"
     IDS_VISUALS2            "Graphics & Camera"
     IDS_POSITION_TRANSLATION "Position & Translation"
     IDS_PASTE_ELEMENT       "Paste\tCtrl+V"
@@ -3743,36 +3768,12 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_TIMER_DESC          "Timer Class"
-    IDS_PLUNGER_DESC        "Plunger Class"
-    IDS_TB_PLUNGER          "Plunger"
-    IDS_TEXTBOX_DESC        "Textbox Class"
-    IDS_TB_TEXTBOX          "TextBox"
-    IDS_DISPREEL_DESC       "DispReel Class"
-    IDS_BUMPER_DESC         "Bumper Class"
-    IDS_TB_BUMPER           "Bumper"
-    IDS_TB_DISPREEL         "EMReel"
-    IDS_PIEVENTHANDLER_DESC "PIEventHandler Class"
-    IDS_TRIGGER_DESC        "Trigger Class"
-    IDS_TB_TRIGGER          "Trigger"
+    IDS_FORMAT              "Format"
 END
 
 STRINGTABLE
 BEGIN
-    IDS_LIGHT_DESC          "Light Class"
-    IDS_TB_LIGHT            "Light"
     IDS_DRAWING_ORDER_HIT   "&Drawing Order (Hit)"
-    IDS_KICKER_DESC         "Kicker Class"
-    IDS_TB_KICKER           "Kicker"
-    IDS_TB_TARGET           "Target"
-    IDS_TB_DECAL            "Decal"
-    IDS_TB_PROPERTIES       "Options"
-    IDS_TB_MAGNIFY          "Magnify"
-    IDS_GATE_DESC           "Gate Class"
-    IDS_TB_GATE             "Gate"
-    IDS_TB_FLASHER          "Flasher"
-    IDS_SPINNER_DESC        "Spinner Class"
-    IDS_TB_SPINNER          "Spinner"
     IDS_TO_COLLECTION       "Add/Remove &Collection"
 END
 
@@ -3780,16 +3781,13 @@ STRINGTABLE
 BEGIN
     IDS_IMAGE_RAW_SIZE      "Raw Size"
     IDS_SIZE                "Size"
-    IDS_ASSIGN_TO_LAYER     "&Assign to selected layer"
+    IDS_ASSIGN_TO_CURRENT_LAYER "&Assign to selected layer"
+    IDS_ASSIGN_TO_LAYER2    "&Assign to layer"
     IDS_DRAWING_ORDER_SELECT "D&rawing Order (Select)"
 END
 
 STRINGTABLE
 BEGIN
-    IDS_RAMP_DESC           "Ramp Class"
-    IDS_TB_RAMP             "Ramp"
-    IDS_TB_SCRIPT           "Script"
-    IDS_TB_RUBBER           "Rubber"
     IDS_NAME                "Name"
     IDS_IMPORTPATH          "Import Path"
     IDS_REPLACESOUND        "Are you sure you want to replace the selected sound(s)?"
@@ -3802,19 +3800,14 @@ BEGIN
     IDS_SAVE_CHANGES1       "Table '"
     IDS_SAVE_CHANGES2       "' has changed.  Do you want to save changes before exiting?"
     IDS_DRAWINFRONT         "Draw In &Front"
-END
-
-STRINGTABLE
-BEGIN
     IDS_DRAWINBACK          "Draw In &Back"
     IDS_SAVEERROR           "There was an error saving the file."
-    IDS_TB_BACKGLASS        "Backglass/POV"
     IDS_WRONGFILEVERSION    "This table was saved by a newer version of Visual Pinball. It's possible that it won't work well!"
     IDS_NOPASTEINVIEW       "One or more of the objects on the clipboard can not be placed into the current view."
     IDS_FINDLOOPED          "Passed the end of the file"
     IDS_FINDFAILED          "Cannot find the string '"
-    IDS_SETASDEFAULT        "Set as Default"
     IDS_FINDFAILED2         "'"
+    IDS_SETASDEFAULT        "Set element parameters as new default"
     IDS_CONTROLPOINT        "Control Point"
     IDS_REMOVEMATERIAL      "Are you sure you want to remove the selected material(s)?"
     IDS_CORRUPTFILE         "This file is corrupt and can not be loaded."
@@ -3827,7 +3820,6 @@ END
 STRINGTABLE
 BEGIN
     IDS_EDITOR              "Editor"
-    IDS_DEFAULTBALL         "Ball"
     IDS_NONE                "<None>"
     IDS_VALUE               "Value"
     IDS_MAKEACTIVEBALL      "Make ActiveBall"
@@ -3856,4 +3848,3 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-

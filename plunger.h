@@ -9,7 +9,7 @@
 
 constexpr int MAXTIPSHAPE = 256;
 
-class PlungerData : public BaseProperty
+class PlungerData final : public BaseProperty
 {
 public:
    COLORREF m_color;
@@ -25,7 +25,7 @@ public:
    int m_animFrames;
    TimerDataRoot m_tdr;
    float m_parkPosition;
-   std::string m_szSurface;
+   string m_szSurface;
    float m_scatterVelocity;
    float m_momentumXfer;
    char m_szTipShape[MAXTIPSHAPE];
@@ -138,15 +138,15 @@ public:
 
    STANDARD_EDITABLE_DECLARES(Plunger, eItemPlunger, PLUNGER, 1)
 
-   virtual void MoveOffset(const float dx, const float dy);
-   virtual void SetObjectPos();
+   void MoveOffset(const float dx, const float dy) final;
+   void SetObjectPos() final;
    // Multi-object manipulation
-   virtual Vertex2D GetCenter() const;
-   virtual void PutCenter(const Vertex2D& pv);
-   virtual void SetDefaultPhysics(bool fromMouseClick);
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemPlunger; }
+   Vertex2D GetCenter() const final;
+   void PutCenter(const Vertex2D &pv) final;
+   void SetDefaultPhysics(bool fromMouseClick) final;
+   ItemTypeEnum HitableGetItemType() const final { return eItemPlunger; }
 
-   virtual void WriteRegDefaults();
+   void WriteRegDefaults() final;
 
    DECLARE_REGISTRY_RESOURCEID(IDR_PLUNGER)
    // ISupportsErrorInfo

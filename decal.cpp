@@ -3,13 +3,14 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h" 
+#include "Shader.h"
 
 #define AUTOLEADING (tm.tmAscent - tm.tmInternalLeading/4)
 
 Decal::Decal()
 {
    m_pIFont = nullptr;
-   vertexBuffer = nullptr;
+   m_vertexBuffer = nullptr;
    m_textImg = nullptr;
    m_ptable = nullptr;
    m_leading = 0.0f;
@@ -23,11 +24,7 @@ Decal::~Decal()
    m_pIFont->Release();
    if (m_textImg)
       delete m_textImg;
-   if (vertexBuffer)
-   {
-      vertexBuffer->release();
-      vertexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
 }
 
 HRESULT Decal::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
@@ -48,27 +45,29 @@ HRESULT Decal::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Decal::SetDefaults(bool fromMouseClick)
 {
-   m_d.m_width = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Decal", "Width", 100.0f) : 100.0f;
-   m_d.m_height = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Decal", "Height", 100.0f) : 100.0f;
-   m_d.m_rotation = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Decal", "Rotation", 0.f) : 0.f;
+#define regKey regKey[RegName::DefaultPropsDecal]
 
-   HRESULT hr = LoadValue("DefaultProps\\Decal", "Image", m_d.m_szImage);
+   m_d.m_width = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Width"s, 100.0f) : 100.0f;
+   m_d.m_height = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Height"s, 100.0f) : 100.0f;
+   m_d.m_rotation = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Rotation"s, 0.f) : 0.f;
+
+   HRESULT hr = LoadValue(regKey, "Image"s, m_d.m_szImage);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szImage.clear();
 
-   hr = LoadValue("DefaultProps\\Decal", "Surface", m_d.m_szSurface);
+   hr = LoadValue(regKey, "Surface"s, m_d.m_szSurface);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szSurface.clear();
 
-   m_d.m_decaltype = fromMouseClick ? (enum DecalType)LoadValueIntWithDefault("DefaultProps\\Decal", "DecalType", (int)DecalImage) : DecalImage;
+   m_d.m_decaltype = fromMouseClick ? (enum DecalType)LoadValueIntWithDefault(regKey, "DecalType"s, (int)DecalImage) : DecalImage;
 
-   hr = LoadValue("DefaultProps\\Decal", "Text", m_d.m_sztext);
+   hr = LoadValue(regKey, "Text"s, m_d.m_sztext);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_sztext.clear();
 
-   m_d.m_sizingtype = fromMouseClick ? (enum SizingType)LoadValueIntWithDefault("DefaultProps\\Decal", "Sizing", (int)ManualSize) : ManualSize;
-   m_d.m_color = fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Decal", "Color", RGB(0,0,0)) : RGB(0,0,0);
-   m_d.m_verticalText = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Decal", "VerticalText", false) : false;
+   m_d.m_sizingtype = fromMouseClick ? (enum SizingType)LoadValueIntWithDefault(regKey, "Sizing"s, (int)ManualSize) : ManualSize;
+   m_d.m_color = fromMouseClick ? LoadValueIntWithDefault(regKey, "Color"s, RGB(0,0,0)) : RGB(0,0,0);
+   m_d.m_verticalText = fromMouseClick ? LoadValueBoolWithDefault(regKey, "VerticalText"s, false) : false;
 
    if (!m_pIFont)
    {
@@ -76,11 +75,11 @@ void Decal::SetDefaults(bool fromMouseClick)
       fd.cbSizeofstruct = sizeof(FONTDESC);
 
       float fTmp;
-      hr = LoadValue("DefaultProps\\Decal", "FontSize", fTmp);
-      fd.cySize.int64 = (hr == S_OK) && fromMouseClick ? (LONGLONG)(fTmp * 10000.0) : 142500;
+      hr = LoadValue(regKey, "FontSize"s, fTmp);
+      fd.cySize.int64 = (hr == S_OK) && fromMouseClick ? (LONGLONG)(fTmp * 10000.0f) : 142500;
 
       char tmp[MAXSTRING];
-      hr = LoadValue("DefaultProps\\Decal", "FontName", tmp, MAXSTRING);
+      hr = LoadValue(regKey, "FontName"s, tmp, MAXSTRING);
       if ((hr != S_OK) || !fromMouseClick)
          fd.lpstrName = L"Arial Black";
       else
@@ -91,14 +90,16 @@ void Decal::SetDefaults(bool fromMouseClick)
          MultiByteToWideCharNull(CP_ACP, 0, tmp, -1, fd.lpstrName, len);
       }
 
-      fd.sWeight = fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Decal", "FontWeight", FW_NORMAL) : FW_NORMAL;
-      fd.sCharset = fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Decal", "FontCharSet", 0) : 0;
-      fd.fItalic = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Decal", "FontItalic", false) : false;
-      fd.fUnderline = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Decal", "FontUnderline", false) : false;
-      fd.fStrikethrough = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Decal", "FontStrikeThrough", false) : false;
+      fd.sWeight = fromMouseClick ? LoadValueIntWithDefault(regKey, "FontWeight"s, FW_NORMAL) : FW_NORMAL;
+      fd.sCharset = fromMouseClick ? LoadValueIntWithDefault(regKey, "FontCharSet"s, 0) : 0;
+      fd.fItalic = fromMouseClick ? LoadValueBoolWithDefault(regKey, "FontItalic"s, false) : false;
+      fd.fUnderline = fromMouseClick ? LoadValueBoolWithDefault(regKey, "FontUnderline"s, false) : false;
+      fd.fStrikethrough = fromMouseClick ? LoadValueBoolWithDefault(regKey, "FontStrikeThrough"s, false) : false;
 
       OleCreateFontIndirect(&fd, IID_IFont, (void **)&m_pIFont);
    }
+
+#undef regKey
 }
 
 char * Decal::GetFontName()
@@ -117,16 +118,18 @@ char * Decal::GetFontName()
 
 void Decal::WriteRegDefaults()
 {
-   SaveValueFloat("DefaultProps\\Decal", "Width", m_d.m_width);
-   SaveValueFloat("DefaultProps\\Decal", "Height", m_d.m_height);
-   SaveValueFloat("DefaultProps\\Decal", "Rotation", m_d.m_rotation);
-   SaveValue("DefaultProps\\Decal", "Image", m_d.m_szImage);
-   SaveValueInt("DefaultProps\\Decal", "DecalType", m_d.m_decaltype);
-   SaveValue("DefaultProps\\Decal", "Text", m_d.m_sztext);
-   SaveValueInt("DefaultProps\\Decal", "Sizing", m_d.m_sizingtype);
-   SaveValueInt("DefaultProps\\Decal", "Color", m_d.m_color);
-   SaveValueBool("DefaultProps\\Decal", "VerticalText", m_d.m_verticalText);
-   SaveValue("DefaultProps\\Decal", "Surface", m_d.m_szSurface);
+#define regKey regKey[RegName::DefaultPropsDecal]
+
+   SaveValueFloat(regKey, "Width"s, m_d.m_width);
+   SaveValueFloat(regKey, "Height"s, m_d.m_height);
+   SaveValueFloat(regKey, "Rotation"s, m_d.m_rotation);
+   SaveValue(regKey, "Image"s, m_d.m_szImage);
+   SaveValueInt(regKey, "DecalType"s, m_d.m_decaltype);
+   SaveValue(regKey, "Text"s, m_d.m_sztext);
+   SaveValueInt(regKey, "Sizing"s, m_d.m_sizingtype);
+   SaveValueInt(regKey, "Color"s, m_d.m_color);
+   SaveValueBool(regKey, "VerticalText"s, m_d.m_verticalText);
+   SaveValue(regKey, "Surface"s, m_d.m_szSurface);
 
    if (m_pIFont)
    {
@@ -141,21 +144,23 @@ void Decal::WriteRegDefaults()
       m_pIFont->get_Strikethrough(&fd.fStrikethrough);
 
       const float fTmp = (float)(fd.cySize.int64 / 10000.0);
-      SaveValueFloat("DefaultProps\\Decal", "FontSize", fTmp);
+      SaveValueFloat(regKey, "FontSize"s, fTmp);
 
       const size_t charCnt = wcslen(fd.lpstrName) + 1;
       char * const strTmp = new char[2 * charCnt];
       WideCharToMultiByteNull(CP_ACP, 0, fd.lpstrName, -1, strTmp, (int)(2 * charCnt), nullptr, nullptr);
-      SaveValue("DefaultProps\\Decal", "FontName", strTmp);
+      SaveValue(regKey, "FontName"s, strTmp);
       delete[] strTmp;
       const int weight = fd.sWeight;
       const int charset = fd.sCharset;
-      SaveValueInt("DefaultProps\\Decal", "FontWeight", weight);
-      SaveValueInt("DefaultProps\\Decal", "FontCharSet", charset);
-      SaveValueInt("DefaultProps\\Decal", "FontItalic", fd.fItalic);
-      SaveValueInt("DefaultProps\\Decal", "FontUnderline", fd.fUnderline);
-      SaveValueInt("DefaultProps\\Decal", "FontStrikeThrough", fd.fStrikethrough);
+      SaveValueInt(regKey, "FontWeight"s, weight);
+      SaveValueInt(regKey, "FontCharSet"s, charset);
+      SaveValueInt(regKey, "FontItalic"s, fd.fItalic);
+      SaveValueInt(regKey, "FontUnderline"s, fd.fUnderline);
+      SaveValueInt(regKey, "FontStrikeThrough"s, fd.fStrikethrough);
    }
+
+#undef regKey
 }
 
 
@@ -281,7 +286,7 @@ void Decal::PreRenderText()
    if (m_d.m_decaltype != DecalText)
       return;
 
-   RECT rcOut = { 0 };
+   RECT rcOut = { };
    const int len = (int)m_d.m_sztext.length();
    const HFONT hFont = GetFont();
    int alignment = DT_LEFT;
@@ -292,7 +297,7 @@ void Decal::PreRenderText()
 
    TEXTMETRIC tm;
    clientDC.GetTextMetrics(tm);
-   
+
    float charheight;
    if (m_d.m_verticalText)
    {
@@ -331,18 +336,17 @@ void Decal::PreRenderText()
    m_leading = (float)tm.tmInternalLeading * invascent /*m_d.m_height*/;
    m_descent = (float)tm.tmDescent * invascent;
 
-   m_textImg = new BaseTexture(rcOut.right, rcOut.bottom, BaseTexture::RGBA, false);
+   m_textImg = new BaseTexture(rcOut.right, rcOut.bottom, BaseTexture::SRGBA);
 
    if (m_d.m_color == RGB(255, 255, 255))
       m_d.m_color = RGB(254, 255, 255); //m_pinimage.SetTransparentColor(RGB(0,0,0));
    else if (m_d.m_color == RGB(0, 0, 0))
       m_d.m_color = RGB(0, 0, 1);
 
-   BITMAPINFO bmi;
-   ZeroMemory(&bmi, sizeof(bmi));
+   BITMAPINFO bmi = {};
    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
    bmi.bmiHeader.biWidth = m_textImg->width();
-   bmi.bmiHeader.biHeight = -m_textImg->height();
+   bmi.bmiHeader.biHeight = -(LONG)m_textImg->height();
    bmi.bmiHeader.biPlanes = 1;
    bmi.bmiHeader.biBitCount = 32;
    bmi.bmiHeader.biCompression = BI_RGB;
@@ -380,11 +384,11 @@ void Decal::PreRenderText()
       dc.DrawText(m_d.m_sztext.c_str(), len, rcOut, alignment | DT_NOCLIP | DT_NOPREFIX | DT_WORDBREAK);
 
    // Copy and set to opaque
-   D3DCOLOR* __restrict bitsd = (D3DCOLOR*)bits;
-   D3DCOLOR* __restrict dest = (D3DCOLOR*)m_textImg->data();
-   for (int i = 0; i < m_textImg->height(); i++)
+   const D3DCOLOR* __restrict bitsd = (D3DCOLOR*)bits;
+         D3DCOLOR* __restrict dest = (D3DCOLOR*)m_textImg->data();
+   for (unsigned int i = 0; i < m_textImg->height(); i++)
    {
-      for (int l = 0; l < m_textImg->width(); l++, dest++, bitsd++)
+      for (unsigned int l = 0; l < m_textImg->width(); l++, dest++, bitsd++)
          *dest = *bitsd | 0xFF000000u;
       dest += m_textImg->pitch()/4 - m_textImg->width();
    }
@@ -408,14 +412,10 @@ void Decal::EndPlay()
    if (m_textImg)
    {
       delete m_textImg;
-      m_textImg = 0;
+      m_textImg = nullptr;
    }
 
-   if (vertexBuffer)
-   {
-      vertexBuffer->release();
-      vertexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
 
    IEditable::EndPlay();
 }
@@ -433,8 +433,6 @@ static constexpr WORD rgi0123[4] = { 0, 1, 2, 3 };
 void Decal::RenderSetup()
 {
    PreRenderText();
-
-   RenderDevice * const pd3dDevice = m_backglass ? g_pplayer->m_pin3d.m_pd3dSecondaryDevice : g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
 
    const float height = m_ptable->GetSurfaceHeight(m_d.m_szSurface, m_d.m_vCenter.x, m_d.m_vCenter.y) * m_ptable->m_BG_scalez[m_ptable->m_BG_current_set];
 
@@ -457,13 +455,12 @@ void Decal::RenderSetup()
    const float sn = sinf(radangle);
    const float cs = cosf(radangle);
 
-   if (vertexBuffer)
-      vertexBuffer->release();
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
    const DWORD vertexType = m_backglass ? MY_D3DTRANSFORMED_NOTEX2_VERTEX : MY_D3DFVF_NOTEX2_VERTEX;
-   pd3dDevice->CreateVertexBuffer(4, 0, vertexType, &vertexBuffer);
+   VertexBuffer::CreateVertexBuffer(4, 0, vertexType, &m_vertexBuffer, m_backglass ? SECONDARY_DEVICE : PRIMARY_DEVICE);
 
    Vertex3D_NoTex2 *vertices;
-   vertexBuffer->lock(0, 0, (void**)&vertices, VertexBuffer::WRITEONLY);
+   m_vertexBuffer->lock(0, 0, (void**)&vertices, VertexBuffer::WRITEONLY);
 
    vertices[0].x = m_d.m_vCenter.x + sn*(halfheight + leading) - cs*halfwidth;
    vertices[0].y = m_d.m_vCenter.y - cs*(halfheight + leading) - sn*halfwidth;
@@ -510,7 +507,7 @@ void Decal::RenderSetup()
    vertices[3].tu = 0;
    vertices[3].tv = 1.0f;
 
-   vertexBuffer->unlock();
+   m_vertexBuffer->unlock();
 }
 
 float Decal::GetDepth(const Vertex3Ds& viewDir) const
@@ -527,9 +524,9 @@ void Decal::RenderObject()
    RenderDevice * const pd3dDevice = m_backglass ? g_pplayer->m_pin3d.m_pd3dSecondaryDevice : g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
 
    if (m_backglass && (m_ptable->m_tblMirrorEnabled^m_ptable->m_reflectionEnabled))
-      pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_NONE);
+      pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_NONE);
    else
-      pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+      pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 
    pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
 
@@ -540,8 +537,11 @@ void Decal::RenderObject()
 
    if (m_d.m_decaltype != DecalImage)
    {
-      pd3dDevice->basicShader->SetTechnique(!m_backglass ? (mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal") : "bg_decal_with_texture");
-      pd3dDevice->basicShader->SetTexture("Texture0", pd3dDevice->m_texMan.LoadTexture(m_textImg, false));
+      if (!m_backglass)
+         pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+      else
+         pd3dDevice->basicShader->SetTechnique(SHADER_TECHNIQUE_bg_decal_with_texture);
+      pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pd3dDevice->m_texMan.LoadTexture(m_textImg, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false));
       pd3dDevice->basicShader->SetAlphaTestValue(-1.0f);
    }
    else
@@ -549,12 +549,20 @@ void Decal::RenderObject()
       Texture *const pin = m_ptable->GetImage(m_d.m_szImage);
       if (pin)
       {
-         pd3dDevice->basicShader->SetTechnique(!m_backglass ? (mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal") : "bg_decal_with_texture");
-         pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
+         if (!m_backglass)
+            pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+         else
+            pd3dDevice->basicShader->SetTechnique(SHADER_TECHNIQUE_bg_decal_with_texture);
+         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
          pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
       }
       else
-         pd3dDevice->basicShader->SetTechnique(!m_backglass ? (mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal") : "bg_decal_without_texture");
+      {
+         if (!m_backglass)
+            pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
+         else
+            pd3dDevice->basicShader->SetTechnique(SHADER_TECHNIQUE_bg_decal_without_texture);
+      }
    }
 
    // Set texture to mirror, so the alpha state of the texture blends correctly to the outside
@@ -566,26 +574,26 @@ void Decal::RenderObject()
 
    if (!m_backglass)
    {
-      constexpr float depthbias = -5.f * BASEDEPTHBIAS;
-      pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, *((DWORD*)&depthbias));
+      constexpr float depthbias = -5.f;
+      pd3dDevice->SetRenderStateDepthBias(depthbias);
    }
    else
    {
-      pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+      pd3dDevice->SetRenderStateDepthBias(0.0f);
       const vec4 staticColor(1.0f, 1.0f, 1.0f, 1.0f);
-      pd3dDevice->basicShader->SetVector("cBase_Alpha", &staticColor);
+      pd3dDevice->basicShader->SetVector(SHADER_cBase_Alpha, &staticColor);
    }
 
    pd3dDevice->basicShader->Begin(0);
-   pd3dDevice->DrawPrimitiveVB(RenderDevice::TRIANGLEFAN, m_backglass ? MY_D3DTRANSFORMED_NOTEX2_VERTEX : MY_D3DFVF_NOTEX2_VERTEX, vertexBuffer, 0, 4);
+   pd3dDevice->DrawPrimitiveVB(RenderDevice::TRIANGLEFAN, m_backglass ? MY_D3DTRANSFORMED_NOTEX2_VERTEX : MY_D3DFVF_NOTEX2_VERTEX, m_vertexBuffer, 0, 4, true);
    pd3dDevice->basicShader->End();
 
    // Set the render state.
    //pd3dDevice->SetTextureAddressMode(0, RenderDevice::TEX_WRAP);
-   //g_pplayer->m_pin3d.DisableAlphaBlend(); //!! not necessary anymore
+   //pd3dDevice->SetRenderState(RenderDevice::ALPHABLENDENABLE, RenderDevice::RS_FALSE); //!! not necessary anymore
 
    //if(m_backglass && (m_ptable->m_tblMirrorEnabled^m_ptable->m_reflectionEnabled))
-   //   pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   //   pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 }
 
 void Decal::RenderStatic()
@@ -599,7 +607,7 @@ void Decal::RenderStatic()
 
 void Decal::SetObjectPos()
 {
-    m_vpinball->SetObjectPosCur(m_d.m_vCenter.x, m_d.m_vCenter.y);
+   m_vpinball->SetObjectPosCur(m_d.m_vCenter.x, m_d.m_vCenter.y);
 }
 
 void Decal::Rotate(const float ang, const Vertex2D& pvCenter, const bool useElementCenter)
@@ -772,9 +780,7 @@ void Decal::EnsureSize()
 
 HFONT Decal::GetFont()
 {
-   LOGFONT lf;
-   ZeroMemory(&lf, sizeof(lf));
-
+   LOGFONT lf = {};
    lf.lfHeight = -72;
    lf.lfCharSet = DEFAULT_CHARSET;
    lf.lfQuality = NONANTIALIASED_QUALITY;
@@ -828,8 +834,8 @@ STDMETHODIMP Decal::put_Image(BSTR newVal)
    const Texture * const tex = m_ptable->GetImage(szImage);
    if (tex && tex->IsHDR())
    {
-       ShowError("Cannot use a HDR image (.exr/.hdr) here");
-       return E_FAIL;
+      ShowError("Cannot use a HDR image (.exr/.hdr) here");
+      return E_FAIL;
    }
    m_d.m_szImage = szImage;
 
@@ -869,7 +875,7 @@ STDMETHODIMP Decal::put_Height(float newVal)
 STDMETHODIMP Decal::get_X(float *pVal)
 {
    *pVal = m_d.m_vCenter.x;
-   m_vpinball->SetStatusBarUnitInfo("", true);
+   m_vpinball->SetStatusBarUnitInfo(string(), true);
 
    return S_OK;
 }

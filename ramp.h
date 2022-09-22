@@ -7,7 +7,7 @@
 
 #include "resource.h"       // main symbols
 
-class RampData : public BaseProperty
+class RampData final : public BaseProperty
 {
 public:
    TimerDataRoot m_tdr;
@@ -79,47 +79,46 @@ public:
    // ISupportsErrorInfo
    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid);
 
-   virtual void RenderBlueprint(Sur *psur, const bool solid);
+   void RenderBlueprint(Sur *psur, const bool solid) final;
 
-   virtual void ClearForOverwrite();
+   void ClearForOverwrite() final;
+
+   void MoveOffset(const float dx, const float dy) final;
+   void SetObjectPos() final;
+
+   void DoCommand(int icmd, int x, int y) final;
+
+   int GetMinimumPoints() const final { return 2; }
+
+   void FlipY(const Vertex2D& pvCenter) final;
+   void FlipX(const Vertex2D& pvCenter) final;
+   void Rotate(const float ang, const Vertex2D &pvCenter, const bool useElementCenter) final;
+   void Scale(const float scalex, const float scaley, const Vertex2D &pvCenter, const bool useElementCenter) final;
+   void Translate(const Vertex2D &pvOffset) final;
+
+   Vertex2D GetCenter() const final { return GetPointCenter(); }
+   void PutCenter(const Vertex2D &pv) final { PutPointCenter(pv); }
+
+   void GetBoundingVertices(vector<Vertex3Ds> &pvvertex3D) final;
+
+   bool IsTransparent() const final;
+   float GetDepth(const Vertex3Ds &viewDir) const final;
+   unsigned long long GetMaterialID() const final { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
+   unsigned long long GetImageID() const final { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
+   ItemTypeEnum HitableGetItemType() const final { return eItemRamp; }
+   void SetDefaultPhysics(bool fromMouseClick) final;
+   void ExportMesh(ObjLoader &loader) final;
+   void AddPoint(int x, int y, const bool smooth) final;
+   void UpdateStatusBarInfo() final;
+
+   void WriteRegDefaults() final;
 
    float GetSurfaceHeight(float x, float y) const;
-
-   virtual void MoveOffset(const float dx, const float dy);
-   virtual void SetObjectPos();
-
-   virtual void DoCommand(int icmd, int x, int y);
-
-   virtual int GetMinimumPoints() const { return 2; }
-
-   virtual void FlipY(const Vertex2D& pvCenter);
-   virtual void FlipX(const Vertex2D& pvCenter);
-   virtual void Rotate(const float ang, const Vertex2D& pvCenter, const bool useElementCenter);
-   virtual void Scale(const float scalex, const float scaley, const Vertex2D& pvCenter, const bool useElementCenter);
-   virtual void Translate(const Vertex2D &pvOffset);
-
-   virtual Vertex2D GetCenter() const { return GetPointCenter(); }
-   virtual void PutCenter(const Vertex2D& pv) { PutPointCenter(pv); }
-
-   virtual void GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D);
-
-   void AssignHeightToControlPoint(const RenderVertex3D &v, const float height);
-   virtual bool IsTransparent() const;
-   virtual float GetDepth(const Vertex3Ds& viewDir) const;
-   virtual unsigned long long GetMaterialID() const { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
-   virtual unsigned long long GetImageID() const { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemRamp; }
-   virtual void SetDefaultPhysics(bool fromMouseClick);
-   virtual void ExportMesh(ObjLoader& loader);
-   virtual void AddPoint(int x, int y, const bool smooth);
-   virtual void UpdateStatusBarInfo();
-
-   virtual void WriteRegDefaults();
+   bool isHabitrail() const;
 
    RampData m_d;
 
 private:
-
    PinTable *m_ptable;
 
    int m_rampVertex;
@@ -130,9 +129,9 @@ private:
    int m_numIndices;
    Vertex3D_NoTex2* m_vertBuffer;
    Vertex3D_NoTex2* m_vertBuffer2;
-   std::vector<WORD> m_meshIndices;
+   vector<WORD> m_meshIndices;
 
-   std::vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
+   vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
 
    VertexBuffer *m_dynamicVertexBuffer;
    IndexBuffer *m_dynamicIndexBuffer;
@@ -141,11 +140,9 @@ private:
 
    PropertyPane *m_propPhysics;
 
-   bool isHabitrail() const;
-
    // Get an approximation of the curve described by the control points of this ramp.
    template <typename T>
-   void GetCentralCurve(std::vector<T> &vv, const float _accuracy = -1.f) const
+   void GetCentralCurve(vector<T> &vv, const float _accuracy = -1.f) const
    {
       float accuracy;
 
@@ -168,7 +165,10 @@ private:
 
    Vertex2D *GetRampVertex(int &pcvertex, float ** const ppheight, bool ** const ppfCross, float ** const ppratio, Vertex2D **const pMiddlePoints, const float _accuracy, const bool inc_width);
    void PrepareHabitrail();
-   void AddJoint(vector<HitObject*> &pvho, const Vertex3Ds& v1, const Vertex3Ds& v2);
+
+   void AssignHeightToControlPoint(const RenderVertex3D &v, const float height);
+
+   void AddJoint(vector<HitObject *> &pvho, const Vertex3Ds &v1, const Vertex3Ds &v2);
    void AddJoint2D(vector<HitObject*> &pvho, const Vertex2D& p, const float zlow, const float zhigh);
    void CheckJoint(vector<HitObject*> &pvho, const HitTriangle * const ph3d1, const HitTriangle * const ph3d2);
 

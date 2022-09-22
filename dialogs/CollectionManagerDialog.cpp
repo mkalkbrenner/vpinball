@@ -115,9 +115,7 @@ INT_PTR CollectionManagerDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lPa
                        lvitem.iSubItem = 0;
                        ListView_GetItem(hListHwnd, &lvitem);
                        const Collection * const pcol = (Collection *)lvitem.lParam;
-                       char buf[16] = { 0 };
-                       sprintf_s(buf, "%i", pcol->m_visel.size());
-                       ListView_SetItemText(hListHwnd, i, 1, buf);
+                       ListView_SetItemText(hListHwnd, i, 1, (LPSTR)std::to_string(pcol->m_visel.size()).c_str());
                     }
                 }
             }
@@ -207,10 +205,7 @@ BOOL CollectionManagerDialog::OnCommand(WPARAM wParam, LPARAM lParam)
                 char szT[sizeof(pcol->m_wzName)/sizeof(pcol->m_wzName[0])];
                 WideCharToMultiByteNull(CP_ACP, 0, pcol->m_wzName, -1, szT, sizeof(szT), nullptr, nullptr);
                 ListView_SetItemText(hListHwnd, idx - 1, 0, szT);
-
-                char buf[16] = { 0 };
-                sprintf_s(buf, "%i", pcol->m_visel.size());
-                ListView_SetItemText(hListHwnd, idx - 1, 1, buf);
+                ListView_SetItemText(hListHwnd, idx - 1, 1, (LPSTR)std::to_string(pcol->m_visel.size()).c_str());
 
                 ListView_SetItemState(hListHwnd, -1, 0, LVIS_SELECTED);
                 ListView_SetItemState(hListHwnd, idx - 1, LVIS_SELECTED, LVIS_SELECTED);
@@ -238,10 +233,7 @@ BOOL CollectionManagerDialog::OnCommand(WPARAM wParam, LPARAM lParam)
                 char szT[sizeof(pcol->m_wzName)/sizeof(pcol->m_wzName[0])];
                 WideCharToMultiByteNull(CP_ACP, 0, pcol->m_wzName, -1, szT, sizeof(szT), nullptr, nullptr);
                 ListView_SetItemText(hListHwnd, idx + 1, 0, szT);
-
-                char buf[16] = { 0 };
-                sprintf_s(buf, "%i", pcol->m_visel.size());
-                ListView_SetItemText(hListHwnd, idx + 1, 1, buf);
+                ListView_SetItemText(hListHwnd, idx + 1, 1, (LPSTR)std::to_string(pcol->m_visel.size()).c_str());
 
                 ListView_SetItemState(hListHwnd, -1, 0, LVIS_SELECTED);
                 ListView_SetItemState(hListHwnd, idx + 1, LVIS_SELECTED, LVIS_SELECTED);
@@ -297,8 +289,8 @@ void CollectionManagerDialog::OnCancel()
 
 void CollectionManagerDialog::LoadPosition()
 {
-    const int x = LoadValueIntWithDefault("Editor", "CollectionMngPosX", 0);
-    const int y = LoadValueIntWithDefault("Editor", "CollectionMngPosY", 0);
+    const int x = LoadValueIntWithDefault(regKey[RegName::Editor], "CollectionMngPosX"s, 0);
+    const int y = LoadValueIntWithDefault(regKey[RegName::Editor], "CollectionMngPosY"s, 0);
 
     SetWindowPos(nullptr, x, y, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
@@ -306,8 +298,8 @@ void CollectionManagerDialog::LoadPosition()
 void CollectionManagerDialog::SavePosition()
 {
     const CRect rect = GetWindowRect();
-    SaveValueInt("Editor", "CollectionMngPosX", rect.left);
-    SaveValueInt("Editor", "CollectionMngPosY", rect.top);
+    SaveValueInt(regKey[RegName::Editor], "CollectionMngPosX"s, rect.left);
+    SaveValueInt(regKey[RegName::Editor], "CollectionMngPosY"s, rect.top);
 }
 
 //######################################## Collection Dialog ########################################
@@ -332,6 +324,7 @@ BOOL CollectionDialog::OnInitDialog()
     const HWND hwndOut = GetDlgItem(IDC_OUTLIST).GetHwnd();
     const HWND hwndIn = GetDlgItem(IDC_INLIST).GetHwnd();
 
+    SendMessage(hwndIn, WM_SETREDRAW, FALSE, 0); // to speed up adding the entries :/
     for (int i = 0; i < pcol->m_visel.size(); i++)
     {
         IEditable * const piedit = pcol->m_visel[i].GetIEditable();
@@ -343,9 +336,11 @@ BOOL CollectionDialog::OnInitDialog()
             ::SendMessage(hwndIn, LB_SETITEMDATA, index, (size_t)piscript);
         }
     }
+    SendMessage(hwndIn, WM_SETREDRAW, TRUE, 0);
 
     const PinTable * const ppt = pCurCollection.ppt;
 
+    SendMessage(hwndOut, WM_SETREDRAW, FALSE, 0); // to speed up adding the entries :/
     for (size_t i = 0; i < ppt->m_vedit.size(); i++)
     {
         IEditable * const piedit = ppt->m_vedit[i];
@@ -366,6 +361,7 @@ BOOL CollectionDialog::OnInitDialog()
             ::SendMessage(hwndOut, LB_SETITEMDATA, index, (size_t)piscript);
         }
     }
+    SendMessage(hwndOut, WM_SETREDRAW, TRUE, 0);
 
     return TRUE;
 }

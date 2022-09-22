@@ -6,7 +6,7 @@
 #define AFX_HITTARGET_H__A67DE998_7D97_4E03_BE91_55BFD3A48DB6__INCLUDED_
 
 #include "resource.h"
-#include <set>
+#include <inc/robin_hood.h>
 
 // Indices for RotAndTra:
 //     RotX = 0
@@ -159,21 +159,21 @@ public:
    //STDMETHOD(get_Name)(BSTR *pVal) {return E_FAIL;}
 
    //virtual HRESULT InitVBA(BOOL fNew, int id, WCHAR * const wzName);
-   virtual void WriteRegDefaults();
+   void WriteRegDefaults() final;
 
-   virtual bool IsTransparent() const;
-   virtual float GetDepth(const Vertex3Ds& viewDir) const;
-   virtual unsigned long long GetMaterialID() const { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
-   virtual unsigned long long GetImageID() const { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemHitTarget; }
+   bool IsTransparent() const final;
+   float GetDepth(const Vertex3Ds& viewDir) const final;
+   unsigned long long GetMaterialID() const final { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
+   unsigned long long GetImageID() const final { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
+   ItemTypeEnum HitableGetItemType() const final { return eItemHitTarget; }
 
-   virtual void SetDefaultPhysics(bool fromMouseClick);
-   virtual void ExportMesh(ObjLoader& loader);
+   void SetDefaultPhysics(bool fromMouseClick) final;
+   void ExportMesh(ObjLoader& loader) final;
 
-   void GenerateMesh(std::vector<Vertex3D_NoTex2> &buf);
+   void GenerateMesh(vector<Vertex3D_NoTex2> &buf);
    void TransformVertices();
    void SetMeshType(const TargetType type);
-   void UpdateStatusBarInfo();
+   void UpdateStatusBarInfo() final;
 
    HitTargetData    m_d;
 
@@ -185,7 +185,7 @@ private:
    void RenderObject();
    void UpdateTarget();
    void SetupHitObject(vector<HitObject*> &pvho, HitObject * obj, const bool setHitObject);
-   void AddHitEdge(vector<HitObject*> &pvho, std::set< std::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j, const Vertex3Ds &vi, const Vertex3Ds &vj, const bool setHitObject = true);
+   void AddHitEdge(vector<HitObject*> &pvho, robin_hood::unordered_set< robin_hood::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j, const Vertex3Ds &vi, const Vertex3Ds &vj, const bool setHitObject = true);
 
    PinTable        *m_ptable;
 
@@ -198,14 +198,14 @@ private:
    PropertyPane *m_propPosition;
    PropertyPane *m_propPhysics;
 
-   std::vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
+   vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
 
    VertexBuffer *m_vertexBuffer;
    IndexBuffer *m_indexBuffer;
 
    // Vertices for editor display & hit shape
-   std::vector<Vertex3Ds> m_hitUIVertices;
-   std::vector<Vertex3D_NoTex2> m_transformedVertices;
+   vector<Vertex3Ds> m_hitUIVertices;
+   vector<Vertex3D_NoTex2> m_transformedVertices;
    U32   m_timeStamp;
    float m_moveAnimationOffset;
    bool  m_moveAnimation;

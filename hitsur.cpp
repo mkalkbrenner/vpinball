@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 HitSur::HitSur(const HDC hdc, const float zoom, const float offx, const float offy, const int width, const int height, const int hitx, const int hity, ISelect * const pbackground) : Sur(hdc, zoom, offx, offy, width, height)
 {
@@ -187,9 +187,9 @@ void HitSur::Polygon(const Vertex2D * const rgv, const int count)
    }
 }
 // copy-pasted from above
-void HitSur::Polygon(const std::vector<RenderVertex> &rgv)
+void HitSur::Polygon(const vector<RenderVertex> &rgv)
 {
-   if (m_pcur == nullptr)
+   if (m_pcur == nullptr || rgv.empty())
       return;
 
    int x1 = SCALEXf(rgv[rgv.size() - 1].x);
@@ -238,7 +238,7 @@ void HitSur::Polygon(const std::vector<RenderVertex> &rgv)
    }
 }
 
-void HitSur::PolygonImage(const std::vector<RenderVertex> &rgv, HBITMAP hbm, const float left, const float top, const float right, const float bottom, const int bitmapwidth, const int bitmapheight)
+void HitSur::PolygonImage(const vector<RenderVertex> &rgv, HBITMAP hbm, const float left, const float top, const float right, const float bottom, const int bitmapwidth, const int bitmapheight)
 {
    Polygon(rgv);
 }

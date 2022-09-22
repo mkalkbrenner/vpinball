@@ -6,12 +6,37 @@
 
 extern int NumVideoBytes;
 
-enum
+enum TextureFilter
 {
-   TEXTURE_MODE_POINT,			// Point sampled (aka no) texture filtering.
+   TEXTURE_MODE_NONE,			// No filtering at all, single texel returned.
+   TEXTURE_MODE_POINT,			// Point sampled (aka nearest mipmap) texture filtering.
    TEXTURE_MODE_BILINEAR,		// Bilinar texture filtering. 
    TEXTURE_MODE_TRILINEAR,		// Trilinar texture filtering. 
    TEXTURE_MODE_ANISOTROPIC		// Anisotropic texture filtering. 
+};
+
+enum StereoMode
+{
+   STEREO_OFF = 0, // Disabled
+   STEREO_TB = 1, // TB (Top / Bottom)
+   STEREO_INT = 2, // Interlaced (e.g. LG TVs)
+   STEREO_FLIPPED_INT = 3, // Flipped Interlaced (e.g. LG TVs)
+   STEREO_SBS = 4, // SBS (Side by Side)
+   STEREO_ANAGLYPH_RC = 5, // Anaglyph Red/Cyan
+   STEREO_ANAGLYPH_GM = 6, // Anaglyph Green/Magenta
+   STEREO_ANAGLYPH_DUBOIS_RC = 7, // Anaglyph Dubois Red/Cyan
+   STEREO_ANAGLYPH_DUBOIS_GM = 8, // Anaglyph Dubois Green/Magenta
+   STEREO_ANAGLYPH_DEGHOSTED_RC = 9, // Anaglyph Deghosted Red/Cyan
+   STEREO_ANAGLYPH_DEGHOSTED_GM = 10, // Anaglyph Deghosted Green/Magenta
+   STEREO_ANAGLYPH_BA = 11, // Anaglyph Blue/Amber
+   STEREO_ANAGLYPH_CR = 12, // Anaglyph Cyan/Red
+   STEREO_ANAGLYPH_MR, // Anaglyph Magenta/Green
+   STEREO_ANAGLYPH_DUBOIS_CR = 14, // Anaglyph Dubois Cyan/Red
+   STEREO_ANAGLYPH_DUBOIS_MG = 15, // Anaglyph Dubois Magenta/Green
+   STEREO_ANAGLYPH_DEGHOSTED_CR = 16, // Anaglyph Deghosted Cyan/Red
+   STEREO_ANAGLYPH_DEGHOSTED_MG = 17, // Anaglyph Deghosted Magenta/Green
+   STEREO_ANAGLYPH_AB = 18, // Anaglyph Amber/Blue
+   STEREO_VR = 19, // Hardware VR set (not supported by DX9)
 };
 
 class PinProjection
@@ -22,12 +47,12 @@ public:
    void RotateView(float x, float y, float z);
    void TranslateView(const float x, const float y, const float z);
 
-   void FitCameraToVerticesFS(const std::vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback);
-   void FitCameraToVertices(const std::vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback);
+   void FitCameraToVerticesFS(const vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback);
+   void FitCameraToVertices(const vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback);
    void CacheTransform();      // compute m_matrixTotal = m_World * m_View * m_Proj
    void TransformVertices(const Vertex3Ds * const rgv, const WORD * const rgi, const int count, Vertex2D * const rgvout) const;
 
-   void ComputeNearFarPlane(const std::vector<Vertex3Ds>& verts);
+   void ComputeNearFarPlane(const vector<Vertex3Ds>& verts);
 
    Matrix3D m_matWorld;
    Matrix3D m_matView;
@@ -47,10 +72,10 @@ public:
    Pin3D();
    ~Pin3D();
 
-   HRESULT InitPin3D(const bool fullScreen, const int width, const int height, const int colordepth, int &refreshrate, const int VSync, const bool useAA, const bool stereo3D, const unsigned int FXAA, const bool sharpen, const bool useAO, const bool ss_refl);
+   HRESULT InitPin3D(const bool fullScreen, const int width, const int height, const int colordepth, int &refreshrate, const int VSync, const bool useAA, const StereoMode stereo3D, const unsigned int FXAA, const bool sharpen, const bool useAO, const bool ss_refl);
 
    void InitLayoutFS();
-   void InitLayout(const bool FSS_mode, const float xpixoff = 0.f, const float ypixoff = 0.f);
+   void InitLayout(const bool FSS_mode, const float max_separation, const float xpixoff = 0.f, const float ypixoff = 0.f);
 
    void TransformVertices(const Vertex3D_NoTex2 * const __restrict rgv, const WORD * const __restrict rgi, const int count, Vertex2D * const __restrict rgvout) const;
 
@@ -59,23 +84,12 @@ public:
 
    void Flip(const bool vsync);
 
-   void SetRenderTarget(RenderDevice * const pd3dDevice, RenderTarget* pddsSurface, RenderTarget* pddsZ) const;
-   void SetRenderTarget(RenderDevice * const pd3dDevice, RenderTarget* pddsSurface, D3DTexture* pddsZ) const;
-   void SetRenderTarget(RenderDevice * const pd3dDevice, RenderTarget* pddsSurface, void* pddsZ) const;
-   void SetPrimaryRenderTarget(RenderTarget* pddsSurface, RenderTarget* pddsZ) const;
-   void SetPrimaryRenderTarget(RenderTarget* pddsSurface, D3DTexture* pddsZ) const;
-   void SetPrimaryRenderTarget(RenderTarget* pddsSurface, void* pddsZ) const;
-   void SetSecondaryRenderTarget(RenderTarget* pddsSurface, RenderTarget* pddsZ) const;
-   void SetSecondaryRenderTarget(RenderTarget* pddsSurface, void* pddsZ) const;
-   void SetSecondaryRenderTarget(RenderTarget* pddsSurface, D3DTexture* pddsZ) const;
-
    void SetTextureFilter(RenderDevice * const pd3dDevice, const int TextureNum, const int Mode) const;
    void SetPrimaryTextureFilter(const int TextureNum, const int Mode) const;
    void SetSecondaryTextureFilter(const int TextureNum, const int Mode) const;
 
    void EnableAlphaTestReference(const DWORD alphaRefValue) const;
    void EnableAlphaBlend(const bool additiveBlending, const bool set_dest_blend = true, const bool set_blend_op = true) const;
-   void DisableAlphaBlend() const;
 
    void DrawBackground();
    void RenderPlayfieldGraphics(const bool depth_only);
@@ -84,12 +98,15 @@ public:
    const Matrix3D& GetViewTransform() const    { return m_proj.m_matView; }
    void InitPlayfieldGraphics();
    void InitLights();
+   void UpdateMatrices();
 
 private:
    void InitRenderState(RenderDevice * const pd3dDevice);
    void InitPrimaryRenderState();
    void InitSecondaryRenderState();
-   HRESULT InitPrimary(const bool fullScreen, const int colordepth, int &refreshrate, const int VSync, const bool useAA, const bool stereo3D, const unsigned int FXAA, const bool sharpen, const bool useAO, const bool ss_refl);
+   HRESULT InitPrimary(const bool fullScreen, const int colordepth, int &refreshrate, const int VSync, const bool useAA, const StereoMode stereo3D, const unsigned int FXAA, const bool sharpen, const bool useAO, const bool ss_refl);
+
+   StereoMode m_stereo3D;
 
    // Data members
 public:
@@ -97,17 +114,13 @@ public:
 
    RenderDevice* m_pd3dPrimaryDevice;
    RenderDevice* m_pd3dSecondaryDevice;
+
+   RenderTarget* m_pddsAOBackBuffer;
+   RenderTarget* m_pddsAOBackTmpBuffer;
+
    RenderTarget* m_pddsBackBuffer;
 
-   D3DTexture* m_pddsAOBackBuffer;
-   D3DTexture* m_pddsAOBackTmpBuffer;
-
-   D3DTexture* m_pdds3DZBuffer;
-
-   void* m_pddsZBuffer; // D3DTexture* or RenderTarget*, depending on HW support
-
    RenderTarget* m_pddsStatic;
-   void* m_pddsStaticZ; // D3DTexture* or RenderTarget*, depending on HW support
 
    Texture m_pinballEnvTexture; // loaded from Resources
    Texture m_builtinEnvTexture; // loaded from Resources

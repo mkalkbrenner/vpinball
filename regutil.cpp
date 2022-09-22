@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 #define VP_REGKEY_GENERAL "Software\\Visual Pinball\\"
 #define VP_REGKEY "Software\\Visual Pinball\\VP10\\"
@@ -14,15 +14,11 @@
 using namespace rapidxml;
 
 static xml_document<> xmlDoc;
-static xml_node<> *controller = nullptr;
-static xml_node<> *editor = nullptr;
-static xml_node<>* player = nullptr;
-static xml_node<>* recentdir = nullptr;
-static xml_node<>* version = nullptr;
-static std::string xmlContent;
+static xml_node<> *xmlNode[RegName::Num] = {};
+static string xmlContent;
 
 // if ini does not exist yet, loop over reg values of each subkey and fill all in
-static void InitXMLnodeFromRegistry(xml_node<> *const node, const std::string &szPath)
+static void InitXMLnodeFromRegistry(xml_node<> *const node, const string &szPath)
 {
    HKEY hk;
    LONG res = RegOpenKeyEx(HKEY_CURRENT_USER, szPath.c_str(), 0, KEY_READ, &hk);
@@ -60,7 +56,10 @@ static void InitXMLnodeFromRegistry(xml_node<> *const node, const std::string &s
       if (res != ERROR_SUCCESS)
          continue;
 
+      // old Win32xx and Win32xx 9+ docker keys
       if (strcmp((char*)pvalue, "Dock Windows") == 0) // should not happen, as a folder, not value.. BUT also should save these somehow and restore for Win32++, or not ?
+         continue;
+      if (strcmp((char*)pvalue, "Dock Settings") == 0) // should not happen, as a folder, not value.. BUT also should save these somehow and restore for Win32++, or not ?
          continue;
 
       //
@@ -103,7 +102,7 @@ static void InitXMLnodeFromRegistry(xml_node<> *const node, const std::string &s
    RegCloseKey(hk);
 }
 
-void SaveXMLregistry(const std::string &path)
+void SaveXMLregistry(const string &path)
 {
    std::ofstream myFile(path + "VPinballX.ini");
    myFile << xmlDoc;
@@ -113,17 +112,9 @@ void SaveXMLregistry(const std::string &path)
 void ClearXMLregistry()
 {
    // free self allocated strings
-   for (unsigned int i = 0; i < 5; ++i)
+   for (unsigned int i = 0; i < RegName::Num; ++i)
    {
-      xml_node<> *node;
-      switch (i)
-      {
-      case 0: node = controller; break;
-      case 1: node = editor; break;
-      case 2: node = player; break;
-      case 3: node = recentdir; break;
-      case 4: node = version; break;
-      }
+      xml_node<> * const node = xmlNode[i];
       for (xml_node<> *child = node->first_node(); child; child = child->next_sibling())
       {
          delete [] child->value();
@@ -131,7 +122,7 @@ void ClearXMLregistry()
    }
 }
 
-void InitXMLregistry(const std::string &path)
+void InitXMLregistry(const string &path)
 {
    std::stringstream buffer;
    std::ifstream myFile(path + "VPinballX.ini");
@@ -150,13 +141,13 @@ void InitXMLregistry(const std::string &path)
       xmlDoc.append_node(dcl);
    }
    else
-      xmlDoc.parse<parse_declaration_node | parse_comment_nodes | parse_normalize_whitespace>(&xmlContent[0]);
+      xmlDoc.parse<parse_declaration_node | parse_comment_nodes | parse_normalize_whitespace>((char*)xmlContent.c_str());
 
-   controller = xmlDoc.first_node("Controller");
-   if (!controller)
+   xmlNode[RegName::Controller] = xmlDoc.first_node(regKey[RegName::Controller].c_str());
+   if (!xmlNode[RegName::Controller])
    {
-      controller = xmlDoc.allocate_node(node_element, "Controller");
-      xmlDoc.append_node(controller);
+      xmlNode[RegName::Controller] = xmlDoc.allocate_node(node_element, regKey[RegName::Controller].c_str());
+      xmlDoc.append_node(xmlNode[RegName::Controller]);
    }
 
    xml_node<> *root = xmlDoc.first_node("VP10");
@@ -166,47 +157,22 @@ void InitXMLregistry(const std::string &path)
       xmlDoc.append_node(root);
    }
 
-   editor = root->first_node("Editor");
-   if (!editor)
+   for (unsigned int i = RegName::Controller+1; i < RegName::Num; ++i)
    {
-      editor = xmlDoc.allocate_node(node_element, "Editor");
-      root->append_node(editor);
-   }
-
-   player = root->first_node("Player");
-   if (!player)
-   {
-      player = xmlDoc.allocate_node(node_element, "Player");
-      root->append_node(player);
-   }
-
-   recentdir = root->first_node("RecentDir");
-   if (!recentdir)
-   {
-      recentdir = xmlDoc.allocate_node(node_element, "RecentDir");
-      root->append_node(recentdir);
-   }
-
-   version = root->first_node("Version");
-   if (!version)
-   {
-      version = xmlDoc.allocate_node(node_element, "Version");
-      root->append_node(version);
+      xmlNode[i] = root->first_node(regKey[i].c_str());
+      if (!xmlNode[i])
+      {
+         xmlNode[i] = xmlDoc.allocate_node(node_element, regKey[i].c_str());
+         root->append_node(xmlNode[i]);
+      }
    }
 
    // load or init registry values for each folder
-   for (unsigned int i = 0; i < 5; ++i)
+   for (unsigned int i = 0; i < RegName::Num; ++i)
    {
-      xml_node<> *node;
-      std::string regpath(i == 0 ? VP_REGKEY_GENERAL : VP_REGKEY);
-      switch (i)
-      {
-      case 0: node = controller; regpath += "Controller"; break;
-      case 1: node = editor; regpath += "Editor"; break;
-      case 2: node = player;  regpath += "Player"; break;
-      case 3: node = recentdir;  regpath += "RecentDir"; break;
-      case 4: node = version;  regpath += "Version"; break;
-      }
+      string regpath(i == 0 ? VP_REGKEY_GENERAL : VP_REGKEY);
+      regpath += regKey[i];
+      xml_node<> *node = xmlNode[i];
 
       if (node->first_node() == nullptr)
          InitXMLnodeFromRegistry(node, regpath); // does not exist in XML yet? -> load from registry
@@ -222,14 +188,14 @@ void InitXMLregistry(const std::string &path)
    }
 }
 #else
-void InitXMLregistry(const std::string &path) {}
-void SaveXMLregistry(const std::string &path) {}
+void InitXMLregistry(const string &path) {}
+void SaveXMLregistry(const string &path) {}
 void ClearXMLregistry() {}
 #endif
 
-static HRESULT LoadValue(const std::string &szKey, const std::string &szValue, DWORD &type, void *pvalue, DWORD size);
+static HRESULT LoadValue(const string &szKey, const string &szValue, DWORD &type, void *pvalue, DWORD size);
 
-HRESULT LoadValue(const std::string& szKey, const std::string& szValue, std::string& buffer)
+HRESULT LoadValue(const string& szKey, const string& szValue, string& buffer)
 {
    DWORD type = REG_SZ;
    char szbuffer[MAXSTRING];
@@ -240,7 +206,7 @@ HRESULT LoadValue(const std::string& szKey, const std::string& szValue, std::str
    return (type != REG_SZ) ? E_FAIL : hr;
 }
 
-HRESULT LoadValue(const std::string& szKey, const std::string& szValue, void* const szbuffer, const DWORD size)
+HRESULT LoadValue(const string& szKey, const string& szValue, void* const szbuffer, const DWORD size)
 {
    if (size > 0) // clear string in case of reg value being set, but being null string which results in szbuffer being kept as-is
       ((char*)szbuffer)[0] = '\0';
@@ -251,7 +217,7 @@ HRESULT LoadValue(const std::string& szKey, const std::string& szValue, void* co
    return (type != REG_SZ) ? E_FAIL : hr;
 }
 
-HRESULT LoadValue(const std::string &szKey, const std::string &szValue, float &pfloat)
+HRESULT LoadValue(const string &szKey, const string &szValue, float &pfloat)
 {
    DWORD type = REG_SZ;
    char szbuffer[16];
@@ -281,7 +247,7 @@ HRESULT LoadValue(const std::string &szKey, const std::string &szValue, float &p
    return hr;
 }
 
-HRESULT LoadValue(const std::string &szKey, const std::string &szValue, int &pint)
+HRESULT LoadValue(const string &szKey, const string &szValue, int &pint)
 {
    DWORD type = REG_DWORD;
    const HRESULT hr = LoadValue(szKey, szValue, type, (void *)&pint, 4);
@@ -289,7 +255,7 @@ HRESULT LoadValue(const std::string &szKey, const std::string &szValue, int &pin
    return (type != REG_DWORD) ? E_FAIL : hr;
 }
 
-HRESULT LoadValue(const std::string &szKey, const std::string &szValue, unsigned int &pint)
+HRESULT LoadValue(const string &szKey, const string &szValue, unsigned int &pint)
 {
    DWORD type = REG_DWORD;
    const HRESULT hr = LoadValue(szKey, szValue, type, (void *)&pint, 4);
@@ -297,7 +263,7 @@ HRESULT LoadValue(const std::string &szKey, const std::string &szValue, unsigned
    return (type != REG_DWORD) ? E_FAIL : hr;
 }
 
-static HRESULT LoadValue(const std::string &szKey, const std::string &szValue, DWORD &type, void *pvalue, DWORD size)
+static HRESULT LoadValue(const string &szKey, const string &szValue, DWORD &type, void *pvalue, DWORD size)
 {
    if (size == 0)
    {
@@ -306,18 +272,15 @@ static HRESULT LoadValue(const std::string &szKey, const std::string &szValue, D
    }
 
 #ifdef ENABLE_INI
-   xml_node<> *node;
-   if (szKey == "Player")
-      node = player;
-   else if (szKey == "Controller")
-      node = controller;
-   else if (szKey == "Editor")
-      node = editor;
-   else if (szKey == "RecentDir")
-      node = recentdir;
-   else if (szKey == "Version")
-      node = version;
-   else
+   xml_node<> *node = nullptr;
+   for (unsigned int i = 0; i < RegName::Num; ++i)
+      if (szKey == regKey[i])
+      {
+         node = xmlNode[i];
+         break;
+      }
+
+   if (node == nullptr)
    {
       assert(!"Bad RegKey");
       return E_FAIL;
@@ -353,7 +316,7 @@ static HRESULT LoadValue(const std::string &szKey, const std::string &szValue, D
       return E_FAIL;
    }
 #else
-   std::string szPath(szKey == "Controller" ? VP_REGKEY_GENERAL : VP_REGKEY);
+   string szPath(szKey == regKey[RegName::Controller] ? VP_REGKEY_GENERAL : VP_REGKEY);
    szPath += szKey;
 
    type = REG_NONE;
@@ -373,52 +336,49 @@ static HRESULT LoadValue(const std::string &szKey, const std::string &szValue, D
 }
 
 
-int LoadValueIntWithDefault(const std::string &szKey, const std::string &szValue, const int def)
+int LoadValueIntWithDefault(const string &szKey, const string &szValue, const int def)
 {
    int val;
    const HRESULT hr = LoadValue(szKey, szValue, val);
    return SUCCEEDED(hr) ? val : def;
 }
 
-float LoadValueFloatWithDefault(const std::string &szKey, const std::string &szValue, const float def)
+float LoadValueFloatWithDefault(const string &szKey, const string &szValue, const float def)
 {
    float val;
    const HRESULT hr = LoadValue(szKey, szValue, val);
    return SUCCEEDED(hr) ? val : def;
 }
 
-bool LoadValueBoolWithDefault(const std::string &szKey, const std::string &szValue, const bool def)
+bool LoadValueBoolWithDefault(const string &szKey, const string &szValue, const bool def)
 {
    return !!LoadValueIntWithDefault(szKey, szValue, def);
 }
 
 //
 
-static HRESULT SaveValue(const std::string &szKey, const std::string &szValue, const DWORD type, const void *pvalue, const DWORD size)
+static HRESULT SaveValue(const string &szKey, const string &szValue, const DWORD type, const void *pvalue, const DWORD size)
 {
    if (szValue.empty() || size == 0)
       return E_FAIL;
 
 #ifdef ENABLE_INI
-   xml_node<> *node;
-   if (szKey == "Player")
-      node = player;
-   else if (szKey == "Controller")
-      node = controller;
-   else if (szKey == "Editor")
-      node = editor;
-   else if (szKey == "RecentDir")
-      node = recentdir;
-   else if (szKey == "Version")
-      node = version;
-   else
+   xml_node<> *node = nullptr;
+   for (unsigned int i = 0; i < RegName::Num; ++i)
+      if (szKey == regKey[i])
+      {
+         node = xmlNode[i];
+         break;
+      }
+
+   if (node == nullptr)
    {
       assert(!"Bad RegKey");
       return E_FAIL;
    }
 
    // detect whitespace and skip, as no whitespace allowed in XML tags
-   for (unsigned int i = 0; i < szValue.length(); ++i)
+   for (size_t i = 0; i < szValue.length(); ++i)
       if (isspace(szValue[i]))
          return E_FAIL;
 
@@ -456,7 +416,7 @@ static HRESULT SaveValue(const std::string &szKey, const std::string &szValue, c
    }
 #endif
 
-   string szPath(szKey == "Controller" ? VP_REGKEY_GENERAL : VP_REGKEY);
+   string szPath(szKey == regKey[RegName::Controller] ? VP_REGKEY_GENERAL : VP_REGKEY);
    szPath += szKey;
 
    HKEY hk;
@@ -474,37 +434,37 @@ static HRESULT SaveValue(const std::string &szKey, const std::string &szValue, c
    return (RetVal == ERROR_SUCCESS) ? S_OK : E_FAIL;
 }
 
-HRESULT SaveValueBool(const std::string &szKey, const std::string &szValue, const bool val)
+HRESULT SaveValueBool(const string &szKey, const string &szValue, const bool val)
 {
    const DWORD dwval = val ? 1 : 0;
    return SaveValue(szKey, szValue, REG_DWORD, &dwval, sizeof(DWORD));
 }
 
-HRESULT SaveValueInt(const std::string &szKey, const std::string &szValue, const int val)
+HRESULT SaveValueInt(const string &szKey, const string &szValue, const int val)
 {
    return SaveValue(szKey, szValue, REG_DWORD, &val, sizeof(DWORD));
 }
 
-HRESULT SaveValueFloat(const std::string &szKey, const std::string &szValue, const float val)
+HRESULT SaveValueFloat(const string &szKey, const string &szValue, const float val)
 {
    char buf[16];
-   sprintf_s(buf, 16, "%f", val);
+   sprintf_s(buf, sizeof(buf), "%f", val);
    return SaveValue(szKey, szValue, REG_SZ, buf, lstrlen(buf));
 }
 
-HRESULT SaveValue(const std::string &szKey, const std::string &szValue, const char *val)
+HRESULT SaveValue(const string &szKey, const string &szValue, const char *val)
 {
    return SaveValue(szKey, szValue, REG_SZ, val, lstrlen(val));
 }
 
-HRESULT SaveValue(const std::string &szKey, const std::string &szValue, const string& val)
+HRESULT SaveValue(const string &szKey, const string &szValue, const string& val)
 {
    return SaveValue(szKey, szValue, REG_SZ, val.c_str(), (DWORD)val.length());
 }
 
-HRESULT DeleteValue(const std::string &szKey, const std::string &szValue)
+HRESULT DeleteValue(const string &szKey, const string &szValue)
 {
-   string szPath(szKey == "Controller" ? VP_REGKEY_GENERAL : VP_REGKEY);
+   string szPath(szKey == regKey[RegName::Controller] ? VP_REGKEY_GENERAL : VP_REGKEY);
    szPath += szKey;
 
    HKEY hk;
@@ -528,7 +488,7 @@ static HRESULT RegDelnodeRecurse(const HKEY hKeyRoot, char lpSubKey[MAX_PATH * 2
 
    LONG lResult = RegDeleteKey(hKeyRoot, lpSubKey);
 
-   if (lResult == ERROR_SUCCESS)
+   if (lResult == ERROR_SUCCESS || lResult == ERROR_FILE_NOT_FOUND)
       return S_OK;
 
    HKEY hKey;
@@ -563,7 +523,7 @@ static HRESULT RegDelnodeRecurse(const HKEY hKeyRoot, char lpSubKey[MAX_PATH * 2
 
    DWORD dwSize = MAX_PATH;
    TCHAR szName[MAX_PATH];
-   lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL, NULL, NULL, NULL);
+   lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, nullptr, nullptr, nullptr, nullptr);
 
    if (lResult == ERROR_SUCCESS)
    {
@@ -576,7 +536,7 @@ static HRESULT RegDelnodeRecurse(const HKEY hKeyRoot, char lpSubKey[MAX_PATH * 2
             break;
 
          dwSize = MAX_PATH;
-         lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, NULL, NULL, NULL, NULL);
+         lResult = RegEnumKeyEx(hKey, 0, szName, &dwSize, nullptr, nullptr, nullptr, nullptr);
       } while (lResult == ERROR_SUCCESS);
    }
 
@@ -592,9 +552,9 @@ static HRESULT RegDelnodeRecurse(const HKEY hKeyRoot, char lpSubKey[MAX_PATH * 2
    return (lResult == ERROR_SUCCESS) ? S_OK : E_FAIL;
 }
 
-HRESULT DeleteSubKey(const std::string &szKey)
+HRESULT DeleteSubKey(const string &szKey)
 {
-   string szPath(szKey == "Controller" ? VP_REGKEY_GENERAL : VP_REGKEY);
+   string szPath(szKey == regKey[RegName::Controller] ? VP_REGKEY_GENERAL : VP_REGKEY);
    szPath += szKey;
 
    char szDelKey[MAX_PATH * 2];

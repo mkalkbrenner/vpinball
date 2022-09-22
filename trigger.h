@@ -7,13 +7,13 @@
 
 #include "resource.h"
 
-class TriggerData : public BaseProperty
+class TriggerData final : public BaseProperty
 {
 public:
    Vertex2D m_vCenter;
    float m_radius;
    TimerDataRoot m_tdr;
-   std::string m_szSurface;
+   string m_szSurface;
    TriggerShape m_shape;
    float m_rotation;
    float m_scaleX;
@@ -71,36 +71,36 @@ public:
    // ISupportsErrorInfo
    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid);
 
-   virtual void RenderBlueprint(Sur *psur, const bool solid);
+   void RenderBlueprint(Sur *psur, const bool solid) final;
 
-   virtual void MoveOffset(const float dx, const float dy);
-   virtual void SetObjectPos();
+   void MoveOffset(const float dx, const float dy) final;
+   void SetObjectPos() final;
 
-   virtual void EditMenu(CMenu &hmenu);
-   virtual void DoCommand(int icmd, int x, int y);
+   void EditMenu(CMenu &hmenu) final;
+   void DoCommand(int icmd, int x, int y) final;
 
    // Multi-object manipulation
-   virtual void FlipY(const Vertex2D& pvCenter);
-   virtual void FlipX(const Vertex2D& pvCenter);
-   virtual void Rotate(const float ang, const Vertex2D& pvCenter, const bool useElementCenter);
-   virtual void Scale(const float scalex, const float scaley, const Vertex2D& pvCenter, const bool useElementCenter);
-   virtual void Translate(const Vertex2D &pvOffset);
-   virtual Vertex2D GetCenter() const { return GetPointCenter(); }
-   virtual Vertex2D GetScale() const { return Vertex2D(m_d.m_scaleX, m_d.m_scaleY); }
-   virtual float GetRotate() const { return m_d.m_rotation; }
+   void FlipY(const Vertex2D& pvCenter) final;
+   void FlipX(const Vertex2D& pvCenter) final;
+   void Rotate(const float ang, const Vertex2D& pvCenter, const bool useElementCenter) final;
+   void Scale(const float scalex, const float scaley, const Vertex2D& pvCenter, const bool useElementCenter) final;
+   void Translate(const Vertex2D &pvOffset) final;
+   Vertex2D GetCenter() const final { return GetPointCenter(); }
+   Vertex2D GetScale() const final { return Vertex2D(m_d.m_scaleX, m_d.m_scaleY); }
+   float GetRotate() const final { return m_d.m_rotation; }
 
-   virtual void PutCenter(const Vertex2D& pv) { PutPointCenter(pv); }
-   virtual Vertex2D GetPointCenter() const;
-   virtual void PutPointCenter(const Vertex2D& pv);
-   virtual void ExportMesh(ObjLoader& loader);
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemTrigger; }
-   virtual void UpdateStatusBarInfo();
+   void PutCenter(const Vertex2D& pv) final { PutPointCenter(pv); }
+   Vertex2D GetPointCenter() const final;
+   void PutPointCenter(const Vertex2D& pv) final;
+   void ExportMesh(ObjLoader& loader) final;
+   ItemTypeEnum HitableGetItemType() const final { return eItemTrigger; }
+   void UpdateStatusBarInfo() final;
 
-   virtual unsigned long long GetMaterialID() const { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
+   unsigned long long GetMaterialID() const final { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
 
-   virtual void ClearForOverwrite();
+   void ClearForOverwrite() final;
 
-   virtual void WriteRegDefaults();
+   void WriteRegDefaults() final;
 
    void TriggerAnimationHit();
    void TriggerAnimationUnhit();
@@ -123,7 +123,7 @@ private:
 
    VertexBuffer *m_vertexBuffer;
    IndexBuffer *m_triggerIndexBuffer;
-   std::vector<Vertex3Ds> m_vertices;
+   vector<Vertex3Ds> m_vertices;
    const WORD *m_faceIndices;
    Vertex3D_NoTex2 *m_triggerVertices;
 

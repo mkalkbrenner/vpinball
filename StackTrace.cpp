@@ -106,8 +106,10 @@ int StackTrace::GetCallStack(void* vcontext, Address* callStack, int maxDepth,
 #ifndef _WIN64
 	uintptr_t* ebpReg;
 	uintptr_t espReg;
+	// clang-format off
 	__asm mov [ebpReg], ebp
 	__asm mov [espReg], esp
+	// clang-format on
 #else
 	uintptr_t ebpReg[2];
 	uintptr_t espReg;
@@ -198,8 +200,7 @@ int StackTrace::GetSymbolInfo(Address address, char* symbol, int maxSymbolLen)
 
 	const DWORD64 address64 = (DWORD64)address;
 	// Module name
-	IMAGEHLP_MODULE64 moduleInfo;
-	ZeroMemory(&moduleInfo, sizeof(moduleInfo));
+	IMAGEHLP_MODULE64 moduleInfo = {};
 	moduleInfo.SizeOfStruct = sizeof(moduleInfo);
 	const HANDLE hCurrentProcess = GetCurrentProcess();
 	if (SymGetModuleInfo64(hCurrentProcess, address64, &moduleInfo))
@@ -235,8 +236,7 @@ int StackTrace::GetSymbolInfo(Address address, char* symbol, int maxSymbolLen)
 
 	// File + line
 	DWORD displacementLine;
-	IMAGEHLP_LINE64 lineInfo;
-	ZeroMemory(&lineInfo, sizeof(lineInfo));
+	IMAGEHLP_LINE64 lineInfo = {};
 	lineInfo.SizeOfStruct = sizeof(lineInfo);
 	if (SymGetLineFromAddr64(hCurrentProcess, address64, &displacementLine, &lineInfo))
 	{

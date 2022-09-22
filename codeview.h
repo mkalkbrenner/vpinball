@@ -7,7 +7,6 @@
 #include "codeviewedit.h"
 #include "ScriptErrorDialog.h"
 #include "inc\scintilla.h"
-#include "inc\scilexer.h"
 
 #define MAX_FIND_LENGTH 81
 #define MAX_LINE_LENGTH 2048
@@ -51,11 +50,11 @@ class DebuggerModule :
 
    void Init(CodeViewer * const pcv);
 
-   virtual IDispatch *GetDispatch() { return (IDispatch *)this; }
-   virtual const IDispatch *GetDispatch() const { return (const IDispatch *)this; }
+   IDispatch *GetDispatch() final { return (IDispatch *)this; }
+   const IDispatch *GetDispatch() const final { return (const IDispatch *)this; }
 
-   virtual ISelect *GetISelect() { return nullptr; }
-   virtual const ISelect *GetISelect() const { return nullptr; }
+   ISelect *GetISelect() final { return nullptr; }
+   const ISelect *GetISelect() const final { return nullptr; }
 
    STDMETHOD(get_Name)(BSTR *pVal);
 
@@ -76,15 +75,15 @@ public:
    CodeViewDispatch() {}
    ~CodeViewDispatch() {}
 
-   std::wstring m_wName;
+   wstring m_wName;
    IUnknown *m_punk;
    IDispatch *m_pdisp;
    IScriptable *m_piscript;
    bool m_global;
 
    // for VectorSortString
-   int SortAgainst(const CodeViewDispatch * const pcvd/*void *pvoid*/) const;
-   int SortAgainstValue(const std::wstring &pv) const;
+   int SortAgainst(const CodeViewDispatch * const pcvd/*void *pvoid*/) const { return SortAgainstValue(pcvd->m_wName); }
+   int SortAgainstValue(const wstring &pv) const;
 };
 
 class CodeViewer :
@@ -94,12 +93,10 @@ class CodeViewer :
 	//public CComCoClass<CodeViewer,&CLSID_DragPoint>,
 	//public CComObjectRootEx<CComSingleThreadModel>,
 	public IActiveScriptSite,
-    public IActiveScriptSiteDebug,
+	public IActiveScriptSiteDebug,
 	public IActiveScriptSiteWindow,
 	public IInternetHostSecurityManager,
-	public IServiceProvider,
-	public UserData,
-	public CVPrefrence
+	public IServiceProvider
 {
 public:
    CodeViewer();
@@ -247,8 +244,8 @@ public:
    void LoadFromFile(const string& filename);
    void SetCaption(const string& szCaption);
 
-   bool ShowTooltip(const SCNotification *Scn);
-   void ShowAutoComplete(SCNotification *pSCN);
+   bool ShowTooltipOrGoToDefinition(const SCNotification *pSCN, const bool tooltip);
+   void ShowAutoComplete(const SCNotification *pSCN);
 
    void UpdateRegWithPrefs();
    void UpdatePrefsfromReg();
@@ -276,8 +273,9 @@ public:
 
    COLORREF m_prefCols[16];
    COLORREF m_bgColor;
-   CVPrefrence *m_prefEverythingElse;
-   vector<CVPrefrence*> *m_lPrefsList;
+   COLORREF m_bgSelColor;
+   CVPreference *m_prefEverythingElse;
+   vector<CVPreference*> *m_lPrefsList;
 
    int m_displayAutoCompleteLength;
 
@@ -297,7 +295,7 @@ public:
    bool m_dwellDisplay;
    int m_dwellDisplayTime;
 
-   vector<UserData> *m_pageConstructsDict;
+   vector<UserData> m_pageConstructsDict;
    Sci_TextRange m_wordUnderCaret;
 
    CComObject<DebuggerModule> *m_pdm; // Object to expose to script for global functions
@@ -319,24 +317,24 @@ public:
    vector<char> original_table_script; // if yes, then this one stores the original table script
 
 protected:
-    virtual void PreCreate(CREATESTRUCT& cs);
-    virtual void PreRegisterClass(WNDCLASS& wc);
-    virtual int  OnCreate(CREATESTRUCT& cs);
-    virtual LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
-    virtual BOOL OnCommand(WPARAM wparam, LPARAM lparam);
-    virtual LRESULT OnNotify(WPARAM wparam, LPARAM lparam);
-    virtual void Destroy();
+   void PreCreate(CREATESTRUCT& cs) final;
+   void PreRegisterClass(WNDCLASS& wc) final;
+   int  OnCreate(CREATESTRUCT& cs) final;
+   LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam) final;
+   BOOL OnCommand(WPARAM wparam, LPARAM lparam) final;
+   LRESULT OnNotify(WPARAM wparam, LPARAM lparam) final;
+   void Destroy() final;
 
 private:
    CodeViewer* GetCodeViewerPtr();
-   BOOL ParseClickEvents(const int id);
-   BOOL ParseSelChangeEvent(const int id, SCNotification *pscn);
+   BOOL ParseClickEvents(const int id, const SCNotification *pSCN);
+   BOOL ParseSelChangeEvent(const int id, const SCNotification *pSCN);
 
    bool ParseOKLineLength(const size_t LineLen);
-   void ParseDelimtByColon(string &result, string &wholeline);
+   string ParseDelimtByColon(string &wholeline);
    void ParseFindConstruct(size_t &Pos, const string &UCLine, WordType &Type, int &ConstructSize);
-   bool ParseStructureName(vector<UserData> *ListIn, UserData ud, const string &UCline, const string &line, const int Lineno);
-   
+   bool ParseStructureName(vector<UserData>& ListIn, UserData ud, const string &UCline, const string &line, const int Lineno);
+
    size_t SureFind(const string &LineIn, const string &ToFind);
    void RemoveByVal(string &line); 
    void RemoveNonVBSChars(string &line);
@@ -347,9 +345,9 @@ private:
 
    void ParseVPCore();
    
-   void ReadLineToParseBrain(string wholeline, const int linecount, vector<UserData> *ListIn);
+   void ReadLineToParseBrain(string wholeline, const int linecount, vector<UserData>& ListIn);
 
-   void GetMembers(vector<UserData>* ListIn, const string &StrIn);
+   void GetMembers(const vector<UserData>& ListIn, const string &StrIn);
 
    void InitPreferences();
 
@@ -368,7 +366,7 @@ private:
     */
    void SetLastErrorVisibility(bool show);
    void SetLastErrorTextW(const LPCWSTR text);
-   void AppendLastErrorTextW(const std::wstring& text);
+   void AppendLastErrorTextW(const wstring& text);
 
    IActiveScriptParse* m_pScriptParse;
    IActiveScriptDebug* m_pScriptDebug;
@@ -389,27 +387,30 @@ private:
    VectorSortString<CodeViewDispatch*> m_vcvdTemp; // Objects added through script
 
    string m_validChars;
-   string m_VBvalidChars;
+   const string m_VBvalidChars;
 
    // CodeViewer Preferences
-   CVPrefrence *prefDefault;
-   CVPrefrence *prefVBS;
-   CVPrefrence *prefComps;
-   CVPrefrence *prefSubs;
-   CVPrefrence *prefComments;
-   CVPrefrence *prefLiterals;
-   CVPrefrence *prefVPcore;
-   //bool ParentTreeInvalid;
+   CVPreference *prefDefault;
+   CVPreference *prefVBS;
+   CVPreference *prefComps;
+   CVPreference *prefSubs;
+   CVPreference *prefComments;
+   CVPreference *prefLiterals;
+   CVPreference *prefVPcore;
+
+   int m_parentLevel = 0;
+   string m_currentParentKey; // always lower case
+   //bool m_parentTreeInvalid;
    //TODO: int TabStop;
 
    // keyword lists
    string m_vbsKeyWords;
-   vector<string> *m_autoCompList;
+   vector<string> m_autoCompList;
    // Dictionaries
-   vector<UserData> *m_VBwordsDict;
-   vector<UserData> *m_componentsDict;
-   vector<UserData> *m_VPcoreDict;
-   vector<UserData> *m_currentMembers;
+   vector<UserData> m_VBwordsDict;
+   vector<UserData> m_componentsDict;
+   vector<UserData> m_VPcoreDict;
+   vector<UserData> m_currentMembers;
    string m_autoCompString;
    string m_autoCompMembersString;
    Sci_TextRange m_currentConstruct;
@@ -456,16 +457,16 @@ public:
 
    // IScriptable
    STDMETHOD(get_Name)(BSTR *pVal);
-   virtual IDispatch *GetDispatch() { return (IDispatch *)this; }
-   virtual const IDispatch *GetDispatch() const { return (const IDispatch *)this; }
+   IDispatch *GetDispatch() final { return (IDispatch *)this; }
+   const IDispatch *GetDispatch() const final { return (const IDispatch *)this; }
 
-   virtual ISelect *GetISelect() { return nullptr; }
-   virtual const ISelect *GetISelect() const { return nullptr; }
+   ISelect *GetISelect() final { return nullptr; }
+   const ISelect *GetISelect() const final { return nullptr; }
 
    //ILoadable
-   virtual HRESULT SaveData(IStream *pstm, HCRYPTHASH hcrypthash, const bool backupForPlay);
-   virtual HRESULT LoadData(IStream *pstm, PinTable *ppt, int version, HCRYPTHASH hcrypthash, HCRYPTKEY hcryptkey);
-   virtual bool LoadToken(const int id, BiffReader * const pbr);
+   HRESULT SaveData(IStream *pstm, HCRYPTHASH hcrypthash, const bool backupForPlay);
+   HRESULT LoadData(IStream *pstm, PinTable *ppt, int version, HCRYPTHASH hcrypthash, HCRYPTKEY hcryptkey);
+   bool LoadToken(const int id, BiffReader * const pbr) final;
 
    STDMETHOD(get_Count)(long __RPC_FAR *plCount);
    STDMETHOD(get_Item)(long index, IDispatch __RPC_FAR * __RPC_FAR *ppidisp);
@@ -516,22 +517,20 @@ private:
 
 // general string helpers:
 
-inline bool IsWhitespace(const char ch)
+__forceinline bool IsWhitespace(const char ch)
 {
    return (ch == ' ' || ch == 9/*tab*/);
 }
 
-inline string upperCase(string input)
+__forceinline string upperCase(string input)
 {
-   for (string::iterator it = input.begin(); it != input.end(); ++it)
-      *it = toupper(*it);
+   std::transform(input.begin(), input.end(), input.begin(), ::toupper);
    return input;
 }
 
-inline string lowerCase(string input)
+__forceinline string lowerCase(string input)
 {
-   for (string::iterator it = input.begin(); it != input.end(); ++it)
-      *it = tolower(*it);
+   std::transform(input.begin(), input.end(), input.begin(), ::tolower);
    return input;
 }
 
@@ -561,8 +560,8 @@ inline void RemovePadding(string &line)
 
 inline string ParseRemoveVBSLineComments(string &Line)
 {
-    const size_t commentIdx = Line.find("'");
-    if (commentIdx == string::npos) return "";
+    const size_t commentIdx = Line.find('\'');
+    if (commentIdx == string::npos) return string();
     string RetVal = Line.substr(commentIdx + 1, string::npos);
     RemovePadding(RetVal);
     if (commentIdx > 0)

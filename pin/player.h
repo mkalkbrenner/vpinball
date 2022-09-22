@@ -10,6 +10,14 @@
 
 constexpr int DBG_SPRITE_SIZE = 1024;
 
+enum VRPreviewMode
+{
+   VRPREVIEW_DISABLED,
+   VRPREVIEW_LEFT,
+   VRPREVIEW_RIGHT,
+   VRPREVIEW_BOTH
+};
+
 // NOTE that the following four definitions need to be in sync in their order!
 enum EnumAssignKeys
 {
@@ -107,6 +115,7 @@ static constexpr int regkey_idc[eCKeys] = {
    -1
 };
 
+#ifndef ENABLE_SDL
 // Note: Nowadays the original code seems to be counter-productive, so we use the official
 // pre-rendered frame mechanism instead where possible
 // (e.g. all windows versions except for XP and no "EnableLegacyMaximumPreRenderedFrames" set in the registry)
@@ -136,7 +145,7 @@ class FrameQueueLimiter
 public:
    void Init(RenderDevice * const pd3dDevice, const int numFrames)
    {
-      const int EnableLegacyMaximumPreRenderedFrames = LoadValueIntWithDefault("Player", "EnableLegacyMaximumPreRenderedFrames", 0);
+      const int EnableLegacyMaximumPreRenderedFrames = LoadValueIntWithDefault(regKey[RegName::Player], "EnableLegacyMaximumPreRenderedFrames"s, 0);
 
       // if available, use the official RenderDevice mechanism
       if (!EnableLegacyMaximumPreRenderedFrames && pd3dDevice->SetMaximumPreRenderedFrames(numFrames))
@@ -153,10 +162,7 @@ public:
    void Shutdown()
    {
       for (size_t i = 0; i < m_buffers.size(); ++i)
-      {
-         if (m_buffers[i])
-            m_buffers[i]->release();
-      }
+         SAFE_BUFFER_RELEASE(m_buffers[i]);
    }
 
    void Execute(RenderDevice * const pd3dDevice)
@@ -165,17 +171,17 @@ public:
          return;
 
       if (m_buffers[m_curIdx])
-         pd3dDevice->DrawPrimitiveVB(RenderDevice::TRIANGLEFAN, MY_D3DFVF_NOTEX2_VERTEX, m_buffers[m_curIdx], 0, 3);
+         pd3dDevice->DrawPrimitiveVB(RenderDevice::TRIANGLEFAN, MY_D3DFVF_NOTEX2_VERTEX, m_buffers[m_curIdx], 0, 3, true);
 
       m_curIdx = (m_curIdx + 1) % m_buffers.size();
 
       if (!m_buffers[m_curIdx])
-         pd3dDevice->CreateVertexBuffer(1024, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_buffers[m_curIdx]);
+         VertexBuffer::CreateVertexBuffer(1024, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_buffers[m_curIdx], PRIMARY_DEVICE);
 
       // idea: locking a static vertex buffer stalls the pipeline if that VB is still
       // in the GPU render queue. In effect, this lets the GPU catch up.
       Vertex3D_NoTex2* buf;
-      m_buffers[m_curIdx]->lock(0, 0, (void**)&buf, 0);
+      m_buffers[m_curIdx]->lock(0, 0, (void**)&buf, VertexBuffer::WRITEONLY);
       memset(buf, 0, 3 * sizeof(buf[0]));
       buf[0].z = buf[1].z = buf[2].z = 1e5f;      // single triangle, degenerates to point far off screen
       m_buffers[m_curIdx]->unlock();
@@ -187,9 +193,19 @@ public:
    }
 
 private:
-   std::vector<VertexBuffer*> m_buffers;
+   vector<VertexBuffer*> m_buffers;
    size_t m_curIdx;
 };
+#else
+class FrameQueueLimiter
+{
+public:
+   static void Init(RenderDevice * const pd3dDevice, const int numFrames)
+   {
+      pd3dDevice->SetMaximumPreRenderedFrames(numFrames);
+   }
+};
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -251,10 +267,11 @@ public:
    Player(const bool cameraMode, PinTable * const ptable);
    virtual ~Player();
 
-   virtual void PreRegisterClass(WNDCLASS& wc);
-   virtual void PreCreate(CREATESTRUCT& cs);
-   virtual void OnInitialUpdate();
-   virtual LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
+   void CreateWnd(HWND parent = 0);
+   virtual void PreRegisterClass(WNDCLASS& wc) override;
+   virtual void PreCreate(CREATESTRUCT& cs) override;
+   virtual void OnInitialUpdate() override;
+   virtual LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
 private:
    void RenderStaticMirror(const bool onlyBalls);
@@ -322,11 +339,18 @@ public:
    float ParseLog(LARGE_INTEGER *pli1, LARGE_INTEGER *pli2);
 #endif
 
+#ifndef ENABLE_SDL
    void DMDdraw(const float DMDposx, const float DMDposy, const float DMDwidth, const float DMDheight, const COLORREF DMDcolor, const float intensity);
+#endif
    void Spritedraw(const float posx, const float posy, const float width, const float height, const COLORREF color, Texture* const tex, const float intensity, const bool backdrop=false);
-   void Spritedraw(const float posx, const float posy, const float width, const float height, const COLORREF color, D3DTexture* const tex, const float intensity, const bool backdrop=false);
+   void Spritedraw(const float posx, const float posy, const float width, const float height, const COLORREF color, Sampler* const tex, const float intensity, const bool backdrop=false);
 
+#ifdef ENABLE_SDL
+   SDL_Window  *m_sdl_playfieldHwnd;
+   SDL_Window  *m_sdl_backdropHwnd;
+#endif
    Shader      *m_ballShader;
+
    IndexBuffer *m_ballIndexBuffer;
    VertexBuffer *m_ballVertexBuffer;
    VertexBuffer *m_ballTrailVertexBuffer;
@@ -345,13 +369,13 @@ public:
    Ball *m_pactiveballBC;    // ball that the ball control UI will use
    Vertex3Ds *m_pBCTarget;   // If non-null, the target location for the ball to roll towards
 
-   std::vector<Ball*> m_vball;
-   std::vector<HitFlipper*> m_vFlippers;
+   vector<Ball*> m_vball;
+   vector<HitFlipper*> m_vFlippers;
 
    vector<AnimObject*> m_vanimate; // animated objects that need frame updates
 
    vector<HitTimer*> m_vht;
-   std::vector<TimerOnOff> m_changed_vht; // stores all en/disable changes to the m_vht timer list, to avoid problems with timers dis/enabling themselves
+   vector<TimerOnOff> m_changed_vht; // stores all en/disable changes to the m_vht timer list, to avoid problems with timers dis/enabling themselves
 
    Vertex3Ds m_gravity;
 
@@ -404,7 +428,7 @@ public:
 
    bool m_stereo3Denabled;
    bool m_stereo3DY;
-   int m_stereo3D; // 0=off, 1=top/down, 2=interlaced/LG, 3=sidebyside, else anaglyph: 4=Red/Cyan, 5=Green/Magenta, 6=Dubois Red/Cyan, 7=Dubois Green/Magenta, 8=Deghosted Red/Cyan, 9=Deghosted Green/Magenta, 10=Blue/Amber
+   StereoMode m_stereo3D;
    float m_global3DContrast;
    float m_global3DDesaturation;
 
@@ -434,6 +458,7 @@ public:
 
    bool m_reflectionForBalls;
    bool m_trailForBalls;
+   bool m_disableLightingForBalls;
 
    bool m_throwBalls;
    bool m_ballControl;
@@ -491,7 +516,7 @@ public:
    bool m_cabinetMode;
    bool m_meshAsPlayfield;
    bool m_recordContacts;             // flag for DoHitTest()
-   std::vector< CollisionEvent > m_contacts;
+   vector< CollisionEvent > m_contacts;
    char m_ballShaderTechnique[MAX_PATH];
 
    int2 m_dmd;
@@ -507,13 +532,13 @@ public:
 #else
 private:
 #endif
-   std::vector<MoverObject*> m_vmover; // moving objects for physics simulation
+   vector<MoverObject*> m_vmover; // moving objects for physics simulation
 #ifdef LOG
 private:
 #endif
    vector<HitObject*> m_vho;
 
-   std::vector<Ball*> m_vballDelete;   // Balls to free at the end of the frame
+   vector<Ball*> m_vballDelete;   // Balls to free at the end of the frame
 
    /*HitKD*/HitQuadtree m_hitoctree;
 
@@ -536,9 +561,9 @@ private:
    U64 m_lastFlipTime;
 
    // all Hitables obtained from the table's list of Editables
-   std::vector< Hitable* > m_vhitables;
-   std::vector< Hitable* > m_vHitNonTrans; // non-transparent hitables
-   std::vector< Hitable* > m_vHitTrans;    // transparent hitables
+   vector< Hitable* > m_vhitables;
+   vector< Hitable* > m_vHitNonTrans; // non-transparent hitables
+   vector< Hitable* > m_vHitTrans;    // transparent hitables
 
    int2 m_curAccel[PININ_JOYMXCNT];
 
@@ -646,7 +671,11 @@ public:
    DebuggerDialog m_debuggerDialog;
 
 private:
+#ifdef ENABLE_SDL
+   TTF_Font *m_pFont;
+#else
    ID3DXFont *m_pFont;
    LPD3DXSPRITE m_fontSprite;
    RECT     m_fontRect;
+#endif
 };

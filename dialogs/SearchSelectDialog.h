@@ -15,7 +15,7 @@ protected:
    virtual void OnCancel();
 
 private:
-   bool IsValidString(const std::string &name);
+   bool IsValidString(const string &name);
    void AddSearchItemToList(IEditable * const piedit, int idx);
 
    void LoadPosition();
@@ -26,8 +26,8 @@ private:
    HWND m_hElementList;
    CResizer m_resizer;
    CCO(PinTable) *m_curTable;
-   static int m_columnSortOrder;
    static int m_lastSortColumn;
+   static bool m_columnSortOrder;
    static bool m_switchSortOrder;
 };
 

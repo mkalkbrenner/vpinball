@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 HANDLE g_hWorkerStarted;
 
@@ -11,8 +11,7 @@ VOID CALLBACK HangSnoopProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime
    if (!g_pplayer->m_pause && newvalue == lasthangsnoopvalue && !g_pplayer->m_ModalRefCount)
    {
       // Nothing happened since the last time - we are probably hung
-      EXCEPINFO eiInterrupt;
-      ZeroMemory(&eiInterrupt, sizeof(eiInterrupt));
+      EXCEPINFO eiInterrupt = {};
       const LocalString ls(IDS_HANG);
       const WCHAR * const wzError = MakeWide(ls.m_szbuffer);
       eiInterrupt.bstrDescription = SysAllocString(wzError);
@@ -80,7 +79,7 @@ void CompleteAutoSave(HANDLE hEvent, LPARAM lParam)
 
    FastIStorage * const pstgroot = pasp->pstg;
 
-   const std::wstring wzT = g_pvp->m_wzMyPath + L"AutoSave" + std::to_wstring(pasp->tableindex) + L".vpx";
+   const wstring wzT = g_pvp->m_wzMyPath + L"AutoSave" + std::to_wstring(pasp->tableindex) + L".vpx";
 
    //MAKE_WIDEPTR_FROMANSI(wszCodeFile, m_szFileName);
 

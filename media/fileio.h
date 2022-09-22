@@ -2,11 +2,11 @@
 #define FID(A) (int)((unsigned int)(#A[0])|((unsigned int)(#A[1])<<8)|((unsigned int)(#A[2])<<16)|((unsigned int)(#A[3])<<24))
 
 bool Exists(const string& filePath);
-void TitleFromFilename(const string& szfilename, string& sztitle);
-void ExtensionFromFilename(const string& szfilename, string& szextension);
+string TitleFromFilename(const string& szfilename);
+string ExtensionFromFilename(const string& szfilename);
 bool RawReadFromFile(const char * const szfilename, int *const psize, char **pszout);
-void PathFromFilename(const string& szfilename, string& szpath);
-void TitleAndPathFromFilename(const char * const szfilename, char *szpath);
+string PathFromFilename(const string& szfilename);
+string TitleAndPathFromFilename(const char * const szfilename);
 bool ReplaceExtensionFromFilename(string& szfilename, const string& newextension);
 
 class BiffReader;
@@ -17,14 +17,14 @@ public:
    virtual bool LoadToken(const int id, BiffReader * const pbr) = 0;
 };
 
-class BiffWriter
+class BiffWriter final
 {
 public:
    BiffWriter(IStream *pistream, const HCRYPTHASH hcrypthash);
 
    HRESULT WriteInt(const int id, const int value);
    HRESULT WriteString(const int id, const char * const szvalue);
-   HRESULT WriteString(const int id, const std::string& szvalue);
+   HRESULT WriteString(const int id, const string& szvalue);
 
    HRESULT WriteWideString(const int id, const WCHAR * const wzvalue);
    HRESULT WriteWideString(const int id, const std::basic_string<WCHAR>& wzvalue);
@@ -44,7 +44,7 @@ public:
    HCRYPTHASH m_hcrypthash;
 };
 
-class BiffReader
+class BiffReader final
 {
 public:
    BiffReader(IStream *pistream, ILoadable *piloadable, void *ppassdata, const int version, const HCRYPTHASH hcrypthash, const HCRYPTKEY hcryptkey);
@@ -74,7 +74,7 @@ public:
       return hr;
    }
    HRESULT GetString(char * const szvalue, const DWORD szvalue_maxlength);
-   HRESULT GetString(std::string& szvalue);
+   HRESULT GetString(string& szvalue);
    HRESULT GetWideString(WCHAR* wzvalue, const DWORD wzvalue_maxlength);
    HRESULT GetWideString(std::basic_string<WCHAR>& wzvalue);
    HRESULT GetFloat(float &value);
@@ -91,7 +91,7 @@ public:
    HRESULT GetVector3(Vertex3Ds& vec);
    HRESULT GetVector3Padded(Vertex3Ds& vec);
 
-   HRESULT ReadBytes(void *pv, const unsigned long count, unsigned long *foo);
+   HRESULT ReadBytes(void * const pv, const unsigned long count, unsigned long * const foo);
 
    HRESULT Load();
 

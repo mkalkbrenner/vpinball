@@ -70,7 +70,7 @@ bool ObjLoader::Load(const string& filename, const bool flipTv, const bool conve
    m_indices.clear();
 
    struct VertInfo { int v; int t; int n; };
-   std::vector<VertInfo> faceVerts;
+   vector<VertInfo> faceVerts;
 
    // need some small data type 
    while (true)
@@ -306,7 +306,7 @@ void ObjLoader::Save(const string& filename, const string& description, const Me
       char number[32] = { 0 };
       for (unsigned int i = 0; i < mesh.m_animationFrames.size(); i++)
       {
-         std::vector<Vertex3D_NoTex2> vertsTmp = mesh.m_vertices;
+         vector<Vertex3D_NoTex2> vertsTmp = mesh.m_vertices;
 
          for (unsigned int t = 0; t < mesh.NumVertices(); t++)
          {
@@ -318,7 +318,7 @@ void ObjLoader::Save(const string& filename, const string& description, const Me
             vertsTmp[t].ny = vi.ny;
             vertsTmp[t].nz = vi.nz;
          }
-         sprintf_s(number, "%05u", i);
+         sprintf_s(number, sizeof(number), "%05u", i);
          const string fname = name + '_' + number + ".obj";
          ExportStart(fname);
          fprintf_s(m_fHandle, "# Visual Pinball OBJ file\n");
@@ -400,7 +400,7 @@ void ObjLoader::WriteVertexInfo(const Vertex3D_NoTex2* verts, unsigned int numVe
    }
 }
 
-void ObjLoader::WriteFaceInfo(const std::vector<WORD>& faces)
+void ObjLoader::WriteFaceInfo(const vector<WORD>& faces)
 {
    for (size_t i = 0; i < faces.size(); i += 3)
    {
@@ -410,7 +410,7 @@ void ObjLoader::WriteFaceInfo(const std::vector<WORD>& faces)
    }
 }
 
-void ObjLoader::WriteFaceInfoLong(const std::vector<unsigned int>& faces)
+void ObjLoader::WriteFaceInfoLong(const vector<unsigned int>& faces)
 {
    for (size_t i = 0; i < faces.size(); i += 3)
    {

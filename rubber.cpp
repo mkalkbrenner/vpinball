@@ -1,6 +1,7 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 //#include "forsyth.h"
 #include "objloader.h"
+#include "Shader.h"
 
 Rubber::Rubber()
 {
@@ -8,8 +9,8 @@ Rubber::Rubber()
    m_d.m_collidable = true;
    m_d.m_visible = true;
    m_d.m_hitEvent = false;
-   m_dynamicVertexBuffer = 0;
-   m_dynamicIndexBuffer = 0;
+   m_dynamicVertexBuffer = nullptr;
+   m_dynamicIndexBuffer = nullptr;
    m_dynamicVertexBufferRegenerate = true;
    m_propPhysics = nullptr;
    m_propPosition = nullptr;
@@ -22,17 +23,14 @@ Rubber::Rubber()
 
 Rubber::~Rubber()
 {
-   if (m_dynamicVertexBuffer)
-      m_dynamicVertexBuffer->release();
-
-   if (m_dynamicIndexBuffer)
-      m_dynamicIndexBuffer->release();
+   SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_dynamicIndexBuffer);
 }
 
 void Rubber::UpdateStatusBarInfo()
 {
    char tbuf[128];
-   sprintf_s(tbuf, "Height: %.3f | Thickness: %.3f", m_vpinball->ConvertToUnit(m_d.m_height), m_vpinball->ConvertToUnit((float)m_d.m_thickness));
+   sprintf_s(tbuf, sizeof(tbuf), "Height: %.3f | Thickness: %.3f", m_vpinball->ConvertToUnit(m_d.m_height), m_vpinball->ConvertToUnit((float)m_d.m_thickness));
    m_vpinball->SetStatusBarUnitInfo(tbuf, true);
 }
 
@@ -41,7 +39,7 @@ HRESULT Rubber::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
    m_ptable = ptable;
    m_d.m_visible = true;
 
-   //float length = 0.5f * LoadValueFloatWithDefault("DefaultProps\\Rubber", "Length", 400.0f);
+   //float length = 0.5f * LoadValueFloatWithDefault(regKey[RegName::DefaultPropsRubber], "Length"s, 400.0f);
 
    for (int i = 8; i > 0; i--)
    {
@@ -67,63 +65,67 @@ HRESULT Rubber::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Rubber::SetDefaults(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Rubber";
+#define strKeyName regKey[RegName::DefaultPropsRubber]
 
-   m_d.m_height = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Height", 25.0f) : 25.0f;
-   m_d.m_thickness = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "Thickness", 8) : 8;
+   m_d.m_height = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Height"s, 25.0f) : 25.0f;
+   m_d.m_thickness = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "Thickness"s, 8) : 8;
 
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled", false) : false;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval", 100) : 100;
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled"s, false) : false;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval"s, 100) : 100;
 
-   const HRESULT hr = LoadValue(strKeyName, "Image", m_d.m_szImage);
+   const HRESULT hr = LoadValue(strKeyName, "Image"s, m_d.m_szImage);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szImage.clear();
 
-   m_d.m_hitEvent = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "HitEvent", false) : false;
+   m_d.m_hitEvent = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "HitEvent"s, false) : false;
 
    SetDefaultPhysics(fromMouseClick);
 
-   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible", true) : true;
-   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable", true) : true;
+   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible"s, true) : true;
+   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable"s, true) : true;
 
-   m_d.m_staticRendering = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "EnableStaticRendering", true) : true;
-   m_d.m_showInEditor = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "EnableShowInEditor", false) : false;
+   m_d.m_staticRendering = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "EnableStaticRendering"s, true) : true;
+   m_d.m_showInEditor = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "EnableShowInEditor"s, false) : false;
 
-   m_d.m_rotX = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotX", 0.0f) : 0.0f;
-   m_d.m_rotY = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotY", 0.0f) : 0.0f;
-   m_d.m_rotZ = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotZ", 0.0f) : 0.0f;
+   m_d.m_rotX = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotX"s, 0.0f) : 0.0f;
+   m_d.m_rotY = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotY"s, 0.0f) : 0.0f;
+   m_d.m_rotZ = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotZ"s, 0.0f) : 0.0f;
 
-   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled", true) : true;
+   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled"s, true) : true;
+
+#undef strKeyName
 }
 
 void Rubber::WriteRegDefaults()
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Rubber";
+#define strKeyName regKey[RegName::DefaultPropsRubber]
 
-   SaveValueFloat(strKeyName, "Height", m_d.m_height);
-   SaveValueFloat(strKeyName, "HitHeight", m_d.m_hitHeight);
-   SaveValueInt(strKeyName, "Thickness", m_d.m_thickness);
-   SaveValueBool(strKeyName, "HitEvent", m_d.m_hitEvent);
-   SaveValueBool(strKeyName, "TimerEnabled", m_d.m_tdr.m_TimerEnabled);
-   SaveValueInt(strKeyName, "TimerInterval", m_d.m_tdr.m_TimerInterval);
-   SaveValue(strKeyName, "Image", m_d.m_szImage);
-   SaveValueFloat(strKeyName, "Elasticity", m_d.m_elasticity);
-   SaveValueFloat(strKeyName, "ElasticityFalloff", m_d.m_elasticityFalloff);
-   SaveValueFloat(strKeyName, "Friction", m_d.m_friction);
-   SaveValueFloat(strKeyName, "Scatter", m_d.m_scatter);
-   SaveValueBool(strKeyName, "Collidable", m_d.m_collidable);
-   SaveValueBool(strKeyName, "Visible", m_d.m_visible);
-   SaveValueBool(strKeyName, "EnableStaticRendering", m_d.m_staticRendering);
-   SaveValueBool(strKeyName, "EnableShowInEditor", m_d.m_showInEditor);
-   SaveValueFloat(strKeyName, "RotX", m_d.m_rotX);
-   SaveValueFloat(strKeyName, "RotY", m_d.m_rotY);
-   SaveValueFloat(strKeyName, "RotZ", m_d.m_rotZ);
-   SaveValueBool(strKeyName, "ReflectionEnabled", m_d.m_reflectionEnabled);
+   SaveValueFloat(strKeyName, "Height"s, m_d.m_height);
+   SaveValueFloat(strKeyName, "HitHeight"s, m_d.m_hitHeight);
+   SaveValueInt(strKeyName, "Thickness"s, m_d.m_thickness);
+   SaveValueBool(strKeyName, "HitEvent"s, m_d.m_hitEvent);
+   SaveValueBool(strKeyName, "TimerEnabled"s, m_d.m_tdr.m_TimerEnabled);
+   SaveValueInt(strKeyName, "TimerInterval"s, m_d.m_tdr.m_TimerInterval);
+   SaveValue(strKeyName, "Image"s, m_d.m_szImage);
+   SaveValueFloat(strKeyName, "Elasticity"s, m_d.m_elasticity);
+   SaveValueFloat(strKeyName, "ElasticityFalloff"s, m_d.m_elasticityFalloff);
+   SaveValueFloat(strKeyName, "Friction"s, m_d.m_friction);
+   SaveValueFloat(strKeyName, "Scatter"s, m_d.m_scatter);
+   SaveValueBool(strKeyName, "Collidable"s, m_d.m_collidable);
+   SaveValueBool(strKeyName, "Visible"s, m_d.m_visible);
+   SaveValueBool(strKeyName, "EnableStaticRendering"s, m_d.m_staticRendering);
+   SaveValueBool(strKeyName, "EnableShowInEditor"s, m_d.m_showInEditor);
+   SaveValueFloat(strKeyName, "RotX"s, m_d.m_rotX);
+   SaveValueFloat(strKeyName, "RotY"s, m_d.m_rotY);
+   SaveValueFloat(strKeyName, "RotZ"s, m_d.m_rotZ);
+   SaveValueBool(strKeyName, "ReflectionEnabled"s, m_d.m_reflectionEnabled);
+
+#undef strKeyName
 }
 
 void Rubber::DrawRubberMesh(Sur * const psur)
 {
-   std::vector<Vertex2D> drawVertices;
+   vector<Vertex2D> drawVertices;
 
    GenerateMesh(6);
    UpdateRubber(false, m_d.m_height);
@@ -267,7 +269,7 @@ void Rubber::RenderBlueprint(Sur *psur, const bool solid)
    }
 }
 
-void Rubber::GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D)
+void Rubber::GetBoundingVertices(vector<Vertex3Ds>& pvvertex3D)
 {
    //!! meh, this is delivering something loosely related to the bounding vertices, but its only used in the cam fitting code so far, so keep for legacy reasons
    int cvertex;
@@ -329,7 +331,7 @@ void Rubber::GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D)
  */
 Vertex2D *Rubber::GetSplineVertex(int &pcvertex, bool ** const ppfCross, Vertex2D ** const pMiddlePoints, const float _accuracy)
 {
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetCentralCurve(vvertex, _accuracy);
    // vvertex are the 2D vertices forming the central curve of the rubber as seen from above
 
@@ -446,7 +448,7 @@ Vertex2D *Rubber::GetSplineVertex(int &pcvertex, bool ** const ppfCross, Vertex2
 /*
  * Get an approximation of the curve described by the control points of this ramp.
  */
-void Rubber::GetCentralCurve(std::vector<RenderVertex> &vv, const float _accuracy) const
+void Rubber::GetCentralCurve(vector<RenderVertex> &vv, const float _accuracy) const
 {
       float accuracy;
 
@@ -466,9 +468,10 @@ void Rubber::GetCentralCurve(std::vector<RenderVertex> &vv, const float _accurac
       IHaveDragPoints::GetRgVertex(vv, true, accuracy);
 }
 
+#if 0
 float Rubber::GetSurfaceHeight(float x, float y) const
 {
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetCentralCurve(vvertex);
 
    const int cvertex = (int)vvertex.size();
@@ -509,6 +512,7 @@ float Rubber::GetSurfaceHeight(float x, float y) const
 
     return zheight*m_ptable->m_BG_scalez[m_ptable->m_BG_current_set];
 }
+#endif
 
 //
 // end of license:GPLv3+, back to 'old MAME'-like
@@ -536,7 +540,7 @@ void Rubber::GetTimers(vector<HitTimer*> &pvht)
 
 void Rubber::GetHitShapes(vector<HitObject*> &pvho)
 {
-   std::set< std::pair<unsigned, unsigned> > addedEdges;
+   robin_hood::unordered_set<robin_hood::pair<unsigned, unsigned>> addedEdges;
 
    GenerateMesh(6, true); //!! adapt hacky code in the function if changing the "6" here
    UpdateRubber(false, m_d.m_hitHeight);
@@ -571,14 +575,13 @@ void Rubber::GetHitShapes(vector<HitObject*> &pvho)
 // end of license:GPLv3+, back to 'old MAME'-like
 //
 
-void Rubber::AddHitEdge(vector<HitObject*> &pvho, std::set< std::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j)
+void Rubber::AddHitEdge(vector<HitObject*> &pvho, robin_hood::unordered_set< robin_hood::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j)
 {
    // create pair uniquely identifying the edge (i,j)
-   const std::pair<unsigned, unsigned> p(std::min(i, j), std::max(i, j));
+   const robin_hood::pair<unsigned, unsigned> p(std::min(i, j), std::max(i, j));
 
-   if (addedEdges.count(p) == 0)   // edge not yet added?
+   if (addedEdges.insert(p).second) // edge not yet added?
    {
-      addedEdges.insert(p);
       const Vertex3Ds v1(m_vertices[i].x, m_vertices[i].y, m_vertices[i].z);
       const Vertex3Ds v2(m_vertices[j].x, m_vertices[j].y, m_vertices[j].z);
       SetupHitObject(pvho, new HitLine3D(v1, v2));
@@ -626,7 +629,7 @@ void Rubber::GetHitShapesDebug(vector<HitObject*> &pvho)
 
 void Rubber::AddPoint(int x, int y, const bool smooth)
 {
-    std::vector<RenderVertex> vvertex;
+    vector<RenderVertex> vvertex;
     GetCentralCurve(vvertex);
     const Vertex2D v = m_ptable->TransformPoint(x, y);
     Vertex2D vOut;
@@ -671,15 +674,10 @@ void Rubber::EndPlay()
    m_vhoCollidable.clear();
 
    if (m_dynamicVertexBuffer) {
-      m_dynamicVertexBuffer->release();
-      m_dynamicVertexBuffer = 0;
+      SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer);
       m_dynamicVertexBufferRegenerate = true;
    }
-
-   if (m_dynamicIndexBuffer) {
-      m_dynamicIndexBuffer->release();
-      m_dynamicIndexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_dynamicIndexBuffer);
 }
 
 float Rubber::GetDepth(const Vertex3Ds& viewDir) const
@@ -1246,26 +1244,26 @@ void Rubber::RenderObject()
    }
 
    if (m_dynamicVertexBufferRegenerate)
-       UpdateRubber(true, m_d.m_height);
+      UpdateRubber(true, m_d.m_height);
 
    RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
 
    const Material * const mat = m_ptable->GetMaterial(m_d.m_szMaterial);
    pd3dDevice->basicShader->SetMaterial(mat);
 
-   pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+   pd3dDevice->SetRenderStateDepthBias(0.0f);
    pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
-   pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 
    Texture * const pin = m_ptable->GetImage(m_d.m_szImage);
    if (pin)
    {
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
-      pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+      pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
       pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
    }
    else
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
 
    pd3dDevice->basicShader->Begin(0);
    pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
@@ -1460,21 +1458,16 @@ void Rubber::GenerateVertexBuffer()
 
    GenerateMesh();
 
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
-   if (m_dynamicVertexBuffer)
-      m_dynamicVertexBuffer->release();
-   pd3dDevice->CreateVertexBuffer(m_numVertices, m_d.m_staticRendering ? 0 : USAGE_DYNAMIC, MY_D3DFVF_NOTEX2_VERTEX, &m_dynamicVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer);
+   VertexBuffer::CreateVertexBuffer(m_numVertices, m_d.m_staticRendering ? 0 : USAGE_DYNAMIC, MY_D3DFVF_NOTEX2_VERTEX, &m_dynamicVertexBuffer, PRIMARY_DEVICE);
 
    Vertex3D_NoTex2 *buf;
    m_dynamicVertexBuffer->lock(0, 0, (void**)&buf, m_d.m_staticRendering ? VertexBuffer::WRITEONLY : VertexBuffer::DISCARDCONTENTS);
    memcpy(buf, m_vertices.data(), sizeof(Vertex3D_NoTex2)*m_numVertices);
    m_dynamicVertexBuffer->unlock();
 
-   if (m_dynamicIndexBuffer)
-      m_dynamicIndexBuffer->release();
-
-   m_dynamicIndexBuffer = pd3dDevice->CreateAndFillIndexBuffer(m_ringIndices);
+   SAFE_BUFFER_RELEASE(m_dynamicIndexBuffer);
+   m_dynamicIndexBuffer = IndexBuffer::CreateAndFillIndexBuffer(m_ringIndices, PRIMARY_DEVICE);
 }
 
 void Rubber::UpdateRubber(const bool updateVB, const float height)
@@ -1527,17 +1520,15 @@ void Rubber::UpdateRubber(const bool updateVB, const float height)
    }
 }
 
-//
-// end of license:GPLv3+, back to 'old MAME'-like
-//
-
 void Rubber::SetDefaultPhysics(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Rubber";
+#define strKeyName regKey[RegName::DefaultPropsRubber]
 
-   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity", 0.8f) : 0.8f;
-   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ElasticityFalloff", 0.3f) : 0.3f;
-   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction", 0.6f) : 0.6f;
-   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter", 5) : 5;
-   m_d.m_hitHeight = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitHeight", 25.0f) : 25.0f;
+   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity"s, 0.8f) : 0.8f;
+   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ElasticityFalloff"s, 0.3f) : 0.3f;
+   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction"s, 0.6f) : 0.6f;
+   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter"s, 5) : 5;
+   m_d.m_hitHeight = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitHeight"s, 25.0f) : 25.0f;
+
+#undef strKeyName
 }

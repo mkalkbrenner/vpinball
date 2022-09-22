@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 // from dinput.h, modernized to please clang
 #undef DIJOFS_X
@@ -54,7 +54,6 @@ PinInput::PinInput()
    for (int k = 0; k < PININ_JOYMXCNT; ++k)
       m_pJoystick[k] = nullptr;
 
-   uShockDevice = -1;	// only one uShock device
    uShockType = 0;
 
    m_plunger_axis = 3;
@@ -138,54 +137,54 @@ PinInput::~PinInput()
 
 void PinInput::LoadSettings()
 {
-   m_lr_axis = LoadValueIntWithDefault("Player", "LRAxis", m_lr_axis);
-   m_ud_axis = LoadValueIntWithDefault("Player", "UDAxis", m_ud_axis);
-   m_lr_axis_reverse = LoadValueBoolWithDefault("Player", "LRAxisFlip", m_lr_axis_reverse);
-   m_ud_axis_reverse = LoadValueBoolWithDefault("Player", "UDAxisFlip", m_ud_axis_reverse);
-   m_plunger_axis = LoadValueIntWithDefault("Player", "PlungerAxis", m_plunger_axis);
-   m_plunger_reverse = LoadValueBoolWithDefault("Player", "ReversePlungerAxis", m_plunger_reverse);
-   m_plunger_retract = LoadValueBoolWithDefault("Player", "PlungerRetract", m_plunger_retract);
-   m_override_default_buttons = LoadValueBoolWithDefault("Player", "PBWDefaultLayout", m_override_default_buttons);
-   m_disable_esc = LoadValueBoolWithDefault("Player", "DisableESC", m_disable_esc);
-   m_joylflipkey = LoadValueIntWithDefault("Player", "JoyLFlipKey", m_joylflipkey);
-   m_joyrflipkey = LoadValueIntWithDefault("Player", "JoyRFlipKey", m_joyrflipkey);
-   m_joyplungerkey = LoadValueIntWithDefault("Player", "JoyPlungerKey", m_joyplungerkey);
-   m_joyaddcreditkey = LoadValueIntWithDefault("Player", "JoyAddCreditKey", m_joyaddcreditkey);
-   m_joyaddcreditkey2 = LoadValueIntWithDefault("Player", "JoyAddCredit2Key", m_joyaddcreditkey2);
-   m_joylmagnasave = LoadValueIntWithDefault("Player", "JoyLMagnaSave", m_joylmagnasave);
-   m_joyrmagnasave = LoadValueIntWithDefault("Player", "JoyRMagnaSave", m_joyrmagnasave);
-   m_joystartgamekey = LoadValueIntWithDefault("Player", "JoyStartGameKey", m_joystartgamekey);
-   m_joyframecount = LoadValueIntWithDefault("Player", "JoyFrameCount", m_joyframecount);
-   m_joyexitgamekey = LoadValueIntWithDefault("Player", "JoyExitGameKey", m_joyexitgamekey);
-   m_joyvolumeup = LoadValueIntWithDefault("Player", "JoyVolumeUp", m_joyvolumeup);
-   m_joyvolumedown = LoadValueIntWithDefault("Player", "JoyVolumeDown", m_joyvolumedown);
-   m_joylefttilt = LoadValueIntWithDefault("Player", "JoyLTiltKey", m_joylefttilt);
-   m_joycentertilt = LoadValueIntWithDefault("Player", "JoyCTiltKey", m_joycentertilt);
-   m_joyrighttilt = LoadValueIntWithDefault("Player", "JoyRTiltKey", m_joyrighttilt);
-   m_joypmbuyin = LoadValueIntWithDefault("Player", "JoyPMBuyIn", m_joypmbuyin);
-   m_joypmcoin3 = LoadValueIntWithDefault("Player", "JoyPMCoin3", m_joypmcoin3);
-   m_joypmcoin4 = LoadValueIntWithDefault("Player", "JoyPMCoin4", m_joypmcoin4);
-   m_joypmcoindoor = LoadValueIntWithDefault("Player", "JoyPMCoinDoor", m_joypmcoindoor);
-   m_joypmcancel = LoadValueIntWithDefault("Player", "JoyPMCancel", m_joypmcancel);
-   m_joypmdown = LoadValueIntWithDefault("Player", "JoyPMDown", m_joypmdown);
-   m_joypmup = LoadValueIntWithDefault("Player", "JoyPMUp", m_joypmup);
-   m_joypmenter = LoadValueIntWithDefault("Player", "JoyPMEnter", m_joypmenter);
-   m_joycustom1 = LoadValueIntWithDefault("Player", "JoyCustom1", m_joycustom1);
-   m_joycustom1key = LoadValueIntWithDefault("Player", "JoyCustom1Key", m_joycustom1key);
-   m_joycustom2 = LoadValueIntWithDefault("Player", "JoyCustom2", m_joycustom2);
-   m_joycustom2key = LoadValueIntWithDefault("Player", "JoyCustom2Key", m_joycustom2key);
-   m_joycustom3 = LoadValueIntWithDefault("Player", "JoyCustom3", m_joycustom3);
-   m_joycustom3key = LoadValueIntWithDefault("Player", "JoyCustom3Key", m_joycustom3key);
-   m_joycustom4 = LoadValueIntWithDefault("Player", "JoyCustom4", m_joycustom4);
-   m_joycustom4key = LoadValueIntWithDefault("Player", "JoyCustom4Key", m_joycustom4key);
-   m_joymechtilt = LoadValueIntWithDefault("Player", "JoyMechTiltKey", m_joymechtilt);
-   m_joydebugballs = LoadValueIntWithDefault("Player", "JoyDebugKey", m_joydebugballs);
-   m_joydebugger = LoadValueIntWithDefault("Player", "JoyDebuggerKey", m_joydebugger);
-   m_joylockbar = LoadValueIntWithDefault("Player", "JoyLockbarKey", m_joylockbar);
-   m_enableMouseInPlayer = LoadValueBoolWithDefault("Player", "EnableMouseInPlayer", m_enableMouseInPlayer);
-   m_enableCameraModeFlyAround = LoadValueBoolWithDefault("Player", "EnableCameraModeFlyAround", m_enableCameraModeFlyAround);
-   m_enable_nudge_filter = LoadValueBoolWithDefault("Player", "EnableNudgeFilter", m_enable_nudge_filter);
-   m_deadz = LoadValueIntWithDefault("Player", "DeadZone", 0);
+   m_lr_axis = LoadValueIntWithDefault(regKey[RegName::Player], "LRAxis"s, m_lr_axis);
+   m_ud_axis = LoadValueIntWithDefault(regKey[RegName::Player], "UDAxis"s, m_ud_axis);
+   m_lr_axis_reverse = LoadValueBoolWithDefault(regKey[RegName::Player], "LRAxisFlip"s, m_lr_axis_reverse);
+   m_ud_axis_reverse = LoadValueBoolWithDefault(regKey[RegName::Player], "UDAxisFlip"s, m_ud_axis_reverse);
+   m_plunger_axis = LoadValueIntWithDefault(regKey[RegName::Player], "PlungerAxis"s, m_plunger_axis);
+   m_plunger_reverse = LoadValueBoolWithDefault(regKey[RegName::Player], "ReversePlungerAxis"s, m_plunger_reverse);
+   m_plunger_retract = LoadValueBoolWithDefault(regKey[RegName::Player], "PlungerRetract"s, m_plunger_retract);
+   m_override_default_buttons = LoadValueBoolWithDefault(regKey[RegName::Player], "PBWDefaultLayout"s, m_override_default_buttons);
+   m_disable_esc = LoadValueBoolWithDefault(regKey[RegName::Player], "DisableESC"s, m_disable_esc);
+   m_joylflipkey = LoadValueIntWithDefault(regKey[RegName::Player], "JoyLFlipKey"s, m_joylflipkey);
+   m_joyrflipkey = LoadValueIntWithDefault(regKey[RegName::Player], "JoyRFlipKey"s, m_joyrflipkey);
+   m_joyplungerkey = LoadValueIntWithDefault(regKey[RegName::Player], "JoyPlungerKey"s, m_joyplungerkey);
+   m_joyaddcreditkey = LoadValueIntWithDefault(regKey[RegName::Player], "JoyAddCreditKey"s, m_joyaddcreditkey);
+   m_joyaddcreditkey2 = LoadValueIntWithDefault(regKey[RegName::Player], "JoyAddCredit2Key"s, m_joyaddcreditkey2);
+   m_joylmagnasave = LoadValueIntWithDefault(regKey[RegName::Player], "JoyLMagnaSave"s, m_joylmagnasave);
+   m_joyrmagnasave = LoadValueIntWithDefault(regKey[RegName::Player], "JoyRMagnaSave"s, m_joyrmagnasave);
+   m_joystartgamekey = LoadValueIntWithDefault(regKey[RegName::Player], "JoyStartGameKey"s, m_joystartgamekey);
+   m_joyframecount = LoadValueIntWithDefault(regKey[RegName::Player], "JoyFrameCount"s, m_joyframecount);
+   m_joyexitgamekey = LoadValueIntWithDefault(regKey[RegName::Player], "JoyExitGameKey"s, m_joyexitgamekey);
+   m_joyvolumeup = LoadValueIntWithDefault(regKey[RegName::Player], "JoyVolumeUp"s, m_joyvolumeup);
+   m_joyvolumedown = LoadValueIntWithDefault(regKey[RegName::Player], "JoyVolumeDown"s, m_joyvolumedown);
+   m_joylefttilt = LoadValueIntWithDefault(regKey[RegName::Player], "JoyLTiltKey"s, m_joylefttilt);
+   m_joycentertilt = LoadValueIntWithDefault(regKey[RegName::Player], "JoyCTiltKey"s, m_joycentertilt);
+   m_joyrighttilt = LoadValueIntWithDefault(regKey[RegName::Player], "JoyRTiltKey"s, m_joyrighttilt);
+   m_joypmbuyin = LoadValueIntWithDefault(regKey[RegName::Player], "JoyPMBuyIn"s, m_joypmbuyin);
+   m_joypmcoin3 = LoadValueIntWithDefault(regKey[RegName::Player], "JoyPMCoin3"s, m_joypmcoin3);
+   m_joypmcoin4 = LoadValueIntWithDefault(regKey[RegName::Player], "JoyPMCoin4"s, m_joypmcoin4);
+   m_joypmcoindoor = LoadValueIntWithDefault(regKey[RegName::Player], "JoyPMCoinDoor"s, m_joypmcoindoor);
+   m_joypmcancel = LoadValueIntWithDefault(regKey[RegName::Player], "JoyPMCancel"s, m_joypmcancel);
+   m_joypmdown = LoadValueIntWithDefault(regKey[RegName::Player], "JoyPMDown"s, m_joypmdown);
+   m_joypmup = LoadValueIntWithDefault(regKey[RegName::Player], "JoyPMUp"s, m_joypmup);
+   m_joypmenter = LoadValueIntWithDefault(regKey[RegName::Player], "JoyPMEnter"s, m_joypmenter);
+   m_joycustom1 = LoadValueIntWithDefault(regKey[RegName::Player], "JoyCustom1"s, m_joycustom1);
+   m_joycustom1key = LoadValueIntWithDefault(regKey[RegName::Player], "JoyCustom1Key"s, m_joycustom1key);
+   m_joycustom2 = LoadValueIntWithDefault(regKey[RegName::Player], "JoyCustom2"s, m_joycustom2);
+   m_joycustom2key = LoadValueIntWithDefault(regKey[RegName::Player], "JoyCustom2Key"s, m_joycustom2key);
+   m_joycustom3 = LoadValueIntWithDefault(regKey[RegName::Player], "JoyCustom3"s, m_joycustom3);
+   m_joycustom3key = LoadValueIntWithDefault(regKey[RegName::Player], "JoyCustom3Key"s, m_joycustom3key);
+   m_joycustom4 = LoadValueIntWithDefault(regKey[RegName::Player], "JoyCustom4"s, m_joycustom4);
+   m_joycustom4key = LoadValueIntWithDefault(regKey[RegName::Player], "JoyCustom4Key"s, m_joycustom4key);
+   m_joymechtilt = LoadValueIntWithDefault(regKey[RegName::Player], "JoyMechTiltKey"s, m_joymechtilt);
+   m_joydebugballs = LoadValueIntWithDefault(regKey[RegName::Player], "JoyDebugKey"s, m_joydebugballs);
+   m_joydebugger = LoadValueIntWithDefault(regKey[RegName::Player], "JoyDebuggerKey"s, m_joydebugger);
+   m_joylockbar = LoadValueIntWithDefault(regKey[RegName::Player], "JoyLockbarKey"s, m_joylockbar);
+   m_enableMouseInPlayer = LoadValueBoolWithDefault(regKey[RegName::Player], "EnableMouseInPlayer"s, m_enableMouseInPlayer);
+   m_enableCameraModeFlyAround = LoadValueBoolWithDefault(regKey[RegName::Player], "EnableCameraModeFlyAround"s, m_enableCameraModeFlyAround);
+   m_enable_nudge_filter = LoadValueBoolWithDefault(regKey[RegName::Player], "EnableNudgeFilter"s, m_enable_nudge_filter);
+   m_deadz = LoadValueIntWithDefault(regKey[RegName::Player], "DeadZone"s, 0);
    m_deadz = m_deadz*JOYRANGEMX / 100;
 }
 
@@ -280,36 +279,20 @@ BOOL CALLBACK DIEnumJoystickCallback(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef)
    if (hr == S_OK)
    {
       if (!WzSzStrCmp(dstr.wsz, "PinballWizard"))
-      {
-         ppinput->uShockDevice = ppinput->e_JoyCnt; // remember uShock
          ppinput->uShockType = USHOCKTYPE_PBWIZARD; // set type 1 = PinballWizard
-      }
       else if (!WzSzStrCmp(dstr.wsz, "UltraCade Pinball"))
-      {
-         ppinput->uShockDevice = ppinput->e_JoyCnt;  // remember uShock
          ppinput->uShockType = USHOCKTYPE_ULTRACADE; // set type 2 = UltraCade Pinball
-      }
       else if (!WzSzStrCmp(dstr.wsz, "Microsoft SideWinder Freestyle Pro (USB)"))
-      {
-         ppinput->uShockDevice = ppinput->e_JoyCnt;   // remember uShock
          ppinput->uShockType = USHOCKTYPE_SIDEWINDER; // set type 3 = Microsoft SideWinder Freestyle Pro
-      }
       else if (!WzSzStrCmp(dstr.wsz, "VirtuaPin Controller"))
-      {
-         ppinput->uShockDevice = ppinput->e_JoyCnt;  // remember uShock
          ppinput->uShockType = USHOCKTYPE_VIRTUAPIN; // set type 4 = VirtuaPin Controller
-      }
       else if (!WzSzStrCmp(dstr.wsz, "Pinscape Controller"))
       {
-         ppinput->uShockDevice = ppinput->e_JoyCnt; // remember uShock
          ppinput->uShockType = USHOCKTYPE_GENERIC;  // set type = Generic
          ppinput->m_linearPlunger = true;           // use linear plunger calibration
       }
       else
-      {
-         ppinput->uShockDevice = ppinput->e_JoyCnt; // remember uShock
          ppinput->uShockType = USHOCKTYPE_GENERIC;  // Generic Gamepad
-      }
    }
    hr = ppinput->m_pJoystick[ppinput->e_JoyCnt]->SetDataFormat(&c_dfDIJoystick);
 
@@ -586,25 +569,26 @@ void PinInput::handleInputXI(DIDEVICEOBJECTDATA *didod)
       {XINPUT_GAMEPAD_DPAD_UP, DIJOFS_BUTTON12},
       {XINPUT_GAMEPAD_DPAD_DOWN, DIJOFS_BUTTON13},
       {0, 0} };
-   XINPUT_STATE state;
-   ZeroMemory(&state, sizeof(XINPUT_STATE));
-   if (m_inputDeviceXI == -1 || XInputGetState(m_inputDeviceXI, &state) != ERROR_SUCCESS) {
+   XINPUT_STATE state = {};
+   unsigned int xie = ERROR_DEVICE_NOT_CONNECTED;
+   if (m_inputDeviceXI != -2 && (m_inputDeviceXI == -1 || (xie = XInputGetState(m_inputDeviceXI, &state)) != ERROR_SUCCESS)) {
       m_inputDeviceXI = -1;
       for (DWORD i = 0; i < XUSER_MAX_COUNT; i++)
       {
          ZeroMemory(&state, sizeof(XINPUT_STATE));
-         if (XInputGetState(i, &state) == ERROR_SUCCESS) {
+         if ((xie = XInputGetState(i, &state)) == ERROR_SUCCESS) {
             m_inputDeviceXI = i;
             break;
          }
       }
    }
+   if (xie == ERROR_DEVICE_NOT_CONNECTED) // XInputGetState can cause quite some overhead, especially if no devices connected! Thus disable the polling if nothing connected
+      m_inputDeviceXI = -2;
    if (m_rumbleRunning && m_inputDeviceXI >= 0) {
       DWORD now = timeGetTime();
       if (m_rumbleOffTime <= now || m_rumbleOffTime - now > 65535) {
          m_rumbleRunning = false;
-         XINPUT_VIBRATION vibration;
-         ZeroMemory(&vibration, sizeof(XINPUT_VIBRATION));
+         XINPUT_VIBRATION vibration = {};
          XInputSetState(m_inputDeviceXI, &vibration);
       }
    }
@@ -621,42 +605,42 @@ void PinInput::handleInputXI(DIDEVICEOBJECTDATA *didod)
    }
    if (m_inputDeviceXIstate.Gamepad.bLeftTrigger != state.Gamepad.bLeftTrigger) {
       didod[j].dwOfs = DIJOFS_Z;
-      const int value = state.Gamepad.bLeftTrigger * 512;
+      const int value = (int)state.Gamepad.bLeftTrigger * 512;
       didod[j].dwData = (DWORD)(value);
       PushQueue(&didod[j], APP_JOYSTICK(0));
       j++;
    }
    if (m_inputDeviceXIstate.Gamepad.bRightTrigger != state.Gamepad.bRightTrigger) {
       didod[j].dwOfs = DIJOFS_RZ;
-      const int value = state.Gamepad.bRightTrigger * 512;
+      const int value = (int)state.Gamepad.bRightTrigger * 512;
       didod[j].dwData = (DWORD)(value);
       PushQueue(&didod[j], APP_JOYSTICK(0));
       j++;
    }
    if (m_inputDeviceXIstate.Gamepad.sThumbLX != state.Gamepad.sThumbLX) {
       didod[j].dwOfs = DIJOFS_X;
-      const int value = state.Gamepad.sThumbLX * -2;
+      const int value = (int)state.Gamepad.sThumbLX * -2;
       didod[j].dwData = (DWORD)(value);
       PushQueue(&didod[j], APP_JOYSTICK(0));
       j++;
    }
    if (m_inputDeviceXIstate.Gamepad.sThumbLY != state.Gamepad.sThumbLY) {
       didod[j].dwOfs = DIJOFS_Y;
-      const int value = state.Gamepad.sThumbLY * -2;
+      const int value = (int)state.Gamepad.sThumbLY * -2;
       didod[j].dwData = (DWORD)(value);
       PushQueue(&didod[j], APP_JOYSTICK(0));
       j++;
    }
    if (m_inputDeviceXIstate.Gamepad.sThumbRX != state.Gamepad.sThumbRX) {
       didod[j].dwOfs = DIJOFS_RX;
-      const int value = state.Gamepad.sThumbRX * -2;
+      const int value = (int)state.Gamepad.sThumbRX * -2;
       didod[j].dwData = (DWORD)(value);
       PushQueue(&didod[j], APP_JOYSTICK(0));
       j++;
    }
    if (m_inputDeviceXIstate.Gamepad.sThumbRY != state.Gamepad.sThumbRY) {
       didod[j].dwOfs = DIJOFS_RY;
-      const int value = state.Gamepad.sThumbRY * -2;
+      const int value = (int)state.Gamepad.sThumbRY * -2;
       didod[j].dwData = (DWORD)(value);
       PushQueue(&didod[j], APP_JOYSTICK(0));
       j++;
@@ -752,8 +736,7 @@ void PinInput::PlayRumble(const float lowFrequencySpeed, const float highFrequen
       if (m_inputDeviceXI >= 0) {
          m_rumbleOffTime = ms_duration + timeGetTime();
          m_rumbleRunning = true;
-         XINPUT_VIBRATION vibration;
-         ZeroMemory(&vibration, sizeof(XINPUT_VIBRATION));
+         XINPUT_VIBRATION vibration = {};
          // On both PS4 and X360:
          // The left motor is the low - frequency rumble motor. (explosions, etc)
          // The right motor is the high - frequency rumble motor. (subtle stuff)
@@ -780,10 +763,6 @@ void PinInput::PlayRumble(const float lowFrequencySpeed, const float highFrequen
 void PinInput::Init(const HWND hwnd)
 {
    m_hwnd = hwnd;
-
-#if defined(ENABLE_SDL_INPUT)
-   SDL_Init(SDL_INIT_JOYSTICK);
-#endif
 
    HRESULT hr;
 #ifdef USE_DINPUT8
@@ -839,8 +818,7 @@ void PinInput::Init(const HWND hwnd)
    SystemParametersInfo(SPI_GETSTICKYKEYS, sizeof(STICKYKEYS), &m_StartupStickyKeys, 0);
 
    // turn it all OFF
-   STICKYKEYS newStickyKeys;
-   ZeroMemory(&newStickyKeys, sizeof(STICKYKEYS));
+   STICKYKEYS newStickyKeys = {};
    newStickyKeys.cbSize = sizeof(STICKYKEYS);
    newStickyKeys.dwFlags = 0;
    SystemParametersInfo(SPI_SETSTICKYKEYS, sizeof(STICKYKEYS), &newStickyKeys, SPIF_SENDCHANGE);
@@ -848,10 +826,9 @@ void PinInput::Init(const HWND hwnd)
    for (int i = 0; i < 4; i++)
       m_keyPressedState[i] = false;
    m_nextKeyPressedTime = 0;
-   uShockDevice = -1;
    uShockType = 0;
 
-   m_inputApi = LoadValueIntWithDefault("Player", "InputApi", 0);
+   m_inputApi = LoadValueIntWithDefault(regKey[RegName::Player], "InputApi"s, 0);
 
    switch (m_inputApi) {
    case 1: //xInput
@@ -891,7 +868,7 @@ void PinInput::Init(const HWND hwnd)
       break;
    }
 
-   m_rumbleMode = (m_inputApi > 0) ? LoadValueIntWithDefault("Player", "RumbleMode", 3) : 0;
+   m_rumbleMode = (m_inputApi > 0) ? LoadValueIntWithDefault(regKey[RegName::Player], "RumbleMode"s, 3) : 0;
 
    if (m_inputApi == 0) {
 #ifdef USE_DINPUT8
@@ -919,10 +896,6 @@ void PinInput::UnInit()
 
    //if (!InputControlRun)	//0 == stalled, 1==run,  0 < shutting down, 2==terminated
    //{exit (-1500);}
-
-#if defined(ENABLE_SDL_INPUT)
-   SDL_Quit();
-#endif
 
 #ifdef USE_DINPUT_FOR_KEYBOARD
    if (m_pKeyboard)
@@ -1034,7 +1007,7 @@ void PinInput::FireKeyEvent(const int dispid, int keycode)
          else
          {
             string szPOVFilename = g_pplayer->m_ptable->m_szFileName;
-            if (ReplaceExtensionFromFilename(szPOVFilename, "pov"))
+            if (ReplaceExtensionFromFilename(szPOVFilename, "pov"s))
                g_pplayer->m_ptable->ExportBackdropPOV(szPOVFilename);
             g_pvp->Quit();
          }
@@ -1614,7 +1587,7 @@ void PinInput::ProcessJoystick(const DIDEVICEOBJECTDATA * __restrict input, int 
             deadu -= m_deadz;
 
         switch (input->dwOfs)	// Axis, Sliders and POV
-        {	// with selectable axes added to menu, giving prioity in this order... X Axis (the Left/Right Axis), Y Axis
+        {	// with selectable axes added to menu, giving priority in this order... X Axis (the Left/Right Axis), Y Axis
             case DIJOFS_X:
             {
                 if (g_pplayer) //joyk  rotLeftManual
@@ -1635,7 +1608,7 @@ void PinInput::ProcessJoystick(const DIDEVICEOBJECTDATA * __restrict input, int 
                         if ((uShockType == USHOCKTYPE_SIDEWINDER) && (m_lr_axis != 0))
                             g_pplayer->NudgeX(!m_lr_axis_reverse ? deadu : -deadu, joyk);
                         if ((m_lr_axis == 1) && (uShockType == USHOCKTYPE_GENERIC))
-                            // giving L/R Axis priority over U/D Axis incase both are assigned to same axis
+                            // giving L/R Axis priority over U/D Axis in case both are assigned to same axis
                             g_pplayer->NudgeX(!m_lr_axis_reverse ? -deadu : deadu, joyk);
                         else if ((m_ud_axis == 1) && (uShockType == USHOCKTYPE_GENERIC))
                             g_pplayer->NudgeY(!m_ud_axis_reverse ? deadu : -deadu, joyk);
@@ -1948,7 +1921,7 @@ void PinInput::ProcessKeys(/*const U32 curr_sim_msec,*/ int curr_time_msec) // l
             if ((input->dwData & 0x80) != 0)
             {
                g_pplayer->m_stereo3Denabled = !g_pplayer->m_stereo3Denabled;
-               SaveValueBool("Player", "Stereo3DEnabled", g_pplayer->m_stereo3Denabled);
+               SaveValueBool(regKey[RegName::Player], "Stereo3DEnabled"s, g_pplayer->m_stereo3Denabled);
             }
          }
          else if (input->dwOfs == (DWORD)g_pplayer->m_rgKeys[eDBGBalls])

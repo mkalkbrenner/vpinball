@@ -409,7 +409,7 @@ void PropertyDialog::DeleteAllTabs()
     m_backglassView = false;
 }
 
-void PropertyDialog::UpdateTextureComboBox(const vector<Texture *>& contentList, const CComboBox &combo, const std::string &selectName)
+void PropertyDialog::UpdateTextureComboBox(const vector<Texture *>& contentList, const CComboBox &combo, const string &selectName)
 {
     bool texelFound = false;
     for (const auto texel : contentList)
@@ -427,7 +427,7 @@ void PropertyDialog::UpdateTextureComboBox(const vector<Texture *>& contentList,
     combo.SetCurSel(combo.FindStringExact(1, selectName.c_str()));
 }
 
-void PropertyDialog::UpdateMaterialComboBox(const vector<Material *>& contentList, const CComboBox &combo, const std::string &selectName)
+void PropertyDialog::UpdateMaterialComboBox(const vector<Material *>& contentList, const CComboBox &combo, const string &selectName)
 {
     bool matFound = false;
     for (const auto mat : contentList)
@@ -522,7 +522,7 @@ void PropertyDialog::UpdateTabs(VectorProtected<ISelect> &pvsel)
         return;
 
     ShowWindow(SW_HIDE);
-    if (m_previousType != psel->GetItemType() || m_backglassView!=g_pvp->m_backglassView)
+    if (m_previousType != psel->GetItemType() || m_backglassView!=g_pvp->m_backglassView || m_multipleElementsStatic.IsWindowVisible())
     {
         BasePropertyDialog::m_disableEvents = true;
         m_curTabIndex = m_tab.GetCurSel();
@@ -547,17 +547,19 @@ void PropertyDialog::UpdateTabs(VectorProtected<ISelect> &pvsel)
                 return;
             }
         }
+
+        if (m_multipleElementsStatic.IsWindowVisible())
+        {
+           m_multipleElementsStatic.ShowWindow(SW_HIDE);
+           m_nameEdit.ShowWindow(SW_SHOW);
+           m_elementTypeName.ShowWindow(SW_SHOW);
+           m_tab.ShowWindow(SW_SHOW);
+        }
+
         CreateTabs(pvsel);
     }
 
 
-    if (m_multipleElementsStatic.IsWindowVisible())
-    {
-        m_multipleElementsStatic.ShowWindow(SW_HIDE);
-        m_nameEdit.ShowWindow(SW_SHOW);
-        m_elementTypeName.ShowWindow(SW_SHOW);
-        m_tab.ShowWindow(SW_SHOW);
-    }
 
     if (pvsel.size() > 1)
     {
@@ -573,12 +575,12 @@ void PropertyDialog::UpdateTabs(VectorProtected<ISelect> &pvsel)
         CComBSTR bstr;
         psel->GetTypeName(&bstr);
         WideCharToMultiByteNull(CP_ACP, 0, bstr, -1, name, 64, nullptr, nullptr);
-        sprintf_s(header, "%s(%d)", name, pvsel.size());
+        sprintf_s(header, sizeof(header), "%s(%d)", name, pvsel.size());
 
-        if (collection[0] != 0)
-            sprintf_s(header, "%s [%s](%d)", collection, name, pvsel.size());
+        if (collection[0] != '\0')
+            sprintf_s(header, sizeof(header), "%s [%s](%d)", collection, name, pvsel.size());
         else
-            sprintf_s(header, "%s(%d)", name, pvsel.size());
+            sprintf_s(header, sizeof(header), "%s(%d)", name, pvsel.size());
 
         m_nameEdit.SetWindowText(header);
         m_nameEdit.SetReadOnly();
@@ -626,10 +628,11 @@ BOOL PropertyDialog::OnInitDialog()
 
     //set minimize size of the resizer at which scrollbars are shown when going under width=200 and height=610
     m_resizer.Initialize(*this, CRect(0, 0, 200, 610)); 
-    m_resizer.AddChild(m_elementTypeName, topcenter, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_nameEdit, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_multipleElementsStatic, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_tab, topcenter, RD_STRETCH_HEIGHT | RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_elementTypeName, CResizer::topcenter, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_nameEdit, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_multipleElementsStatic, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_tab, CResizer::topcenter, RD_STRETCH_HEIGHT | RD_STRETCH_WIDTH);
+
     return TRUE;
 }
 
@@ -709,7 +712,7 @@ BOOL PropertyDialog::OnCommand(WPARAM wParam, LPARAM lParam)
         {
             if (m_tabs[0] && m_tabs[0]->m_pvsel->ElementAt(0) != nullptr)
             {
-                m_tabs[0]->m_pvsel->ElementAt(0)->GetIEditable()->SetName(string(m_nameEdit.GetWindowText()));
+                m_tabs[0]->m_pvsel->ElementAt(0)->GetIEditable()->SetName(m_nameEdit.GetWindowText().c_str());
                 m_nameEdit.SetWindowText(m_tabs[0]->m_pvsel->ElementAt(0)->GetIEditable()->GetName()); // set it again in case it was truncated
             }
             return TRUE;
@@ -1085,12 +1088,14 @@ BOOL TimerProperty::OnInitDialog()
     m_timerIntervalEdit.AttachItem(901);
     m_userValueEdit.AttachItem(1504);
     UpdateVisuals();
+
     m_resizer.Initialize(*this, CRect(0, 0, 0, 0));
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC1), topleft, 0);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC2), topleft, 0);
-    m_resizer.AddChild(m_timerIntervalEdit, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_userValueEdit, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(GetDlgItem(900), topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC1), CResizer::topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC2), CResizer::topleft, 0);
+    m_resizer.AddChild(m_timerIntervalEdit, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_userValueEdit, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(GetDlgItem(900), CResizer::topleft, 0);
+
     return TRUE;
 }
 

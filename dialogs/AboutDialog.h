@@ -8,11 +8,11 @@ public:
    virtual ~AboutDialog();
 
 protected:
-   virtual void OnDestroy();
-   virtual BOOL OnInitDialog();
-   virtual INT_PTR DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
-   virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
-   virtual void OnOK();
+   void OnDestroy() override;
+   BOOL OnInitDialog() override;
+   INT_PTR DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+   BOOL OnCommand(WPARAM wParam, LPARAM lParam) override;
+   void OnOK() override;
 
    string m_urlString;
 };

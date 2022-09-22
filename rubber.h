@@ -6,8 +6,9 @@
 #define AFX_RUBBER_H__B0715DC0_002F_11E4_9191_0800200C9A66__INCLUDED_
 
 #include "resource.h"       // main symbols
+#include <inc/robin_hood.h>
 
-class RubberData : public BaseProperty
+class RubberData final : public BaseProperty
 {
 public:
    TimerDataRoot m_tdr;
@@ -69,45 +70,47 @@ public:
    // ISupportsErrorInfo
    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid);
 
-   virtual void RenderBlueprint(Sur *psur, const bool solid);
+   void RenderBlueprint(Sur *psur, const bool solid) final;
 
-   virtual void ClearForOverwrite();
+   void ClearForOverwrite() final;
 
+   void MoveOffset(const float dx, const float dy) final;
+   void SetObjectPos() final;
+
+   void DoCommand(int icmd, int x, int y) final;
+
+   int GetMinimumPoints() const final { return 2; }
+
+   void FlipY(const Vertex2D& pvCenter) final;
+   void FlipX(const Vertex2D& pvCenter) final;
+   void Rotate(const float ang, const Vertex2D& pvCenter, const bool useElementCenter) final;
+   void Scale(const float scalex, const float scaley, const Vertex2D& pvCenter, const bool useElementCenter) final;
+   void Translate(const Vertex2D &pvOffset) final;
+   void AddPoint(int x, int y, const bool smooth) final;
+
+   Vertex2D GetCenter() const final { return GetPointCenter(); }
+   void PutCenter(const Vertex2D& pv) final { PutPointCenter(pv); }
+
+   void GetBoundingVertices(vector<Vertex3Ds>& pvvertex3D) final;
+
+   float GetDepth(const Vertex3Ds& viewDir) const final;
+   unsigned long long GetMaterialID() const final { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
+   unsigned long long GetImageID() const final { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
+   ItemTypeEnum HitableGetItemType() const final { return eItemRubber; }
+   void SetDefaultPhysics(bool fromMouseClick) final;
+   void ExportMesh(ObjLoader& loader) final;
+
+   void WriteRegDefaults() final;
+   void UpdateStatusBarInfo() final;
+
+#if 0
    float GetSurfaceHeight(float x, float y) const;
-
-   virtual void MoveOffset(const float dx, const float dy);
-   virtual void SetObjectPos();
-
-   virtual void DoCommand(int icmd, int x, int y);
-
-   virtual int GetMinimumPoints() const { return 2; }
-
-   virtual void FlipY(const Vertex2D& pvCenter);
-   virtual void FlipX(const Vertex2D& pvCenter);
-   virtual void Rotate(const float ang, const Vertex2D& pvCenter, const bool useElementCenter);
-   virtual void Scale(const float scalex, const float scaley, const Vertex2D& pvCenter, const bool useElementCenter);
-   virtual void Translate(const Vertex2D &pvOffset);
-   virtual void AddPoint(int x, int y, const bool smooth);
-
-   virtual Vertex2D GetCenter() const { return GetPointCenter(); }
-   virtual void PutCenter(const Vertex2D& pv) { PutPointCenter(pv); }
-
-   virtual void GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D);
-
-   virtual float GetDepth(const Vertex3Ds& viewDir) const;
-   virtual unsigned long long GetMaterialID() const { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
-   virtual unsigned long long GetImageID() const { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemRubber; }
-   virtual void SetDefaultPhysics(bool fromMouseClick);
-   virtual void ExportMesh(ObjLoader& loader);
-
-   virtual void WriteRegDefaults();
-   virtual void UpdateStatusBarInfo();
+#endif
 
    RubberData m_d;
 
 private:
-   void AddHitEdge(vector<HitObject*> &pvho, std::set< std::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j);
+   void AddHitEdge(vector<HitObject*> &pvho, robin_hood::unordered_set< robin_hood::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j);
    void SetupHitObject(vector<HitObject*> &pvho, HitObject * obj);
 
    PinTable *m_ptable;
@@ -117,9 +120,9 @@ private:
    int m_numVertices;      // this goes along with dynamicVertexBuffer
    int m_numIndices;
 
-   std::vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
-   std::vector<Vertex3D_NoTex2> m_vertices;
-   std::vector<WORD> m_ringIndices;
+   vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
+   vector<Vertex3D_NoTex2> m_vertices;
+   vector<WORD> m_ringIndices;
 
    Vertex3Ds m_middlePoint;
 
@@ -130,7 +133,7 @@ private:
    PropertyPane *m_propVisual;
    PropertyPane *m_propPhysics;
 
-   void GetCentralCurve(std::vector<RenderVertex> &vv, const float _accuracy = -1.f) const;
+   void GetCentralCurve(vector<RenderVertex> &vv, const float _accuracy = -1.f) const;
 
    Vertex2D *GetSplineVertex(int &pcvertex, bool ** const ppfCross, Vertex2D ** const pMiddlePoints, const float _accuracy = -1.f);
 

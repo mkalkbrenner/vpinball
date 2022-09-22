@@ -8,6 +8,7 @@
 #include "inc\miniz.c"
 #include "inc\progmesh.h"
 #include "inc\ThreadPool.h"
+#include "Shader.h"
 
 ThreadPool *g_pPrimitiveDecompressThreadPool = nullptr;
 
@@ -37,7 +38,7 @@ bool Mesh::LoadAnimation(const char *fname, const bool flipTV, const bool conver
    string sname = name + "*.obj";
    WIN32_FIND_DATA data;
    const HANDLE h = FindFirstFile(sname.c_str(), &data);
-   std::vector<string> allFiles;
+   vector<string> allFiles;
    int frameCounter = 0;
    if (h != INVALID_HANDLE_VALUE)
    {
@@ -54,7 +55,7 @@ bool Mesh::LoadAnimation(const char *fname, const bool flipTV, const bool conver
       ObjLoader loader;
       if (loader.Load(sname, flipTV, convertToLeftHanded))
       {
-         std::vector<Vertex3D_NoTex2> verts = loader.GetVertices();
+         vector<Vertex3D_NoTex2> verts = loader.GetVertices();
          for (size_t t = 0; t < verts.size(); t++)
          {
             VertData vd;
@@ -161,9 +162,9 @@ void Mesh::UploadToVB(VertexBuffer * vb, const float frame)
 
 Primitive::Primitive()
 {
-   m_vertexBuffer = 0;
+   m_vertexBuffer = nullptr;
    m_vertexBufferRegenerate = true;
-   m_indexBuffer = 0;
+   m_indexBuffer = nullptr;
    m_d.m_use3DMesh = false;
    m_d.m_staticRendering = false;
    m_d.m_edgeFactorUI = 0.25f;
@@ -189,10 +190,8 @@ Primitive::Primitive()
 Primitive::~Primitive()
 {
    WaitForMeshDecompression(); //!! needed nowadays due to multithreaded mesh decompression
-   if (m_vertexBuffer)
-      m_vertexBuffer->release();
-   if (m_indexBuffer)
-      m_indexBuffer->release();
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
 }
 
 void Primitive::CreateRenderGroup(const Collection * const collection)
@@ -272,15 +271,11 @@ void Primitive::CreateRenderGroup(const Collection * const collection)
          prims[i]->m_d.m_skipRendering = false;
    }
 
-   if (m_vertexBuffer)
-      m_vertexBuffer->release();
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   VertexBuffer::CreateVertexBuffer(m_numGroupVertices, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer, PRIMARY_DEVICE);
 
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-   pd3dDevice->CreateVertexBuffer(m_numGroupVertices, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer);
-
-   if (m_indexBuffer)
-      m_indexBuffer->release();
-   m_indexBuffer = pd3dDevice->CreateAndFillIndexBuffer(indices);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
+   m_indexBuffer = IndexBuffer::CreateAndFillIndexBuffer(indices, PRIMARY_DEVICE);
 
    unsigned int ofs = 0;
    Vertex3D_NoTex2 *buf;
@@ -322,115 +317,127 @@ HRESULT Primitive::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Primitive::SetDefaults(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Primitive";
+#define strKeyName regKey[RegName::DefaultPropsPrimitive]
 
    m_d.m_useAsPlayfield = false;
    m_d.m_use3DMesh = false;
 
    m_d.m_meshFileName.clear();
    // sides
-   m_d.m_Sides = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "Sides", 4) : 4;
+   m_d.m_Sides = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "Sides"s, 4) : 4;
    if (m_d.m_Sides > Max_Primitive_Sides)
       m_d.m_Sides = Max_Primitive_Sides;
 
    // colors
-   m_d.m_SideColor = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "SideColor", RGB(150, 150, 150)) : RGB(150, 150, 150);
+   m_d.m_SideColor = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "SideColor"s, RGB(150, 150, 150)) : RGB(150, 150, 150);
 
-   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible", true) : true;
+   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible"s, true) : true;
    m_inPlayState = m_d.m_visible;
-   m_d.m_staticRendering = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "StaticRendering", true) : true;
-   m_d.m_drawTexturesInside = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "DrawTexturesInside", false) : false;
+   m_d.m_staticRendering = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "StaticRendering"s, true) : true;
+   m_d.m_drawTexturesInside = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "DrawTexturesInside"s, false) : false;
 
    // Position (X and Y is already set by the click of the user)
-   m_d.m_vPosition.z = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Position_Z", 0.0f) : 0.0f;
+   m_d.m_vPosition.z = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Position_Z"s, 0.0f) : 0.0f;
 
    // Size
-   m_d.m_vSize.x = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Size_X", 100.0f) : 100.0f;
-   m_d.m_vSize.y = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Size_Y", 100.0f) : 100.0f;
-   m_d.m_vSize.z = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Size_Z", 100.0f) : 100.0f;
+   m_d.m_vSize.x = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Size_X"s, 100.0f) : 100.0f;
+   m_d.m_vSize.y = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Size_Y"s, 100.0f) : 100.0f;
+   m_d.m_vSize.z = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Size_Z"s, 100.0f) : 100.0f;
 
    // Rotation and Transposition
-   m_d.m_aRotAndTra[0] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra0", 0.0f) : 0.0f;
-   m_d.m_aRotAndTra[1] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra1", 0.0f) : 0.0f;
-   m_d.m_aRotAndTra[2] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra2", 0.0f) : 0.0f;
-   m_d.m_aRotAndTra[3] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra3", 0.0f) : 0.0f;
-   m_d.m_aRotAndTra[4] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra4", 0.0f) : 0.0f;
-   m_d.m_aRotAndTra[5] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra5", 0.0f) : 0.0f;
-   m_d.m_aRotAndTra[6] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra6", 0.0f) : 0.0f;
-   m_d.m_aRotAndTra[7] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra7", 0.0f) : 0.0f;
-   m_d.m_aRotAndTra[8] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra8", 0.0f) : 0.0f;
+   m_d.m_aRotAndTra[0] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra0"s, 0.0f) : 0.0f;
+   m_d.m_aRotAndTra[1] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra1"s, 0.0f) : 0.0f;
+   m_d.m_aRotAndTra[2] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra2"s, 0.0f) : 0.0f;
+   m_d.m_aRotAndTra[3] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra3"s, 0.0f) : 0.0f;
+   m_d.m_aRotAndTra[4] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra4"s, 0.0f) : 0.0f;
+   m_d.m_aRotAndTra[5] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra5"s, 0.0f) : 0.0f;
+   m_d.m_aRotAndTra[6] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra6"s, 0.0f) : 0.0f;
+   m_d.m_aRotAndTra[7] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra7"s, 0.0f) : 0.0f;
+   m_d.m_aRotAndTra[8] = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RotAndTra8"s, 0.0f) : 0.0f;
 
-   HRESULT hr = LoadValue(strKeyName, "Image", m_d.m_szImage);
+   HRESULT hr = LoadValue(strKeyName, "Image"s, m_d.m_szImage);
    if ((hr != S_OK) && fromMouseClick)
       m_d.m_szImage.clear();
 
-   hr = LoadValue(strKeyName, "NormalMap", m_d.m_szNormalMap);
+   hr = LoadValue(strKeyName, "NormalMap"s, m_d.m_szNormalMap);
    if ((hr != S_OK) && fromMouseClick)
        m_d.m_szNormalMap.clear();
 
-   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold", 2.0f) : 2.0f;
+   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold"s, 2.0f) : 2.0f;
 
    SetDefaultPhysics(fromMouseClick);
 
-   m_d.m_edgeFactorUI = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "EdgeFactorUI", 0.25f) : 0.25f;
-   m_d.m_collision_reductionFactor = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "CollisionReductionFactor", 0.f) : 0.f;
+   m_d.m_alpha = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Opacity"s, 100.0f) : 100.0f;
+   m_d.m_addBlend = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "AddBlend"s, false) : false;
+   m_d.m_color = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "Color"s, RGB(255, 255, 255)) : RGB(255, 255, 255);
 
-   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable", true) : true;
-   m_d.m_toy = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "IsToy", false) : false;
-   m_d.m_disableLightingTop = dequantizeUnsigned<8>(fromMouseClick ? LoadValueIntWithDefault(strKeyName, "DisableLighting", 0) : 0); // stored as uchar for backward compatibility
-   m_d.m_disableLightingBelow = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DisableLightingBelow", 0.f) : 0.f;
-   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled", true) : true;
-   m_d.m_backfacesEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "BackfacesEnabled", false) : false;
-   m_d.m_displayTexture = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "DisplayTexture", false) : false;
-   m_d.m_objectSpaceNormalMap = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ObjectSpaceNormalMap", false) : false;
+   m_d.m_edgeFactorUI = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "EdgeFactorUI"s, 0.25f) : 0.25f;
+   m_d.m_collision_reductionFactor = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "CollisionReductionFactor"s, 0.f) : 0.f;
+
+   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable"s, true) : true;
+   m_d.m_toy = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "IsToy"s, false) : false;
+   m_d.m_disableLightingTop = dequantizeUnsigned<8>(fromMouseClick ? LoadValueIntWithDefault(strKeyName, "DisableLighting"s, 0) : 0); // stored as uchar for backward compatibility
+   m_d.m_disableLightingBelow = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DisableLightingBelow"s, 0.f) : 0.f;
+   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled"s, true) : true;
+   m_d.m_backfacesEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "BackfacesEnabled"s, false) : false;
+   m_d.m_displayTexture = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "DisplayTexture"s, false) : false;
+   m_d.m_objectSpaceNormalMap = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ObjectSpaceNormalMap"s, false) : false;
+
+#undef strKeyName
 }
 
 void Primitive::WriteRegDefaults()
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Primitive";
+#define strKeyName regKey[RegName::DefaultPropsPrimitive]
 
-   SaveValueInt(strKeyName, "SideColor", m_d.m_SideColor);
-   SaveValueBool(strKeyName, "Visible", m_d.m_visible);
-   SaveValueBool(strKeyName, "StaticRendering", m_d.m_staticRendering);
-   SaveValueBool(strKeyName, "DrawTexturesInside", m_d.m_drawTexturesInside);
+   SaveValueInt(strKeyName, "SideColor"s, m_d.m_SideColor);
+   SaveValueBool(strKeyName, "Visible"s, m_d.m_visible);
+   SaveValueBool(strKeyName, "StaticRendering"s, m_d.m_staticRendering);
+   SaveValueBool(strKeyName, "DrawTexturesInside"s, m_d.m_drawTexturesInside);
 
-   SaveValueFloat(strKeyName, "Position_Z", m_d.m_vPosition.z);
+   SaveValueFloat(strKeyName, "Position_Z"s, m_d.m_vPosition.z);
 
-   SaveValueFloat(strKeyName, "Size_X", m_d.m_vSize.x);
-   SaveValueFloat(strKeyName, "Size_Y", m_d.m_vSize.y);
-   SaveValueFloat(strKeyName, "Size_Z", m_d.m_vSize.z);
+   SaveValueFloat(strKeyName, "Size_X"s, m_d.m_vSize.x);
+   SaveValueFloat(strKeyName, "Size_Y"s, m_d.m_vSize.y);
+   SaveValueFloat(strKeyName, "Size_Z"s, m_d.m_vSize.z);
 
-   SaveValueFloat(strKeyName, "RotAndTra0", m_d.m_aRotAndTra[0]);
-   SaveValueFloat(strKeyName, "RotAndTra1", m_d.m_aRotAndTra[1]);
-   SaveValueFloat(strKeyName, "RotAndTra2", m_d.m_aRotAndTra[2]);
-   SaveValueFloat(strKeyName, "RotAndTra3", m_d.m_aRotAndTra[3]);
-   SaveValueFloat(strKeyName, "RotAndTra4", m_d.m_aRotAndTra[4]);
-   SaveValueFloat(strKeyName, "RotAndTra5", m_d.m_aRotAndTra[5]);
-   SaveValueFloat(strKeyName, "RotAndTra6", m_d.m_aRotAndTra[6]);
-   SaveValueFloat(strKeyName, "RotAndTra7", m_d.m_aRotAndTra[7]);
-   SaveValueFloat(strKeyName, "RotAndTra8", m_d.m_aRotAndTra[8]);
+   SaveValueFloat(strKeyName, "RotAndTra0"s, m_d.m_aRotAndTra[0]);
+   SaveValueFloat(strKeyName, "RotAndTra1"s, m_d.m_aRotAndTra[1]);
+   SaveValueFloat(strKeyName, "RotAndTra2"s, m_d.m_aRotAndTra[2]);
+   SaveValueFloat(strKeyName, "RotAndTra3"s, m_d.m_aRotAndTra[3]);
+   SaveValueFloat(strKeyName, "RotAndTra4"s, m_d.m_aRotAndTra[4]);
+   SaveValueFloat(strKeyName, "RotAndTra5"s, m_d.m_aRotAndTra[5]);
+   SaveValueFloat(strKeyName, "RotAndTra6"s, m_d.m_aRotAndTra[6]);
+   SaveValueFloat(strKeyName, "RotAndTra7"s, m_d.m_aRotAndTra[7]);
+   SaveValueFloat(strKeyName, "RotAndTra8"s, m_d.m_aRotAndTra[8]);
 
-   SaveValue(strKeyName, "Image", m_d.m_szImage);
-   SaveValue(strKeyName, "NormalMap", m_d.m_szNormalMap);
-   SaveValueBool(strKeyName, "HitEvent", m_d.m_hitEvent);
-   SaveValueFloat(strKeyName, "HitThreshold", m_d.m_threshold);
-   SaveValueFloat(strKeyName, "Elasticity", m_d.m_elasticity);
-   SaveValueFloat(strKeyName, "ElasticityFalloff", m_d.m_elasticityFalloff);
-   SaveValueFloat(strKeyName, "Friction", m_d.m_friction);
-   SaveValueFloat(strKeyName, "Scatter", m_d.m_scatter);
+   SaveValue(strKeyName, "Image"s, m_d.m_szImage);
+   SaveValue(strKeyName, "NormalMap"s, m_d.m_szNormalMap);
+   SaveValueBool(strKeyName, "HitEvent"s, m_d.m_hitEvent);
+   SaveValueFloat(strKeyName, "HitThreshold"s, m_d.m_threshold);
+   SaveValueFloat(strKeyName, "Elasticity"s, m_d.m_elasticity);
+   SaveValueFloat(strKeyName, "ElasticityFalloff"s, m_d.m_elasticityFalloff);
+   SaveValueFloat(strKeyName, "Friction"s, m_d.m_friction);
+   SaveValueFloat(strKeyName, "Scatter"s, m_d.m_scatter);
 
-   SaveValueFloat(strKeyName, "EdgeFactorUI", m_d.m_edgeFactorUI);
-   SaveValueFloat(strKeyName, "CollisionReductionFactor", m_d.m_collision_reductionFactor);
+   SaveValueBool(strKeyName, "AddBlend"s, m_d.m_addBlend);
+   SaveValueFloat(strKeyName, "Opacity"s, m_d.m_alpha);
+   SaveValueInt(strKeyName, "Color"s, m_d.m_color);
 
-   SaveValueBool(strKeyName, "Collidable", m_d.m_collidable);
-   SaveValueBool(strKeyName, "IsToy", m_d.m_toy);
+   SaveValueFloat(strKeyName, "EdgeFactorUI"s, m_d.m_edgeFactorUI);
+   SaveValueFloat(strKeyName, "CollisionReductionFactor"s, m_d.m_collision_reductionFactor);
+
+   SaveValueBool(strKeyName, "Collidable"s, m_d.m_collidable);
+   SaveValueBool(strKeyName, "IsToy"s, m_d.m_toy);
    const int tmp = quantizeUnsigned<8>(clamp(m_d.m_disableLightingTop, 0.f, 1.f));
-   SaveValueInt(strKeyName, "DisableLighting", (tmp == 1) ? 0 : tmp); // backwards compatible saving
-   SaveValueFloat(strKeyName, "DisableLightingBelow", m_d.m_disableLightingBelow);
-   SaveValueBool(strKeyName, "ReflectionEnabled", m_d.m_reflectionEnabled);
-   SaveValueBool(strKeyName, "BackfacesEnabled", m_d.m_backfacesEnabled);
-   SaveValueBool(strKeyName, "DisplayTexture", m_d.m_displayTexture);
-   SaveValueBool(strKeyName, "ObjectSpaceNormalMap", m_d.m_objectSpaceNormalMap);
+   SaveValueInt(strKeyName, "DisableLighting"s, (tmp == 1) ? 0 : tmp); // backwards compatible saving
+   SaveValueFloat(strKeyName, "DisableLightingBelow"s, m_d.m_disableLightingBelow);
+   SaveValueBool(strKeyName, "ReflectionEnabled"s, m_d.m_reflectionEnabled);
+   SaveValueBool(strKeyName, "BackfacesEnabled"s, m_d.m_backfacesEnabled);
+   SaveValueBool(strKeyName, "DisplayTexture"s, m_d.m_displayTexture);
+   SaveValueBool(strKeyName, "ObjectSpaceNormalMap"s, m_d.m_objectSpaceNormalMap);
+
+#undef strKeyName
 }
 
 void Primitive::GetTimers(vector<HitTimer*> &pvht)
@@ -450,8 +457,7 @@ void Primitive::GetHitShapes(vector<HitObject*> &pvho)
 
    //
 
-   // playfield can't be a toy
-   if (m_d.m_toy && !m_d.m_useAsPlayfield)
+   if (m_d.m_toy)
       return;
 
    RecalculateMatrices();
@@ -468,14 +474,14 @@ void Primitive::GetHitShapes(vector<HitObject*> &pvho)
 
    if (reduced_vertices < m_vertices.size())
    {
-      std::vector<ProgMesh::float3> prog_vertices(m_vertices.size());
+      vector<ProgMesh::float3> prog_vertices(m_vertices.size());
       for (size_t i = 0; i < m_vertices.size(); ++i) //!! opt. use original data directly!
       {
          prog_vertices[i].x = m_vertices[i].x;
          prog_vertices[i].y = m_vertices[i].y;
          prog_vertices[i].z = m_vertices[i].z;
       }
-      std::vector<ProgMesh::tridata> prog_indices(m_mesh.NumIndices() / 3);
+      vector<ProgMesh::tridata> prog_indices(m_mesh.NumIndices() / 3);
       {
       size_t i2 = 0;
       for (size_t i = 0; i < m_mesh.NumIndices(); i += 3)
@@ -490,20 +496,20 @@ void Primitive::GetHitShapes(vector<HitObject*> &pvho)
       if (i2 < prog_indices.size())
          prog_indices.resize(i2);
       }
-      std::vector<unsigned int> prog_map;
-      std::vector<unsigned int> prog_perm;
+      vector<unsigned int> prog_map;
+      vector<unsigned int> prog_perm;
       ProgMesh::ProgressiveMesh(prog_vertices, prog_indices, prog_map, prog_perm);
       ProgMesh::PermuteVertices(prog_perm, prog_vertices, prog_indices);
       prog_perm.clear();
 
-      std::vector<ProgMesh::tridata> prog_new_indices;
+      vector<ProgMesh::tridata> prog_new_indices;
       ProgMesh::ReMapIndices(reduced_vertices, prog_indices, prog_new_indices, prog_map);
       prog_indices.clear();
       prog_map.clear();
 
       //
 
-      std::set< std::pair<unsigned, unsigned> > addedEdges;
+      robin_hood::unordered_set<robin_hood::pair<unsigned, unsigned>> addedEdges;
 
       // add collision triangles and edges
       for (size_t i = 0; i < prog_new_indices.size(); ++i)
@@ -537,7 +543,7 @@ void Primitive::GetHitShapes(vector<HitObject*> &pvho)
 
    else
    {
-      std::set< std::pair<unsigned, unsigned> > addedEdges;
+      robin_hood::unordered_set<robin_hood::pair<unsigned, unsigned>> addedEdges;
 
       // add collision triangles and edges
       for (size_t i = 0; i < m_mesh.NumIndices(); i += 3)
@@ -573,16 +579,13 @@ void Primitive::GetHitShapesDebug(vector<HitObject*> &pvho)
 // Ported at: VisualPinball.Engine/Math/EdgeSet.cs
 //
 
-void Primitive::AddHitEdge(vector<HitObject*> &pvho, std::set< std::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j, const Vertex3Ds &vi, const Vertex3Ds &vj)
+void Primitive::AddHitEdge(vector<HitObject*> &pvho, robin_hood::unordered_set< robin_hood::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j, const Vertex3Ds &vi, const Vertex3Ds &vj)
 {
    // create pair uniquely identifying the edge (i,j)
-   const std::pair<unsigned, unsigned> p(std::min(i, j), std::max(i, j));
+   const robin_hood::pair<unsigned, unsigned> p(std::min(i, j), std::max(i, j));
 
-   if (addedEdges.count(p) == 0)   // edge not yet added?
-   {
-      addedEdges.insert(p);
+   if (addedEdges.insert(p).second) // edge not yet added?
       SetupHitObject(pvho, new HitLine3D(vi, vj));
-   }
 }
 
 //
@@ -592,33 +595,29 @@ void Primitive::AddHitEdge(vector<HitObject*> &pvho, std::set< std::pair<unsigne
 void Primitive::SetupHitObject(vector<HitObject*> &pvho, HitObject * obj)
 {
    const Material * const mat = m_ptable->GetMaterial(m_d.m_szPhysicsMaterial);
-   if (!m_d.m_useAsPlayfield)
+   if (m_d.m_useAsPlayfield)
    {
-       if (mat != nullptr && !m_d.m_overwritePhysics)
-       {
-           obj->m_elasticity = mat->m_fElasticity;
-           obj->m_elasticityFalloff = mat->m_fElasticityFalloff;
-           obj->SetFriction(mat->m_fFriction);
-           obj->m_scatter = ANGTORAD(mat->m_fScatterAngle);
-       }
-       else
-       {
-           obj->m_elasticity = m_d.m_elasticity;
-           obj->m_elasticityFalloff = m_d.m_elasticityFalloff;
-           obj->SetFriction(m_d.m_friction);
-           obj->m_scatter = ANGTORAD(m_d.m_scatter);
-       }
-
-       obj->m_enabled = m_d.m_collidable;
+      obj->m_elasticity = m_ptable->m_elasticity;
+      obj->m_elasticityFalloff = m_ptable->m_elasticityFalloff;
+      obj->SetFriction(m_ptable->m_friction);
+      obj->m_scatter = ANGTORAD(m_ptable->m_scatter);
+   }
+   else if (mat != nullptr && !m_d.m_overwritePhysics)
+   {
+       obj->m_elasticity = mat->m_fElasticity;
+       obj->m_elasticityFalloff = mat->m_fElasticityFalloff;
+       obj->SetFriction(mat->m_fFriction);
+       obj->m_scatter = ANGTORAD(mat->m_fScatterAngle);
    }
    else
    {
-       obj->m_elasticity = m_ptable->m_elasticity;
-       obj->m_elasticityFalloff = m_ptable->m_elasticityFalloff;
-       obj->SetFriction(m_ptable->m_friction);
-       obj->m_scatter = ANGTORAD(m_ptable->m_scatter);
-       obj->m_enabled = true;
+       obj->m_elasticity = m_d.m_elasticity;
+       obj->m_elasticityFalloff = m_d.m_elasticityFalloff;
+       obj->SetFriction(m_d.m_friction);
+       obj->m_scatter = ANGTORAD(m_d.m_scatter);
    }
+
+   obj->m_enabled = m_d.m_collidable;
    obj->m_threshold = m_d.m_threshold;
    obj->m_ObjType = ePrimitive;
    obj->m_obj = (IFireEvents *)this;
@@ -635,15 +634,11 @@ void Primitive::EndPlay()
 
    if (m_vertexBuffer)
    {
-      m_vertexBuffer->release();
-      m_vertexBuffer = 0;
+      SAFE_BUFFER_RELEASE(m_vertexBuffer);
       m_vertexBufferRegenerate = true;
    }
-   if (m_indexBuffer)
-   {
-      m_indexBuffer->release();
-      m_indexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
+
    m_d.m_skipRendering = false;
    m_d.m_groupdRendering = false;
 
@@ -750,7 +745,7 @@ void Primitive::UIRenderPass2(Sur * const psur)
             if (m_mesh.NumIndices() > 0)
             {
                const size_t numPts = m_mesh.NumIndices() / 3 + 1;
-               std::vector<Vertex2D> drawVertices(numPts);
+               vector<Vertex2D> drawVertices(numPts);
 
                const Vertex3Ds& A = m_vertices[m_mesh.m_indices[0]];
                drawVertices[0] = Vertex2D(A.x, A.y);
@@ -768,7 +763,7 @@ void Primitive::UIRenderPass2(Sur * const psur)
       }
       else
       {
-         std::vector<Vertex2D> drawVertices;
+         vector<Vertex2D> drawVertices;
          for (size_t i = 0; i < m_mesh.NumIndices(); i += 3)
          {
             const Vertex3Ds * const A = &m_vertices[m_mesh.m_indices[i]];
@@ -812,7 +807,7 @@ void Primitive::UIRenderPass2(Sur * const psur)
          ppi->CreateGDIVersion();
          if (ppi->m_hbmGDIVersion)
          {
-            std::vector<RenderVertex> vvertex;
+            vector<RenderVertex> vvertex;
             for (size_t i = 0; i < m_mesh.NumIndices(); i += 3)
             {
                const Vertex3Ds * const A = &m_vertices[m_mesh.m_indices[i]];
@@ -881,7 +876,7 @@ void Primitive::RenderBlueprint(Sur *psur, const bool solid)
          if (m_mesh.NumIndices() > 0)
          {
             const size_t numPts = m_mesh.NumIndices() / 3 + 1;
-            std::vector<Vertex2D> drawVertices(numPts);
+            vector<Vertex2D> drawVertices(numPts);
 
             const Vertex3Ds& A = m_vertices[m_mesh.m_indices[0]];
             drawVertices[0] = Vertex2D(A.x, A.y);
@@ -899,7 +894,7 @@ void Primitive::RenderBlueprint(Sur *psur, const bool solid)
    }
    else
    {
-      std::vector<Vertex2D> drawVertices;
+      vector<Vertex2D> drawVertices;
       for (size_t i = 0; i < m_mesh.NumIndices(); i += 3)
       {
          const Vertex3Ds * const A = &m_vertices[m_mesh.m_indices[i]];
@@ -1141,7 +1136,7 @@ void Primitive::UpdateStatusBarInfo()
        m_vpinball->SetStatusBarUnitInfo(tbuf, false);
    }
    else
-       m_vpinball->SetStatusBarUnitInfo("", false);
+       m_vpinball->SetStatusBarUnitInfo(string(), false);
 
 }
 
@@ -1221,15 +1216,12 @@ void Primitive::RenderObject()
       const Material * const mat = m_ptable->GetMaterial(m_d.m_szMaterial);
       pd3dDevice->basicShader->SetMaterial(mat);
 
-      pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+      pd3dDevice->SetRenderStateDepthBias(0.f);
       pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
-      pd3dDevice->SetRenderState(RenderDevice::CULLMODE, m_d.m_backfacesEnabled && mat->m_bOpacityActive ? RenderDevice::CULL_CW : RenderDevice::CULL_CCW);
+      pd3dDevice->SetRenderStateCulling(m_d.m_backfacesEnabled && mat->m_bOpacityActive ? RenderDevice::CULL_CW : RenderDevice::CULL_CCW);
 
       if (m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f)
-      {
-         const vec4 tmp(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f, 0.f);
-         pd3dDevice->basicShader->SetDisableLighting(tmp);
-      }
+         pd3dDevice->basicShader->SetDisableLighting(vec4(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f, 0.f));
 
       Texture * const pin = m_ptable->GetImage(m_d.m_szImage);
       Texture * const nMap = m_ptable->GetImage(m_d.m_szNormalMap);
@@ -1237,10 +1229,10 @@ void Primitive::RenderObject()
       if (pin && nMap)
       {
          pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_normal_isMetal" : "basic_with_texture_normal_isNotMetal");
-         pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
-         pd3dDevice->basicShader->SetTexture("Texture4", nMap, true);
+         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
+         pd3dDevice->basicShader->SetTexture(SHADER_Texture4, nMap, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, true);
          pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
-         pd3dDevice->basicShader->SetBool("objectSpaceNormalMap", m_d.m_objectSpaceNormalMap);
+         pd3dDevice->basicShader->SetBool(SHADER_objectSpaceNormalMap, m_d.m_objectSpaceNormalMap);
 
          //g_pplayer->m_pin3d.SetPrimaryTextureFilter(0, TEXTURE_MODE_TRILINEAR);
          // accommodate models with UV coords outside of [0,1]
@@ -1248,8 +1240,8 @@ void Primitive::RenderObject()
       }
       else if (pin)
       {
-         pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
-         pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
+         pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
          pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
 
          //g_pplayer->m_pin3d.SetPrimaryTextureFilter(0, TEXTURE_MODE_TRILINEAR);
@@ -1257,10 +1249,25 @@ void Primitive::RenderObject()
          pd3dDevice->SetTextureAddressMode(0, RenderDevice::TEX_WRAP);
       }
       else
-         pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+         pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
 
       // set transform
       g_pplayer->UpdateBasicShaderMatrix(m_fullMatrix);
+
+      // setup for additive blending
+      vec4 previousFlasherColorAlpha = pd3dDevice->basicShader->GetCurrentFlasherColorAlpha();
+      if (m_d.m_addBlend)
+      {
+         g_pplayer->m_pin3d.EnableAlphaBlend(true);
+         pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_FALSE);
+         const vec4 color = convertColor(m_d.m_color, m_d.m_alpha * (float)(1.0 / 100.0));
+         pd3dDevice->basicShader->SetFlasherColorAlpha(vec4(color.x * color.w, color.y * color.w, color.z * color.w, color.w));
+      }
+      else
+      {
+         const vec4 color = convertColor(m_d.m_color, m_d.m_alpha * (float)(1.0 / 100.0));
+         pd3dDevice->basicShader->SetFlasherColorAlpha(color);
+      }
 
       // draw the mesh
       pd3dDevice->basicShader->Begin(0);
@@ -1272,7 +1279,7 @@ void Primitive::RenderObject()
 
       if (m_d.m_backfacesEnabled && mat->m_bOpacityActive)
       {
-         pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+         pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
          pd3dDevice->basicShader->Begin(0);
          if (m_d.m_groupdRendering)
             pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_vertexBuffer, 0, m_numGroupVertices, m_indexBuffer, 0, m_numGroupIndices);
@@ -1281,28 +1288,24 @@ void Primitive::RenderObject()
          pd3dDevice->basicShader->End();
       }
 
+      pd3dDevice->basicShader->SetFlasherColorAlpha(previousFlasherColorAlpha);
+
       // reset transform
       g_pplayer->UpdateBasicShaderMatrix();
 
       pd3dDevice->SetTextureAddressMode(0, RenderDevice::TEX_CLAMP);
-      //g_pplayer->m_pin3d.DisableAlphaBlend(); //!! not necessary anymore
+      //pd3dDevice->SetRenderState(RenderDevice::ALPHABLENDENABLE, RenderDevice::RS_FALSE); //!! not necessary anymore
       if (m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f)
-      {
-         const vec4 tmp(0.f, 0.f, 0.f, 0.f);
-         pd3dDevice->basicShader->SetDisableLighting(tmp);
-      }
+         pd3dDevice->basicShader->SetDisableLighting(vec4(0.f, 0.f, 0.f, 0.f));
    }
    else // m_d.m_useAsPlayfield == true:
    {
       // shader is already fully configured in the playfield rendering case when we arrive here, so we only setup some special primitive params
 
       if (m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f)
-      {
-         const vec4 tmp(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f, 0.f);
-         pd3dDevice->basicShader->SetDisableLighting(tmp);
-      }
+         pd3dDevice->basicShader->SetDisableLighting(vec4(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f, 0.f));
 
-      //pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW); // don't mess with the render states when doing playfield rendering
+      //pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW); // don't mess with the render states when doing playfield rendering
       // set transform
       g_pplayer->UpdateBasicShaderMatrix(m_fullMatrix);
       pd3dDevice->basicShader->Begin(0);
@@ -1312,10 +1315,7 @@ void Primitive::RenderObject()
       g_pplayer->UpdateBasicShaderMatrix();
 
       if (m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f)
-      {
-         const vec4 tmp(0.f, 0.f, 0.f, 0.f);
-         pd3dDevice->basicShader->SetDisableLighting(tmp);
-      }
+         pd3dDevice->basicShader->SetDisableLighting(vec4(0.f, 0.f, 0.f, 0.f));
    }
 }
 
@@ -1336,6 +1336,14 @@ void Primitive::RenderDynamic()
            return;
        if (m_ptable->m_reflectionEnabled && !m_d.m_reflectionEnabled)
            return;
+       if (m_d.m_addBlend)
+       {
+          const vec4 color = convertColor(m_d.m_color, m_d.m_alpha * (float)(1.0 / 100.0));
+          if (color.w == 0.f)
+             return;
+          if (color.x == 0.f && color.y == 0.f && color.z == 0.f)
+             return;
+       }
    }
 
    RenderObject();
@@ -1348,16 +1356,11 @@ void Primitive::RenderSetup()
 
    m_currentFrame = -1.f;
 
-   if (m_vertexBuffer)
-      m_vertexBuffer->release();
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   VertexBuffer::CreateVertexBuffer((unsigned int)m_mesh.NumVertices(), 0, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer, PRIMARY_DEVICE);
 
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
-   pd3dDevice->CreateVertexBuffer((unsigned int)m_mesh.NumVertices(), 0, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer);
-
-   if (m_indexBuffer)
-      m_indexBuffer->release();
-   m_indexBuffer = pd3dDevice->CreateAndFillIndexBuffer(m_mesh.m_indices);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
+   m_indexBuffer = IndexBuffer::CreateAndFillIndexBuffer(m_mesh.m_indices, PRIMARY_DEVICE);
 }
 
 void Primitive::RenderStatic()
@@ -1509,7 +1512,7 @@ HRESULT Primitive::SaveData(IStream *pstm, HCRYPTHASH hcrypthash, const bool bac
       }
       else
       {
-         std::vector<WORD> tmp(m_mesh.NumIndices());
+         vector<WORD> tmp(m_mesh.NumIndices());
          for (size_t i = 0; i < m_mesh.NumIndices(); ++i)
             tmp[i] = m_mesh.m_indices[i];
 #ifndef COMPRESS_MESHES
@@ -1546,6 +1549,9 @@ HRESULT Primitive::SaveData(IStream *pstm, HCRYPTHASH hcrypthash, const bool bac
       }
    }
    bw.WriteFloat(FID(PIDB), m_d.m_depthBias);
+   bw.WriteBool(FID(ADDB), m_d.m_addBlend);
+   bw.WriteFloat(FID(FALP), m_d.m_alpha);
+   bw.WriteInt(FID(COLR), m_d.m_color);
 
    ISelect::SaveData(pstm, hcrypthash);
 
@@ -1664,11 +1670,7 @@ bool Primitive::LoadToken(const int id, BiffReader * const pbr)
       pbr->GetStruct(c, m_compressedAnimationVertices);
       const int error = uncompress((unsigned char *)frameData.m_frameVerts.data(), &uclen, c, m_compressedAnimationVertices);
       if (error != Z_OK)
-      {
-         char err[128];
-         sprintf_s(err, "Could not uncompress primitive animation vertex data, error %d", error);
-         ShowError(err);
-      }
+         ShowError("Could not uncompress primitive animation vertex data, error "+std::to_string(error));
       free(c);
       m_mesh.m_animationFrames.push_back(frameData);
       break;
@@ -1690,11 +1692,7 @@ bool Primitive::LoadToken(const int id, BiffReader * const pbr)
 		  mz_ulong uclen2 = uclen;
 		  const int error = uncompress((unsigned char *)m_mesh.m_vertices.data(), &uclen2, c, m_compressedVertices);
 		  if (error != Z_OK)
-		  {
-			  char err[128];
-			  sprintf_s(err, "Could not uncompress primitive vertex data, error %d", error);
-			  ShowError(err);
-		  }
+			  ShowError("Could not uncompress primitive vertex data, error "+std::to_string(error));
 		  free(c);
 	  });
       break;
@@ -1708,7 +1706,7 @@ bool Primitive::LoadToken(const int id, BiffReader * const pbr)
          pbr->GetStruct(m_mesh.m_indices.data(), (int)sizeof(unsigned int)*m_numIndices);
       else
       {
-         std::vector<WORD> tmp(m_numIndices);
+         vector<WORD> tmp(m_numIndices);
          pbr->GetStruct(tmp.data(), (int)sizeof(WORD)*m_numIndices);
          for (int i = 0; i < m_numIndices; ++i)
             m_mesh.m_indices[i] = tmp[i];
@@ -1734,11 +1732,7 @@ bool Primitive::LoadToken(const int id, BiffReader * const pbr)
 			 mz_ulong uclen2 = uclen;
 			 const int error = uncompress((unsigned char *)m_mesh.m_indices.data(), &uclen2, c, m_compressedIndices);
 			 if (error != Z_OK)
-			 {
-				 char err[128];
-				 sprintf_s(err, "Could not uncompress (large) primitive index data, error %d", error);
-				 ShowError(err);
-			 }
+				 ShowError("Could not uncompress (large) primitive index data, error "+std::to_string(error));
 			 free(c);
 		 });
       }
@@ -1753,16 +1747,12 @@ bool Primitive::LoadToken(const int id, BiffReader * const pbr)
             g_pPrimitiveDecompressThreadPool = new ThreadPool(g_pvp->m_logicalNumberOfProcessors);
 
          g_pPrimitiveDecompressThreadPool->enqueue([uclen, c, this] {
-            std::vector<WORD> tmp(m_numIndices);
+            vector<WORD> tmp(m_numIndices);
 
             mz_ulong uclen2 = uclen;
             const int error = uncompress((unsigned char *)tmp.data(), &uclen2, c, m_compressedIndices);
             if (error != Z_OK)
-            {
-               char err[128];
-               sprintf_s(err, "Could not uncompress (small) primitive index data, error %d", error);
-               ShowError(err);
-            }
+               ShowError("Could not uncompress (small) primitive index data, error "+std::to_string(error));
             free(c);
             for (int i = 0; i < m_numIndices; ++i)
                m_mesh.m_indices[i] = tmp[i];
@@ -1773,6 +1763,9 @@ bool Primitive::LoadToken(const int id, BiffReader * const pbr)
 #endif
    case FID(PIDB): pbr->GetFloat(m_d.m_depthBias); break;
    case FID(OSNM): pbr->GetBool(m_d.m_objectSpaceNormalMap); break;
+   case FID(ADDB): pbr->GetBool(m_d.m_addBlend); break;
+   case FID(FALP): pbr->GetFloat(m_d.m_alpha); break;
+   case FID(COLR): pbr->GetInt(m_d.m_color); break;
    default: ISelect::LoadToken(id, pbr); break;
    }
    return true;
@@ -1833,18 +1826,15 @@ INT_PTR CALLBACK Primitive::ObjImportProc(HWND hwndDlg, UINT uMsg, WPARAM wParam
             char szFileName[MAXSTRING] = { 0 };
 
             GetDlgItemText(hwndDlg, IDC_FILENAME_EDIT, szFileName, MAXSTRING);
-            if (szFileName[0] == 0)
+            if (szFileName[0] == '\0')
             {
                ShowError("No .obj file selected!");
                break;
             }
             prim->m_mesh.Clear();
             prim->m_d.m_use3DMesh = false;
-            if (prim->m_vertexBuffer)
-            {
-               prim->m_vertexBuffer->release();
-               prim->m_vertexBuffer = 0;
-            }
+            SAFE_BUFFER_RELEASE(prim->m_vertexBuffer);
+
             constexpr bool flipTV = false;
             const bool convertToLeftHanded = IsDlgButtonChecked(hwndDlg, IDC_CONVERT_COORD_CHECK) == BST_CHECKED;
             const bool importAbsolutePosition = IsDlgButtonChecked(hwndDlg, IDC_ABS_POSITION_RADIO) == BST_CHECKED;
@@ -1855,7 +1845,7 @@ INT_PTR CALLBACK Primitive::ObjImportProc(HWND hwndDlg, UINT uMsg, WPARAM wParam
             if (importMaterial)
             {
                string szMatName = szFileName;
-               if (ReplaceExtensionFromFilename(szMatName, "mtl"))
+               if (ReplaceExtensionFromFilename(szMatName, "mtl"s))
                {
                   Material * const mat = new Material();
                   ObjLoader loader;
@@ -1934,21 +1924,20 @@ INT_PTR CALLBACK Primitive::ObjImportProc(HWND hwndDlg, UINT uMsg, WPARAM wParam
 
             SetForegroundWindow(hwndDlg);
 
-            std::vector<std::string> szFileName;
             string szInitialDir;
-
-            HRESULT hr = LoadValue("RecentDir", "ImportDir", szInitialDir);
+            HRESULT hr = LoadValue(regKey[RegName::RecentDir], "ImportDir"s, szInitialDir);
             if (hr != S_OK)
                szInitialDir = "c:\\Visual Pinball\\Tables\\";
 
+            vector<string> szFileName;
             if (g_pvp->OpenFileDialog(szInitialDir, szFileName, "Wavefront obj file (*.obj)\0*.obj\0", "obj", 0))
             {
                SetDlgItemText(hwndDlg, IDC_FILENAME_EDIT, szFileName[0].c_str());
 
                size_t index = szFileName[0].find_last_of('\\');
-               if (index != std::string::npos)
+               if (index != string::npos)
                {
-                  hr = SaveValue("RecentDir", "ImportDir", szFileName[0].substr(0, index));
+                  hr = SaveValue(regKey[RegName::RecentDir], "ImportDir"s, szFileName[0].substr(0, index));
                   index++;
                   prim->m_d.m_meshFileName = szFileName[0].substr(index, szFileName[0].length() - index);
                }
@@ -1979,8 +1968,7 @@ bool Primitive::BrowseFor3DMeshFile()
    szFileName[0] = '\0';
    string szInitialDir;
 
-   OPENFILENAME ofn;
-   ZeroMemory(&ofn, sizeof(OPENFILENAME));
+   OPENFILENAME ofn = {};
    ofn.lStructSize = sizeof(OPENFILENAME);
    ofn.hInstance = m_vpinball->theInstance;
    ofn.hwndOwner = m_vpinball->m_hwnd;
@@ -1991,7 +1979,7 @@ bool Primitive::BrowseFor3DMeshFile()
    ofn.lpstrDefExt = "obj";
    ofn.Flags = OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY;
 
-   const HRESULT hr = LoadValue("RecentDir", "ImportDir", szInitialDir);
+   const HRESULT hr = LoadValue(regKey[RegName::RecentDir], "ImportDir"s, szInitialDir);
    if (hr != S_OK)
        szInitialDir = "c:\\Visual Pinball\\Tables\\";
 
@@ -2003,21 +1991,18 @@ bool Primitive::BrowseFor3DMeshFile()
 
    string filename(ofn.lpstrFile);
    size_t index = filename.find_last_of('\\');
-   if (index != std::string::npos)
+   if (index != string::npos)
    {
-      const std::string newInitDir(szFilename.substr(0, index));
-      SaveValue("RecentDir", "ImportDir", newInitDir);
+      const string newInitDir(szFilename.substr(0, index));
+      SaveValue(regKey[RegName::RecentDir], "ImportDir"s, newInitDir);
       index++;
       m_d.m_meshFileName = filename.substr(index, filename.length() - index);
    }
 
    m_mesh.Clear();
    m_d.m_use3DMesh = false;
-   if (vertexBuffer)
-   {
-      vertexBuffer->release();
-      vertexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(vertexBuffer);
+
    bool flipTV = false;
    bool convertToLeftHanded = false;
    int ans = m_vpinball->MessageBox("Do you want to mirror the object?", "Convert coordinate system?", MB_YESNO | MB_DEFBUTTON2);
@@ -2066,11 +2051,6 @@ STDMETHODIMP Primitive::put_Image(BSTR newVal)
    char szImage[MAXTOKEN];
    WideCharToMultiByteNull(CP_ACP, 0, newVal, -1, szImage, MAXTOKEN, nullptr, nullptr);
    const Texture * const tex = m_ptable->GetImage(szImage);
-   if (tex && tex->IsHDR())
-   {
-       ShowError("Cannot use a HDR image (.exr/.hdr) here");
-       return E_FAIL;
-   }
 
    m_d.m_szImage = szImage;
 
@@ -2133,24 +2113,23 @@ bool Primitive::LoadMeshDialog()
 void Primitive::ExportMeshDialog()
 {
    string szInitialDir;
-   HRESULT hr = LoadValue("RecentDir", "ImportDir", szInitialDir);
+   HRESULT hr = LoadValue(regKey[RegName::RecentDir], "ImportDir"s, szInitialDir);
    if (hr != S_OK)
        szInitialDir = "c:\\Visual Pinball\\Tables\\";
 
-   std::vector<std::string> szFileName;
-   
+   vector<string> szFileName;
    if (m_vpinball->SaveFileDialog(szInitialDir, szFileName, "Wavefront obj file (*.obj)\0*.obj\0", "obj", OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY))
    {
       const size_t index = szFileName[0].find_last_of('\\');
-      if (index != std::string::npos)
+      if (index != string::npos)
       {
-         const std::string newInitDir(szFileName[0].substr(0, index));
-         hr = SaveValue("RecentDir", "ImportDir", newInitDir);
+         const string newInitDir(szFileName[0].substr(0, index));
+         hr = SaveValue(regKey[RegName::RecentDir], "ImportDir"s, newInitDir);
       }
 
       char name[sizeof(m_wzName) / sizeof(m_wzName[0])];
       WideCharToMultiByteNull(CP_ACP, 0, m_wzName, -1, name, sizeof(name), nullptr, nullptr);
-      m_mesh.SaveWavefrontObj(szFileName[0], m_d.m_use3DMesh ? name : "Primitive");
+      m_mesh.SaveWavefrontObj(szFileName[0], m_d.m_use3DMesh ? string(name) : "Primitive"s);
    }
 
 }
@@ -2547,6 +2526,46 @@ STDMETHODIMP Primitive::put_ObjRotZ(float newVal)
    return S_OK;
 }
 
+
+STDMETHODIMP Primitive::get_Opacity(float *pVal)
+{
+   *pVal = m_d.m_alpha;
+   return S_OK;
+}
+
+STDMETHODIMP Primitive::put_Opacity(float newVal)
+{
+   SetAlpha(newVal);
+   return S_OK;
+}
+
+STDMETHODIMP Primitive::get_Color(OLE_COLOR *pVal)
+{
+   *pVal = m_d.m_color;
+
+   return S_OK;
+}
+
+STDMETHODIMP Primitive::put_Color(OLE_COLOR newVal)
+{
+   m_d.m_color = newVal;
+
+   return S_OK;
+}
+
+STDMETHODIMP Primitive::get_AddBlend(VARIANT_BOOL *pVal)
+{
+   *pVal = FTOVB(m_d.m_addBlend);
+
+   return S_OK;
+}
+
+STDMETHODIMP Primitive::put_AddBlend(VARIANT_BOOL newVal)
+{
+   m_d.m_addBlend = VBTOb(newVal);
+   return S_OK;
+}
+
 STDMETHODIMP Primitive::get_EdgeFactorUI(float *pVal)
 {
    *pVal = m_d.m_edgeFactorUI;
@@ -2924,11 +2943,14 @@ STDMETHODIMP Primitive::ShowFrame(float frame)
 
 void Primitive::SetDefaultPhysics(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Primitive";
-   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity", 0.3f) : 0.3f;
-   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ElasticityFalloff", 0.5f) : 0.5f;
-   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction", 0.3f) : 0.3f;
-   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter", 0) : 0;
+#define strKeyName regKey[RegName::DefaultPropsPrimitive]
+
+   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity"s, 0.3f) : 0.3f;
+   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ElasticityFalloff"s, 0.5f) : 0.5f;
+   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction"s, 0.3f) : 0.3f;
+   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter"s, 0) : 0;
+
+#undef strKeyName
 }
 
 STDMETHODIMP Primitive::get_DepthBias(float *pVal)

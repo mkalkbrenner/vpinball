@@ -13,6 +13,9 @@
 #include "meshes/hitTargetFatSquareMesh.h"
 #include "meshes/hitTargetT1SlimMesh.h"
 #include "meshes/hitTargetT2SlimMesh.h"
+#include "Shader.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -44,10 +47,8 @@ HitTarget::HitTarget()
 
 HitTarget::~HitTarget()
 {
-   if (m_vertexBuffer)
-      m_vertexBuffer->release();
-   if (m_indexBuffer)
-      m_indexBuffer->release();
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
 }
 
 void HitTarget::SetMeshType(const TargetType type)
@@ -146,83 +147,85 @@ HRESULT HitTarget::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void HitTarget::SetDefaults(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\HitTarget";
+#define strKeyName regKey[RegName::DefaultPropsHitTarget]
 
-   m_d.m_legacy = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "LegacyMode", false) : false;
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled", false) : false;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval", 100) : 100;
-   m_d.m_hitEvent = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "HitEvent", true) : true;
-   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible", true) : true;
-   m_d.m_isDropped = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "IsDropped", false) : false;
-   
+   m_d.m_legacy = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "LegacyMode"s, false) : false;
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled"s, false) : false;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval"s, 100) : 100;
+   m_d.m_hitEvent = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "HitEvent"s, true) : true;
+   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible"s, true) : true;
+   m_d.m_isDropped = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "IsDropped"s, false) : false;
+
    // Position (X and Y is already set by the click of the user)
-   m_d.m_vPosition.z = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Position_Z", 0.0f) : 0.0f;
+   m_d.m_vPosition.z = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Position_Z"s, 0.0f) : 0.0f;
 
    // Size
-   m_d.m_vSize.x = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ScaleX", 32.0f) : 32.0f;
-   m_d.m_vSize.y = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ScaleY", 32.0f) : 32.0f;
-   m_d.m_vSize.z = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ScaleZ", 32.0f) : 32.0f;
+   m_d.m_vSize.x = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ScaleX"s, 32.0f) : 32.0f;
+   m_d.m_vSize.y = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ScaleY"s, 32.0f) : 32.0f;
+   m_d.m_vSize.z = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ScaleZ"s, 32.0f) : 32.0f;
 
    // Rotation and Transposition
-   m_d.m_rotZ = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Orientation", 0.0f) : 0.0f;
+   m_d.m_rotZ = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Orientation"s, 0.0f) : 0.0f;
 
-   const HRESULT hr = LoadValue(strKeyName, "Image", m_d.m_szImage);
+   const HRESULT hr = LoadValue(strKeyName, "Image"s, m_d.m_szImage);
    if ((hr != S_OK) && fromMouseClick)
       m_d.m_szImage.clear();
 
-   m_d.m_targetType = fromMouseClick ? (TargetType)LoadValueIntWithDefault(strKeyName, "TargetType", DropTargetSimple) : DropTargetSimple;
-   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold", 2.0f) : 2.0f;
+   m_d.m_targetType = fromMouseClick ? (TargetType)LoadValueIntWithDefault(strKeyName, "TargetType"s, DropTargetSimple) : DropTargetSimple;
+   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold"s, 2.0f) : 2.0f;
    if (m_d.m_targetType == DropTargetBeveled || m_d.m_targetType == DropTargetSimple || m_d.m_targetType == DropTargetFlatSimple)
-       m_d.m_dropSpeed = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DropSpeed", 0.5f) : 0.5f;
+       m_d.m_dropSpeed = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DropSpeed"s, 0.5f) : 0.5f;
    else
-       m_d.m_dropSpeed = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DropSpeed", 0.2f) : 0.2f;
+       m_d.m_dropSpeed = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DropSpeed"s, 0.2f) : 0.2f;
 
    SetDefaultPhysics(fromMouseClick);
 
-   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable", true) : true;
-   m_d.m_disableLightingTop = dequantizeUnsigned<8>(fromMouseClick ? LoadValueIntWithDefault(strKeyName, "DisableLighting", 0) : 0); // stored as uchar for backward compatibility
-   m_d.m_disableLightingBelow = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DisableLightingBelow", 0.f) : 0.f;
-   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled", true) : true;
-   m_d.m_raiseDelay = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "RaiseDelay", 100) : 100;
+   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable"s, true) : true;
+   m_d.m_disableLightingTop = dequantizeUnsigned<8>(fromMouseClick ? LoadValueIntWithDefault(strKeyName, "DisableLighting"s, 0) : 0); // stored as uchar for backward compatibility
+   m_d.m_disableLightingBelow = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DisableLightingBelow"s, 0.f) : 0.f;
+   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled"s, true) : true;
+   m_d.m_raiseDelay = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "RaiseDelay"s, 100) : 100;
 
+#undef strKeyName
 }
 
 void HitTarget::WriteRegDefaults()
 {
-   static constexpr char strKeyName[] = "DefaultProps\\HitTarget";
+#define strKeyName regKey[RegName::DefaultPropsHitTarget]
 
-   SaveValueBool(strKeyName, "LegacyMode", m_d.m_legacy);
-   SaveValueBool(strKeyName, "TimerEnabled", m_d.m_tdr.m_TimerEnabled);
-   SaveValueInt(strKeyName, "TimerInterval", m_d.m_tdr.m_TimerInterval);
-   SaveValueBool(strKeyName, "Visible", m_d.m_visible);
-   SaveValueBool(strKeyName, "IsDropped", m_d.m_isDropped);
+   SaveValueBool(strKeyName, "LegacyMode"s, m_d.m_legacy);
+   SaveValueBool(strKeyName, "TimerEnabled"s, m_d.m_tdr.m_TimerEnabled);
+   SaveValueInt(strKeyName, "TimerInterval"s, m_d.m_tdr.m_TimerInterval);
+   SaveValueBool(strKeyName, "Visible"s, m_d.m_visible);
+   SaveValueBool(strKeyName, "IsDropped"s, m_d.m_isDropped);
 
-   SaveValueFloat(strKeyName, "Position_Z", m_d.m_vPosition.z);
-   SaveValueFloat(strKeyName, "DropSpeed", m_d.m_dropSpeed);
+   SaveValueFloat(strKeyName, "Position_Z"s, m_d.m_vPosition.z);
+   SaveValueFloat(strKeyName, "DropSpeed"s, m_d.m_dropSpeed);
 
-   SaveValueFloat(strKeyName, "ScaleX", m_d.m_vSize.x);
-   SaveValueFloat(strKeyName, "ScaleY", m_d.m_vSize.y);
-   SaveValueFloat(strKeyName, "ScaleZ", m_d.m_vSize.z);
+   SaveValueFloat(strKeyName, "ScaleX"s, m_d.m_vSize.x);
+   SaveValueFloat(strKeyName, "ScaleY"s, m_d.m_vSize.y);
+   SaveValueFloat(strKeyName, "ScaleZ"s, m_d.m_vSize.z);
 
-   SaveValueFloat(strKeyName, "Orientation", m_d.m_rotZ);
+   SaveValueFloat(strKeyName, "Orientation"s, m_d.m_rotZ);
 
-   SaveValue(strKeyName, "Image", m_d.m_szImage);
-   SaveValueBool(strKeyName, "HitEvent", m_d.m_hitEvent);
-   SaveValueFloat(strKeyName, "HitThreshold", m_d.m_threshold);
-   SaveValueFloat(strKeyName, "Elasticity", m_d.m_elasticity);
-   SaveValueFloat(strKeyName, "ElasticityFalloff", m_d.m_elasticityFalloff);
-   SaveValueFloat(strKeyName, "Friction", m_d.m_friction);
-   SaveValueFloat(strKeyName, "Scatter", m_d.m_scatter);
+   SaveValue(strKeyName, "Image"s, m_d.m_szImage);
+   SaveValueBool(strKeyName, "HitEvent"s, m_d.m_hitEvent);
+   SaveValueFloat(strKeyName, "HitThreshold"s, m_d.m_threshold);
+   SaveValueFloat(strKeyName, "Elasticity"s, m_d.m_elasticity);
+   SaveValueFloat(strKeyName, "ElasticityFalloff"s, m_d.m_elasticityFalloff);
+   SaveValueFloat(strKeyName, "Friction"s, m_d.m_friction);
+   SaveValueFloat(strKeyName, "Scatter"s, m_d.m_scatter);
 
-   SaveValueInt(strKeyName, "TargetType", m_d.m_targetType);
+   SaveValueInt(strKeyName, "TargetType"s, m_d.m_targetType);
 
-   SaveValueBool(strKeyName, "Collidable", m_d.m_collidable);
+   SaveValueBool(strKeyName, "Collidable"s, m_d.m_collidable);
    const int tmp = quantizeUnsigned<8>(clamp(m_d.m_disableLightingTop, 0.f, 1.f));
-   SaveValueInt(strKeyName, "DisableLighting", (tmp == 1) ? 0 : tmp); // backwards compatible saving
-   SaveValueFloat(strKeyName, "DisableLightingBelow", m_d.m_disableLightingBelow);
-   SaveValueBool(strKeyName, "ReflectionEnabled", m_d.m_reflectionEnabled);
-   SaveValueInt(strKeyName, "RaiseDelay", m_d.m_raiseDelay);
+   SaveValueInt(strKeyName, "DisableLighting"s, (tmp == 1) ? 0 : tmp); // backwards compatible saving
+   SaveValueFloat(strKeyName, "DisableLightingBelow"s, m_d.m_disableLightingBelow);
+   SaveValueBool(strKeyName, "ReflectionEnabled"s, m_d.m_reflectionEnabled);
+   SaveValueInt(strKeyName, "RaiseDelay"s, m_d.m_raiseDelay);
 
+#undef strKeyName
 }
 
 //
@@ -267,7 +270,7 @@ void HitTarget::GetHitShapes(vector<HitObject*> &pvho)
 
     if (m_d.m_targetType == DropTargetBeveled || m_d.m_targetType == DropTargetFlatSimple || m_d.m_targetType == DropTargetSimple)
     {
-       std::set< std::pair<unsigned, unsigned> > addedEdges;
+       robin_hood::unordered_set<robin_hood::pair<unsigned, unsigned>> addedEdges;
 
        Matrix3D fullMatrix, tempMatrix;
        fullMatrix.SetIdentity();
@@ -346,7 +349,7 @@ void HitTarget::GetHitShapes(vector<HitObject*> &pvho)
     }
     else
     {
-       std::set< std::pair<unsigned, unsigned> > addedEdges;
+       robin_hood::unordered_set<robin_hood::pair<unsigned, unsigned>> addedEdges;
        // add collision triangles and edges
        for (unsigned i = 0; i < m_numIndices; i += 3)
        {
@@ -376,16 +379,13 @@ void HitTarget::GetHitShapesDebug(vector<HitObject*> &pvho)
 {
 }
 
-void HitTarget::AddHitEdge(vector<HitObject*> &pvho, std::set< std::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j, const Vertex3Ds &vi, const Vertex3Ds &vj, const bool setHitObject)
+void HitTarget::AddHitEdge(vector<HitObject*> &pvho, robin_hood::unordered_set< robin_hood::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j, const Vertex3Ds &vi, const Vertex3Ds &vj, const bool setHitObject)
 {
    // create pair uniquely identifying the edge (i,j)
-   const std::pair<unsigned, unsigned> p(std::min(i, j), std::max(i, j));
+   const robin_hood::pair<unsigned, unsigned> p(std::min(i, j), std::max(i, j));
 
-   if (addedEdges.count(p) == 0)   // edge not yet added?
-   {
-      addedEdges.insert(p);
+   if (addedEdges.insert(p).second) // edge not yet added?
       SetupHitObject(pvho, new HitLine3D(vi, vj), setHitObject);
-   }
 }
 
 // Ported at: VisualPinball.Engine/Physics/HitObject.cs
@@ -426,16 +426,8 @@ void HitTarget::EndPlay()
 {
    m_vhoCollidable.clear();
 
-   if (m_vertexBuffer)
-   {
-      m_vertexBuffer->release();
-      m_vertexBuffer = 0;
-   }
-   if (m_indexBuffer)
-   {
-      m_indexBuffer->release();
-      m_indexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
 
    IEditable::EndPlay();
 }
@@ -444,7 +436,7 @@ void HitTarget::EndPlay()
 // Calculation
 //////////////////////////////
 
-void HitTarget::GenerateMesh(std::vector<Vertex3D_NoTex2> &buf)
+void HitTarget::GenerateMesh(vector<Vertex3D_NoTex2> &buf)
 {
    SetMeshType(m_d.m_targetType);
 
@@ -700,25 +692,22 @@ void HitTarget::RenderObject()
    const Material * const mat = m_ptable->GetMaterial(m_d.m_szMaterial);
    pd3dDevice->basicShader->SetMaterial(mat);
 
-   pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+   pd3dDevice->SetRenderStateDepthBias(0.0f);
    pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
 #ifdef TWOSIDED_TRANSPARENCY
-   pd3dDevice->SetRenderState(RenderDevice::CULLMODE, mat->m_bOpacityActive ? RenderDevice::CULL_CW : RenderDevice::CULL_CCW);
+   pd3dDevice->SetRenderStateCulling(mat->m_bOpacityActive ? RenderDevice::CULL_CW : RenderDevice::CULL_CCW);
 #else
-   pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 #endif
 
    if (m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f)
-   {
-      const vec4 tmp(m_d.m_disableLightingTop,m_d.m_disableLightingBelow, 0.f,0.f);
-      pd3dDevice->basicShader->SetDisableLighting(tmp);
-   }
+      pd3dDevice->basicShader->SetDisableLighting(vec4(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f, 0.f));
 
    Texture * const pin = m_ptable->GetImage(m_d.m_szImage);
    if (pin)
    {
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
-      pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+      pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
       pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
 
       //g_pplayer->m_pin3d.SetPrimaryTextureFilter(0, TEXTURE_MODE_TRILINEAR);
@@ -726,7 +715,7 @@ void HitTarget::RenderObject()
       pd3dDevice->SetTextureAddressMode(0, RenderDevice::TEX_WRAP);
    }
    else
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
 
    // draw the mesh
    pd3dDevice->basicShader->Begin(0);
@@ -736,20 +725,17 @@ void HitTarget::RenderObject()
 #ifdef TWOSIDED_TRANSPARENCY
    if (mat->m_bOpacityActive)
    {
-       pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
-       pd3dDevice->basicShader->Begin(0);
-       pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, vertexBuffer, 0, m_numVertices, indexBuffer, 0, m_numIndices);
-       pd3dDevice->basicShader->End();
+      pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
+      pd3dDevice->basicShader->Begin(0);
+      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_vertexBuffer, 0, m_numVertices, m_indexBuffer, 0, m_numIndices);
+      pd3dDevice->basicShader->End();
    }
 #endif
 
    pd3dDevice->SetTextureAddressMode(0, RenderDevice::TEX_CLAMP);
-   //g_pplayer->m_pin3d.DisableAlphaBlend(); //!! not necessary anymore
+   //pd3dDevice->SetRenderState(RenderDevice::ALPHABLENDENABLE, RenderDevice::RS_FALSE); //!! not necessary anymore
    if (m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f)
-   {
-      const vec4 tmp(0.f,0.f, 0.f,0.f);
-      pd3dDevice->basicShader->SetDisableLighting(tmp);
-   }
+      pd3dDevice->basicShader->SetDisableLighting(vec4(0.f,0.f, 0.f,0.f));
 }
 
 void HitTarget::UpdateTarget()
@@ -822,17 +808,12 @@ void HitTarget::RenderDynamic()
 
 void HitTarget::RenderSetup()
 {
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
-   if (m_vertexBuffer)
-      m_vertexBuffer->release();
-
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
    SetMeshType(m_d.m_targetType);
-   pd3dDevice->CreateVertexBuffer((unsigned int)m_numVertices, USAGE_DYNAMIC, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer);
+   VertexBuffer::CreateVertexBuffer((unsigned int)m_numVertices, USAGE_DYNAMIC, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer, PRIMARY_DEVICE);
 
-   if (m_indexBuffer)
-      m_indexBuffer->release();
-   m_indexBuffer = pd3dDevice->CreateAndFillIndexBuffer(m_numIndices, m_indices);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
+   m_indexBuffer = IndexBuffer::CreateAndFillIndexBuffer(m_numIndices, m_indices, PRIMARY_DEVICE);
 
    m_transformedVertices.resize(m_numVertices);
 
@@ -1077,7 +1058,7 @@ STDMETHODIMP HitTarget::put_Visible(VARIANT_BOOL newVal)
 STDMETHODIMP HitTarget::get_X(float *pVal)
 {
    *pVal = m_d.m_vPosition.x;
-   m_vpinball->SetStatusBarUnitInfo("", true);
+   m_vpinball->SetStatusBarUnitInfo(string(), true);
 
    return S_OK;
 }
@@ -1337,12 +1318,14 @@ STDMETHODIMP HitTarget::put_ReflectionEnabled(VARIANT_BOOL newVal)
 
 void HitTarget::SetDefaultPhysics(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\HitTarget";
+#define strKeyName regKey[RegName::DefaultPropsHitTarget]
 
-   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity", 0.35f) : 0.35f;
-   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ElasticityFalloff", 0.5f) : 0.5f;
-   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction", 0.2f) : 0.2f;
-   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter", 5) : 5;
+   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity"s, 0.35f) : 0.35f;
+   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ElasticityFalloff"s, 0.5f) : 0.5f;
+   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction"s, 0.2f) : 0.2f;
+   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter"s, 5) : 5;
+
+#undef strKeyName
 }
 
 STDMETHODIMP HitTarget::get_DepthBias(float *pVal)

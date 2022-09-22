@@ -54,7 +54,7 @@ BOOL TableInfoDialog::OnInitDialog()
    m_rulesEdits.SetWindowText(pt->m_szRules.c_str());
 
    char buffer[256];
-   sprintf_s(buffer, "%s Revision %u", !pt->m_szDateSaved.empty() ? pt->m_szDateSaved.c_str() : "N.A.", pt->m_numTimesSaved);
+   sprintf_s(buffer, sizeof(buffer), "%s Revision %u", !pt->m_szDateSaved.empty() ? pt->m_szDateSaved.c_str() : "N.A.", pt->m_numTimesSaved);
    m_dateSavedEdit.SetWindowText(buffer);
 
    // Init list of images
@@ -90,39 +90,39 @@ BOOL TableInfoDialog::OnInitDialog()
    }
 
    m_resizer.Initialize(*this, CRect(0, 0, 650, 500));
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC2), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC3), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC4), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC5), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC6), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC7), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC8), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC9), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC10), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC11), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC12), center, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC13), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC14), center, 0);
-   m_resizer.AddChild(m_tableNameEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_authorEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_versionEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_releaseEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_emailEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_websiteEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_blurbEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_descriptionEdit, center, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
-   m_resizer.AddChild(m_rulesEdits, center, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
-   m_resizer.AddChild(m_dateSavedEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_customNameEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_customValueEdit, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(m_customListView, center, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
-   m_resizer.AddChild(m_screenshotCombo, center, RD_STRETCH_WIDTH);
-   m_resizer.AddChild(GetDlgItem(IDC_ADD), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_DELETE), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_SENDMAIL), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_GOWEBSITE), center, 0);
-   m_resizer.AddChild(GetDlgItem(IDOK), bottomright, 0);
-   m_resizer.AddChild(GetDlgItem(IDCANCEL), bottomright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC2), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC3), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC4), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC5), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC6), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC7), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC8), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC9), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC10), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC11), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC12), CResizer::center, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC13), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC14), CResizer::center, 0);
+   m_resizer.AddChild(m_tableNameEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_authorEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_versionEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_releaseEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_emailEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_websiteEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_blurbEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_descriptionEdit, CResizer::center, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
+   m_resizer.AddChild(m_rulesEdits, CResizer::center, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
+   m_resizer.AddChild(m_dateSavedEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_customNameEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_customValueEdit, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(m_customListView, CResizer::center, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
+   m_resizer.AddChild(m_screenshotCombo, CResizer::center, RD_STRETCH_WIDTH);
+   m_resizer.AddChild(GetDlgItem(IDC_ADD), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_DELETE), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_SENDMAIL), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_GOWEBSITE), CResizer::center, 0);
+   m_resizer.AddChild(GetDlgItem(IDOK), CResizer::bottomright, 0);
+   m_resizer.AddChild(GetDlgItem(IDCANCEL), CResizer::bottomright, 0);
 
    return TRUE;
 }
@@ -191,7 +191,7 @@ BOOL TableInfoDialog::OnCommand(WPARAM wParam, LPARAM lParam)
 
             string szCustomValue;
             VPGetDialogItemText(m_customValueEdit, szCustomValue);
-            pt->AddListItem(m_customListView.GetHwnd(), szCustomName, szCustomValue, NULL);
+            pt->AddListItem(m_customListView.GetHwnd(), szCustomName, szCustomValue, 0);
          }
          break;
       }
@@ -203,12 +203,12 @@ BOOL TableInfoDialog::OnCommand(WPARAM wParam, LPARAM lParam)
       }
       case IDC_GOWEBSITE:
       {
-         OpenURL(string(m_websiteEdit.GetWindowText()));
+         OpenURL(m_websiteEdit.GetWindowText().c_str());
          break;
       }
       case IDC_SENDMAIL:
       {
-         const string url = string("mailto:") + string(m_emailEdit.GetWindowText()) + string("?subject=") + string(m_tableNameEdit.GetWindowText());
+         const string url = "mailto:"s + m_emailEdit.GetWindowText().c_str() + "?subject=" + m_tableNameEdit.GetWindowText().c_str();
          OpenURL(url);
          break;
       }
@@ -226,7 +226,7 @@ void TableInfoDialog::OnOK()
    pt->m_szAuthor = m_authorEdit.GetWindowText();
    pt->m_szVersion = m_versionEdit.GetWindowText();
    pt->m_szReleaseDate = m_releaseEdit.GetWindowText();
-   pt->m_szAuthorEMail = m_authorEdit.GetWindowText();
+   pt->m_szAuthorEMail = m_emailEdit.GetWindowText();
    pt->m_szWebSite = m_websiteEdit.GetWindowText();
    pt->m_szBlurb = m_blurbEdit.GetWindowText();
    pt->m_szDescription = m_descriptionEdit.GetWindowText();

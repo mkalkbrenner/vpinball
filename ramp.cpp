@@ -1,15 +1,16 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 //#include "forsyth.h"
 #include "objloader.h"
+#include "Shader.h"
 
 Ramp::Ramp()
 {
    m_menuid = IDR_SURFACEMENU;
    m_d.m_collidable = true;
    m_d.m_visible = true;
-   m_dynamicVertexBuffer = 0;
-   m_dynamicIndexBuffer = 0;
-   m_dynamicVertexBuffer2 = 0;
+   m_dynamicVertexBuffer = nullptr;
+   m_dynamicIndexBuffer = nullptr;
+   m_dynamicVertexBuffer2 = nullptr;
    m_dynamicVertexBufferRegenerate = true;
    m_d.m_depthBias = 0.0f;
    m_d.m_wireDiameter = 6.0f;
@@ -24,14 +25,9 @@ Ramp::Ramp()
 
 Ramp::~Ramp()
 {
-   if (m_dynamicVertexBuffer)
-      m_dynamicVertexBuffer->release();
-
-   if (m_dynamicVertexBuffer2)
-      m_dynamicVertexBuffer2->release();
-
-   if (m_dynamicIndexBuffer)
-      m_dynamicIndexBuffer->release();
+   SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer2);
+   SAFE_BUFFER_RELEASE(m_dynamicIndexBuffer);
 
    if (m_rgheightInit)
       delete[] m_rgheightInit;
@@ -40,7 +36,7 @@ Ramp::~Ramp()
 void Ramp::UpdateStatusBarInfo()
 {
    char tbuf[128];
-   sprintf_s(tbuf, "TopH: %.03f | BottomH: %0.3f | TopW: %.03f | BottomW: %.03f | LeftW: %.03f | RightW: %.03f", m_vpinball->ConvertToUnit(m_d.m_heighttop), m_vpinball->ConvertToUnit(m_d.m_heightbottom),
+   sprintf_s(tbuf, sizeof(tbuf), "TopH: %.03f | BottomH: %0.3f | TopW: %.03f | BottomW: %.03f | LeftW: %.03f | RightW: %.03f", m_vpinball->ConvertToUnit(m_d.m_heighttop), m_vpinball->ConvertToUnit(m_d.m_heightbottom),
        m_vpinball->ConvertToUnit(m_d.m_widthtop), m_vpinball->ConvertToUnit(m_d.m_widthbottom),
        m_vpinball->ConvertToUnit(m_d.m_leftwallheightvisible), m_vpinball->ConvertToUnit(m_d.m_rightwallheightvisible));
    m_vpinball->SetStatusBarUnitInfo(tbuf, true);
@@ -58,7 +54,7 @@ HRESULT Ramp::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
    SetDefaults(fromMouseClick);
    m_d.m_visible = true;
 
-   const float length = 0.5f * LoadValueFloatWithDefault("DefaultProps\\Ramp", "Length", 400.0f);
+   const float length = 0.5f * LoadValueFloatWithDefault(regKey[RegName::DefaultPropsRamp], "Length"s, 400.0f);
 
    CComObject<DragPoint> *pdp;
    CComObject<DragPoint>::CreateInstance(&pdp);
@@ -86,71 +82,75 @@ HRESULT Ramp::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Ramp::SetDefaults(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Ramp";
-   
-   m_d.m_heightbottom = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightBottom", 0.0f) : 0.0f;
-   m_d.m_heighttop = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightTop", 50.0f) : 50.0f;
-   m_d.m_widthbottom = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WidthBottom", 75.0f) : 75.0f;
-   m_d.m_widthtop = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WidthTop", 60.0f) : 60.0f;
-   m_d.m_type = fromMouseClick ? (RampType)LoadValueIntWithDefault(strKeyName, "RampType", RampTypeFlat) : RampTypeFlat;
+#define strKeyName regKey[RegName::DefaultPropsRamp]
 
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled", false) : false;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval", 100) : 100;
+   m_d.m_heightbottom = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightBottom"s, 0.0f) : 0.0f;
+   m_d.m_heighttop = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightTop"s, 50.0f) : 50.0f;
+   m_d.m_widthbottom = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WidthBottom"s, 75.0f) : 75.0f;
+   m_d.m_widthtop = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WidthTop"s, 60.0f) : 60.0f;
+   m_d.m_type = fromMouseClick ? (RampType)LoadValueIntWithDefault(strKeyName, "RampType"s, RampTypeFlat) : RampTypeFlat;
 
-   const HRESULT hr = LoadValue(strKeyName, "Image", m_d.m_szImage);
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled"s, false) : false;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval"s, 100) : 100;
+
+   const HRESULT hr = LoadValue(strKeyName, "Image"s, m_d.m_szImage);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szImage.clear();
 
-   m_d.m_imagealignment = fromMouseClick ? (RampImageAlignment)LoadValueIntWithDefault(strKeyName, "ImageMode", ImageModeWorld) : ImageModeWorld;
-   m_d.m_imageWalls = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ImageWalls", true) : true;
+   m_d.m_imagealignment = fromMouseClick ? (RampImageAlignment)LoadValueIntWithDefault(strKeyName, "ImageMode"s, ImageModeWorld) : ImageModeWorld;
+   m_d.m_imageWalls = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ImageWalls"s, true) : true;
 
-   m_d.m_leftwallheight = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "LeftWallHeight", 62.0f) : 62.0f;
-   m_d.m_rightwallheight = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RightWallHeight", 62.0f) : 62.0f;
-   m_d.m_leftwallheightvisible = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "LeftWallHeightVisible", 30.0f) : 30.0f;
-   m_d.m_rightwallheightvisible = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RightWallHeightVisible", 30.0f) : 30.0f;
+   m_d.m_leftwallheight = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "LeftWallHeight"s, 62.0f) : 62.0f;
+   m_d.m_rightwallheight = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RightWallHeight"s, 62.0f) : 62.0f;
+   m_d.m_leftwallheightvisible = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "LeftWallHeightVisible"s, 30.0f) : 30.0f;
+   m_d.m_rightwallheightvisible = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "RightWallHeightVisible"s, 30.0f) : 30.0f;
 
-   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold", 2.0f) : 2.0f;
+   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold"s, 2.0f) : 2.0f;
 
    SetDefaultPhysics(fromMouseClick);
 
-   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible", true) : true;
-   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable", true) : true;
-   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled", true) : true;
+   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible"s, true) : true;
+   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable"s, true) : true;
+   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled"s, true) : true;
 
-   m_d.m_wireDiameter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WireDiameter", 8.0f) : 8.0f;
-   m_d.m_wireDistanceX = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WireDistanceX", 38.0f) : 38.0f;
-   m_d.m_wireDistanceY = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WireDistanceY", 88.0f) : 88.0f;
+   m_d.m_wireDiameter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WireDiameter"s, 8.0f) : 8.0f;
+   m_d.m_wireDistanceX = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WireDistanceX"s, 38.0f) : 38.0f;
+   m_d.m_wireDistanceY = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "WireDistanceY"s, 88.0f) : 88.0f;
+
+#undef strKeyName
 }
 
 void Ramp::WriteRegDefaults()
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Ramp";
+#define strKeyName regKey[RegName::DefaultPropsRamp]
 
-   SaveValueFloat(strKeyName, "HeightBottom", m_d.m_heightbottom);
-   SaveValueFloat(strKeyName, "HeightTop", m_d.m_heighttop);
-   SaveValueFloat(strKeyName, "WidthBottom", m_d.m_widthbottom);
-   SaveValueFloat(strKeyName, "WidthTop", m_d.m_widthtop);
-   SaveValueInt(strKeyName, "RampType", m_d.m_type);
-   SaveValueBool(strKeyName, "TimerEnabled", m_d.m_tdr.m_TimerEnabled);
-   SaveValueInt(strKeyName, "TimerInterval", m_d.m_tdr.m_TimerInterval);
-   SaveValue(strKeyName, "Image", m_d.m_szImage);
-   SaveValueInt(strKeyName, "ImageMode", m_d.m_imagealignment);
-   SaveValueBool(strKeyName, "ImageWalls", m_d.m_imageWalls);
-   SaveValueFloat(strKeyName, "LeftWallHeight", m_d.m_leftwallheight);
-   SaveValueFloat(strKeyName, "RightWallHeight", m_d.m_rightwallheight);
-   SaveValueFloat(strKeyName, "LeftWallHeightVisible", m_d.m_leftwallheightvisible);
-   SaveValueFloat(strKeyName, "RightWallHeightVisible", m_d.m_rightwallheightvisible);
-   SaveValueBool(strKeyName, "HitEvent", m_d.m_hitEvent);
-   SaveValueFloat(strKeyName, "HitThreshold", m_d.m_threshold);
-   SaveValueFloat(strKeyName, "Elasticity", m_d.m_elasticity);
-   SaveValueFloat(strKeyName, "Friction", m_d.m_friction);
-   SaveValueFloat(strKeyName, "Scatter", m_d.m_scatter);
-   SaveValueBool(strKeyName, "Collidable", m_d.m_collidable);
-   SaveValueBool(strKeyName, "Visible", m_d.m_visible);
-   SaveValueBool(strKeyName, "ReflectionEnabled", m_d.m_reflectionEnabled);
-   SaveValueFloat(strKeyName, "WireDiameter", m_d.m_wireDiameter);
-   SaveValueFloat(strKeyName, "WireDistanceX", m_d.m_wireDistanceX);
-   SaveValueFloat(strKeyName, "WireDistanceY", m_d.m_wireDistanceY);
+   SaveValueFloat(strKeyName, "HeightBottom"s, m_d.m_heightbottom);
+   SaveValueFloat(strKeyName, "HeightTop"s, m_d.m_heighttop);
+   SaveValueFloat(strKeyName, "WidthBottom"s, m_d.m_widthbottom);
+   SaveValueFloat(strKeyName, "WidthTop"s, m_d.m_widthtop);
+   SaveValueInt(strKeyName, "RampType"s, m_d.m_type);
+   SaveValueBool(strKeyName, "TimerEnabled"s, m_d.m_tdr.m_TimerEnabled);
+   SaveValueInt(strKeyName, "TimerInterval"s, m_d.m_tdr.m_TimerInterval);
+   SaveValue(strKeyName, "Image"s, m_d.m_szImage);
+   SaveValueInt(strKeyName, "ImageMode"s, m_d.m_imagealignment);
+   SaveValueBool(strKeyName, "ImageWalls"s, m_d.m_imageWalls);
+   SaveValueFloat(strKeyName, "LeftWallHeight"s, m_d.m_leftwallheight);
+   SaveValueFloat(strKeyName, "RightWallHeight"s, m_d.m_rightwallheight);
+   SaveValueFloat(strKeyName, "LeftWallHeightVisible"s, m_d.m_leftwallheightvisible);
+   SaveValueFloat(strKeyName, "RightWallHeightVisible"s, m_d.m_rightwallheightvisible);
+   SaveValueBool(strKeyName, "HitEvent"s, m_d.m_hitEvent);
+   SaveValueFloat(strKeyName, "HitThreshold"s, m_d.m_threshold);
+   SaveValueFloat(strKeyName, "Elasticity"s, m_d.m_elasticity);
+   SaveValueFloat(strKeyName, "Friction"s, m_d.m_friction);
+   SaveValueFloat(strKeyName, "Scatter"s, m_d.m_scatter);
+   SaveValueBool(strKeyName, "Collidable"s, m_d.m_collidable);
+   SaveValueBool(strKeyName, "Visible"s, m_d.m_visible);
+   SaveValueBool(strKeyName, "ReflectionEnabled"s, m_d.m_reflectionEnabled);
+   SaveValueFloat(strKeyName, "WireDiameter"s, m_d.m_wireDiameter);
+   SaveValueFloat(strKeyName, "WireDistanceX"s, m_d.m_wireDistanceX);
+   SaveValueFloat(strKeyName, "WireDistanceY"s, m_d.m_wireDistanceY);
+
+#undef strKeyName
 }
 
 void Ramp::UIRenderPass1(Sur * const psur)
@@ -275,7 +275,7 @@ void Ramp::RenderBlueprint(Sur *psur, const bool solid)
 }
 
 
-void Ramp::GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D)
+void Ramp::GetBoundingVertices(vector<Vertex3Ds>& pvvertex3D)
 {
    //!! meh, this is delivering something loosely related to the bounding vertices, but its only used in the cam fitting code so far, so keep for legacy reasons
    float *rgheight1;
@@ -350,7 +350,7 @@ void Ramp::AssignHeightToControlPoint(const RenderVertex3D &v, const float heigh
  */
 Vertex2D *Ramp::GetRampVertex(int &pcvertex, float ** const ppheight, bool ** const ppfCross, float ** const ppratio, Vertex2D ** const pMiddlePoints, const float _accuracy, const bool inc_width)
 {
-   std::vector<RenderVertex3D> vvertex;
+   vector<RenderVertex3D> vvertex;
    GetCentralCurve(vvertex, _accuracy);
    // vvertex are the 2D vertices forming the central curve of the ramp as seen from above
 
@@ -513,7 +513,7 @@ Vertex2D *Ramp::GetRampVertex(int &pcvertex, float ** const ppheight, bool ** co
 
 float Ramp::GetSurfaceHeight(float x, float y) const
 {
-   std::vector<RenderVertex3D> vvertex;
+   vector<RenderVertex3D> vvertex;
    GetCentralCurve(vvertex);
 
    int iSeg;
@@ -875,19 +875,11 @@ void Ramp::EndPlay()
    m_vhoCollidable.clear();
 
    if (m_dynamicVertexBuffer) {
-      m_dynamicVertexBuffer->release();
-      m_dynamicVertexBuffer = 0;
+      SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer);
       m_dynamicVertexBufferRegenerate = true;
    }
-
-   if (m_dynamicIndexBuffer) {
-      m_dynamicIndexBuffer->release();
-      m_dynamicIndexBuffer = 0;
-   }
-   if (m_dynamicVertexBuffer2) {
-      m_dynamicVertexBuffer2->release();
-      m_dynamicVertexBuffer2 = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_dynamicIndexBuffer);
+   SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer2);
 }
 
 float Ramp::GetDepth(const Vertex3Ds& viewDir) const
@@ -922,24 +914,34 @@ void Ramp::RenderStaticHabitrail(const Material * const mat)
 
    pd3dDevice->basicShader->SetMaterial(mat);
 
-   pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+   pd3dDevice->SetRenderStateDepthBias(0.0f);
    pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
-   pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_NONE);
+   pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_NONE);
 
    Texture * const pin = m_ptable->GetImage(m_d.m_szImage);
    if (!pin)
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
    else
    {
-      pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
+      pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
 
-      //g_pplayer->m_pin3d.SetTextureFilter(0, TEXTURE_MODE_TRILINEAR);
+      //g_pplayer->m_pin3d.SetPrimaryTextureFilter(0, TEXTURE_MODE_TRILINEAR);
    }
 
-   if (m_d.m_type == RampType2Wire)
+   if ((m_d.m_type == RampType2Wire) || (m_d.m_type == RampType4Wire))
    {
       Matrix3D matTrafo;
+      if (m_d.m_type == RampType4Wire)
+      {
+         matTrafo.SetIdentity();
+         matTrafo._43 = m_d.m_wireDistanceY*0.5f;
+         g_pplayer->UpdateBasicShaderMatrix(matTrafo);
+         pd3dDevice->basicShader->Begin(0);
+         pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
+         pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer2, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
+         pd3dDevice->basicShader->End();
+      }
       matTrafo.SetIdentity();
       matTrafo._43 = 3.0f;                // raise the wire a bit because the ball runs on a flat ramp physically
       g_pplayer->UpdateBasicShaderMatrix(matTrafo);
@@ -949,51 +951,14 @@ void Ramp::RenderStaticHabitrail(const Material * const mat)
       pd3dDevice->basicShader->End();
       g_pplayer->UpdateBasicShaderMatrix();
    }
-   else if (m_d.m_type == RampType4Wire)
+   else if ((m_d.m_type == RampType3WireLeft) || (m_d.m_type == RampType3WireRight))
    {
       Matrix3D matTrafo;
       matTrafo.SetIdentity();
       matTrafo._43 = m_d.m_wireDistanceY*0.5f;
       g_pplayer->UpdateBasicShaderMatrix(matTrafo);
       pd3dDevice->basicShader->Begin(0);
-      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
-      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer2, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
-      pd3dDevice->basicShader->End();
-      matTrafo.SetIdentity();
-      matTrafo._43 = 3.0f;                // raise the wire a bit because the ball runs on a flat ramp physically
-      g_pplayer->UpdateBasicShaderMatrix(matTrafo);
-      pd3dDevice->basicShader->Begin(0);
-      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
-      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer2, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
-      pd3dDevice->basicShader->End();
-      g_pplayer->UpdateBasicShaderMatrix();
-   }
-   else if (m_d.m_type == RampType3WireLeft)
-   {
-      Matrix3D matTrafo;
-      matTrafo.SetIdentity();
-      matTrafo._43 = m_d.m_wireDistanceY*0.5f;
-      g_pplayer->UpdateBasicShaderMatrix(matTrafo);
-      pd3dDevice->basicShader->Begin(0);
-      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer2, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
-      pd3dDevice->basicShader->End();
-      matTrafo.SetIdentity();
-      matTrafo._43 = 3.0f;                // raise the wire a bit because the ball runs on a flat ramp physically
-      g_pplayer->UpdateBasicShaderMatrix(matTrafo);
-      pd3dDevice->basicShader->Begin(0);
-      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
-      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer2, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
-      pd3dDevice->basicShader->End();
-      g_pplayer->UpdateBasicShaderMatrix();
-   }
-   else if (m_d.m_type == RampType3WireRight)
-   {
-      Matrix3D matTrafo;
-      matTrafo.SetIdentity();
-      matTrafo._43 = m_d.m_wireDistanceY*0.5f;
-      g_pplayer->UpdateBasicShaderMatrix(matTrafo);
-      pd3dDevice->basicShader->Begin(0);
-      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_dynamicVertexBuffer, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
+      pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, (m_d.m_type == RampType3WireRight) ? m_dynamicVertexBuffer : m_dynamicVertexBuffer2, 0, m_numVertices, m_dynamicIndexBuffer, 0, m_numIndices);
       pd3dDevice->basicShader->End();
       matTrafo.SetIdentity();
       matTrafo._43 = 3.0f;                // raise the wire a bit because the ball runs on a flat ramp physically
@@ -1011,7 +976,7 @@ void Ramp::RenderStaticHabitrail(const Material * const mat)
       pd3dDevice->basicShader->End();
    }
 
-   //pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   //pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 }
 
 //
@@ -1097,6 +1062,7 @@ void Ramp::GenerateWireMesh(Vertex3D_NoTex2 **meshBuf1, Vertex3D_NoTex2 **meshBu
 
    if (m_rgheightInit)
        delete [] m_rgheightInit;
+   m_rgheightInit = nullptr;
 
    int splinePoints;
    const Vertex2D * const rgvLocal = GetRampVertex(splinePoints, &m_rgheightInit, nullptr, nullptr, (m_d.m_type != RampType1Wire) ? nullptr : &middlePoints, -1, false);
@@ -1104,7 +1070,7 @@ void Ramp::GenerateWireMesh(Vertex3D_NoTex2 **meshBuf1, Vertex3D_NoTex2 **meshBu
    const int numRings = splinePoints;
    const int numSegments = accuracy;
    m_numVertices = numRings*numSegments;
-   m_numIndices = 6 * m_numVertices; //m_numVertices*2+2;
+   m_numIndices = 6 * ((numRings-1)*numSegments); //m_numVertices*2+2;
 
    if (*meshBuf1 == nullptr)
       *meshBuf1 = new Vertex3D_NoTex2[m_numVertices];
@@ -1124,8 +1090,6 @@ void Ramp::GenerateWireMesh(Vertex3D_NoTex2 **meshBuf1, Vertex3D_NoTex2 **meshBu
          *meshBuf2 = new Vertex3D_NoTex2[m_numVertices];
    }
 
-   Vertex3D_NoTex2 *buf1 = *meshBuf1;
-
    if (m_d.m_type != RampType1Wire)
    {
       CreateWire(numRings, numSegments, rgvLocal, m_vertBuffer);
@@ -1136,24 +1100,21 @@ void Ramp::GenerateWireMesh(Vertex3D_NoTex2 **meshBuf1, Vertex3D_NoTex2 **meshBu
 
    // calculate faces
    for (int i = 0; i < numRings - 1; i++)
-   {
       for (int j = 0; j < numSegments; j++)
       {
          int quad[4];
          quad[0] = i*numSegments + j;
 
+         quad[1] = i*numSegments;
          if (j != numSegments - 1)
-            quad[1] = i*numSegments + j + 1;
-         else
-            quad[1] = i*numSegments;
+            quad[1] += j + 1;
 
          if (i != numRings - 1)
          {
             quad[2] = (i + 1)*numSegments + j;
+            quad[3] = (i + 1)*numSegments;
             if (j != numSegments - 1)
-               quad[3] = (i + 1)*numSegments + j + 1;
-            else
-               quad[3] = (i + 1)*numSegments;
+               quad[3] += j + 1;
          }
          else
          {
@@ -1165,16 +1126,15 @@ void Ramp::GenerateWireMesh(Vertex3D_NoTex2 **meshBuf1, Vertex3D_NoTex2 **meshBu
          }
 
          const unsigned int offs = (i*numSegments + j) * 6;
-         m_meshIndices[offs] = quad[0];
+         m_meshIndices[offs    ] = quad[0];
          m_meshIndices[offs + 1] = quad[1];
          m_meshIndices[offs + 2] = quad[2];
          m_meshIndices[offs + 3] = quad[3];
          m_meshIndices[offs + 4] = quad[2];
          m_meshIndices[offs + 5] = quad[1];
       }
-   }
 
-   memcpy(buf1, m_vertBuffer, sizeof(Vertex3D_NoTex2)*m_numVertices);
+   memcpy(*meshBuf1, m_vertBuffer, sizeof(Vertex3D_NoTex2)*m_numVertices);
 
    if (m_d.m_type != RampType1Wire)
    {
@@ -1206,16 +1166,12 @@ void Ramp::PrepareHabitrail()
    Vertex3D_NoTex2 *tmpBuf2 = nullptr;
    GenerateWireMesh(&tmpBuf1, &tmpBuf2);
 
-   if (m_dynamicVertexBuffer)
-      m_dynamicVertexBuffer->release();
-   if (m_dynamicVertexBuffer2)
-      m_dynamicVertexBuffer2->release();
+   SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer2);
 
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
-   pd3dDevice->CreateVertexBuffer(m_numVertices, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_dynamicVertexBuffer); //!! use USAGE_DYNAMIC if it would actually be "really" dynamic
+   VertexBuffer::CreateVertexBuffer(m_numVertices, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_dynamicVertexBuffer, PRIMARY_DEVICE); //!! use USAGE_DYNAMIC if it would actually be "really" dynamic
    if (m_d.m_type != RampType1Wire)
-      pd3dDevice->CreateVertexBuffer(m_numVertices, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_dynamicVertexBuffer2); //!! use USAGE_DYNAMIC if it would actually be "really" dynamic
+      VertexBuffer::CreateVertexBuffer(m_numVertices, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_dynamicVertexBuffer2, PRIMARY_DEVICE); //!! use USAGE_DYNAMIC if it would actually be "really" dynamic
 
    // Draw the floor of the ramp.
    Vertex3D_NoTex2 *buf;
@@ -1231,16 +1187,16 @@ void Ramp::PrepareHabitrail()
       m_dynamicVertexBuffer2->unlock();
    }
 
-   if (m_dynamicIndexBuffer)
-      m_dynamicIndexBuffer->release();
-
-   m_dynamicIndexBuffer = pd3dDevice->CreateAndFillIndexBuffer(m_meshIndices);
+   SAFE_BUFFER_RELEASE(m_dynamicIndexBuffer);
+   m_dynamicIndexBuffer = IndexBuffer::CreateAndFillIndexBuffer(m_meshIndices, PRIMARY_DEVICE);
 
    delete[] m_vertBuffer;
+   m_vertBuffer = nullptr;
    delete[] tmpBuf1;
    if (m_d.m_type != RampType1Wire)
    {
       delete[] m_vertBuffer2;
+      m_vertBuffer2 = nullptr;
       delete[] tmpBuf2;
    }
 
@@ -1269,7 +1225,7 @@ void Ramp::RenderStatic()
 
    const Material * const mat = m_ptable->GetMaterial(m_d.m_szMaterial);
 
-   // dont render transparent ramps into static buffer, these are done per frame later-on
+   // don't render transparent ramps into static buffer, these are done per frame later-on
    if (mat->m_bOpacityActive)
       return;
 
@@ -1421,7 +1377,7 @@ void Ramp::AddPoint(int x, int y, const bool smooth)
    STARTUNDO
    const Vertex2D v = m_ptable->TransformPoint(x, y);
 
-   std::vector<RenderVertex3D> vvertex;
+   vector<RenderVertex3D> vvertex;
    GetCentralCurve(vvertex);
 
    int iSeg;
@@ -1535,7 +1491,6 @@ STDMETHODIMP Ramp::put_HeightBottom(float newVal)
    {
       m_d.m_heightbottom = newVal;
       m_dynamicVertexBufferRegenerate = true;
-
    }
 
    return S_OK;
@@ -1554,7 +1509,6 @@ STDMETHODIMP Ramp::put_HeightTop(float newVal)
    {
       m_d.m_heighttop = newVal;
       m_dynamicVertexBufferRegenerate = true;
-
    }
 
    return S_OK;
@@ -1907,11 +1861,7 @@ STDMETHODIMP Ramp::get_DepthBias(float *pVal)
 
 STDMETHODIMP Ramp::put_DepthBias(float newVal)
 {
-   if (m_d.m_depthBias != newVal)
-   {
-      m_d.m_depthBias = newVal;
-      m_dynamicVertexBufferRegenerate = true;
-   }
+   m_d.m_depthBias = newVal;
 
    return S_OK;
 }
@@ -2186,23 +2136,23 @@ void Ramp::RenderRamp(const Material * const mat)
 
       pd3dDevice->basicShader->SetMaterial(mat);
 
-      pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+      pd3dDevice->SetRenderStateDepthBias(0.0f);
       pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
-      pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_NONE); // as both floor and walls are thinwalled
+      pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_NONE); // as both floor and walls are thinwalled
 
       //Pin3D * const ppin3d = &g_pplayer->m_pin3d;
       Texture * const pin = m_ptable->GetImage(m_d.m_szImage);
 
       if (pin)
       {
-         pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
-         pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
+         pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
          pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
 
-         //ppin3d->SetTextureFilter ( 0, TEXTURE_MODE_TRILINEAR );
+         //ppin3d->SetPrimaryTextureFilter( 0, TEXTURE_MODE_TRILINEAR );
       }
       else
-         pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+         pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
 
       //ppin3d->EnableAlphaBlend( false ); //!! not necessary anymore
 
@@ -2224,7 +2174,7 @@ void Ramp::RenderRamp(const Material * const mat)
             if (pin && !m_d.m_imageWalls)
             {
                pd3dDevice->basicShader->End();
-               pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+               pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
                pd3dDevice->basicShader->Begin(0);
             }
 
@@ -2243,7 +2193,7 @@ void Ramp::RenderRamp(const Material * const mat)
          pd3dDevice->basicShader->End();
       }
 
-      //g_pplayer->m_pin3d.DisableAlphaBlend(); //!! not necessary anymore
+      //pd3dDevice->SetRenderState(RenderDevice::ALPHABLENDENABLE, RenderDevice::RS_FALSE); //!! not necessary anymore
    }
 }
 
@@ -2449,6 +2399,7 @@ void Ramp::GenerateRampMesh(Vertex3D_NoTex2 **meshBuf)
    }
 
    delete[] m_vertBuffer;
+   m_vertBuffer = nullptr;
    delete[] rgvLocal;
    delete[] rgheight;
    if (rgratio)
@@ -2466,12 +2417,8 @@ void Ramp::GenerateVertexBuffer()
    Vertex3D_NoTex2 *tmpBuffer = nullptr;
    GenerateRampMesh(&tmpBuffer);
 
-   if (m_dynamicVertexBuffer)
-      m_dynamicVertexBuffer->release();
-
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
-   pd3dDevice->CreateVertexBuffer(m_numVertices * 3, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_dynamicVertexBuffer); //!! use USAGE_DYNAMIC if it would actually be "really" dynamic
+   SAFE_BUFFER_RELEASE(m_dynamicVertexBuffer);
+   VertexBuffer::CreateVertexBuffer(m_numVertices * 3, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_dynamicVertexBuffer, PRIMARY_DEVICE); //!! use USAGE_DYNAMIC if it would actually be "really" dynamic
 
    Vertex3D_NoTex2 *buf;
    m_dynamicVertexBuffer->lock(0, 0, (void**)&buf, VertexBuffer::WRITEONLY);
@@ -2486,18 +2433,18 @@ void Ramp::GenerateVertexBuffer()
    delete[] tmp;
    }*/
 
-   if (m_dynamicIndexBuffer)
-      m_dynamicIndexBuffer->release();
-
-   m_dynamicIndexBuffer = pd3dDevice->CreateAndFillIndexBuffer(m_meshIndices);
+   SAFE_BUFFER_RELEASE(m_dynamicIndexBuffer);
+   m_dynamicIndexBuffer = IndexBuffer::CreateAndFillIndexBuffer(m_meshIndices, PRIMARY_DEVICE);
    delete[] tmpBuffer;
 }
 
 void Ramp::SetDefaultPhysics(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Ramp";
+#define strKeyName regKey[RegName::DefaultPropsRamp]
 
-   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity", 0.3f) : 0.3f;
-   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction", 0.3f) : 0.3f;
-   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter", 0) : 0;
+   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity"s, 0.3f) : 0.3f;
+   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction"s, 0.3f) : 0.3f;
+   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter"s, 0) : 0;
+
+#undef strKeyName
 }

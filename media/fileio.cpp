@@ -1,5 +1,8 @@
 #include "stdafx.h"
 
+#include <mutex>
+static std::mutex mtx; //!! only used for Wine multithreading bug workaround
+
 bool Exists(const string& filePath)
 {
 	//This will get the file attributes bitlist of the file
@@ -13,7 +16,7 @@ bool Exists(const string& filePath)
 	return ((fileAtt & FILE_ATTRIBUTE_DIRECTORY) == 0);
 }
 
-void ExtensionFromFilename(const string& szfilename, string& szextension)
+string ExtensionFromFilename(const string& szfilename)
 {
    const int len = (int)szfilename.length();
 
@@ -28,12 +31,12 @@ void ExtensionFromFilename(const string& szfilename, string& szextension)
    }
 
    if (begin <= 0)
-      szextension.clear();
+      return string();
    else
-      szextension = szfilename.c_str()+begin;
+      return szfilename.c_str()+begin;
 }
 
-void TitleFromFilename(const string& szfilename, string& sztitle)
+string TitleFromFilename(const string& szfilename)
 {
    const int len = (int)szfilename.length();
 
@@ -60,11 +63,12 @@ void TitleFromFilename(const string& szfilename, string& sztitle)
    const char *szT = szfilename.c_str()+begin;
    int count = end - begin;
 
-   sztitle.clear();
+   string sztitle;
    while (count--) { sztitle.push_back(*szT++); }
+   return sztitle;
 }
 
-void PathFromFilename(const string& szfilename, string& szpath)
+string PathFromFilename(const string &szfilename)
 {
    const int len = (int)szfilename.length();
    // find the last '\' in the filename
@@ -82,11 +86,12 @@ void PathFromFilename(const string& szfilename, string& szpath)
    const char * szT = szfilename.c_str();
    int count = end + 1;
 
-   szpath.clear();
+   string szpath;
    while (count--) { szpath.push_back(*szT++); }
+   return szpath;
 }
 
-void TitleAndPathFromFilename(const char * const szfilename, char *szpath)
+string TitleAndPathFromFilename(const char * const szfilename)
 {
    const int len = lstrlen(szfilename);
    // find the last '.' in the filename
@@ -104,8 +109,9 @@ void TitleAndPathFromFilename(const char * const szfilename, char *szpath)
    const char *szT = szfilename;
    int count = end;
 
-   while (count-- > 0) { *szpath++ = *szT++; }
-   *szpath = '\0';
+   string szpath;
+   while (count-- > 0) { szpath.push_back(*szT++); }
+   return szpath;
 }
 
 bool ReplaceExtensionFromFilename(string& szfilename, const string& newextension)
@@ -205,11 +211,11 @@ HRESULT BiffWriter::WriteString(const int id, const char * const szvalue)
    return hr;
 }
 
-HRESULT BiffWriter::WriteString(const int id, const std::string &szvalue)
+HRESULT BiffWriter::WriteString(const int id, const string &szvalue)
 {
    ULONG writ = 0;
    HRESULT hr;
-   const int len = (int)szvalue.size();
+   const int len = (int)szvalue.length();
 
    if (FAILED(hr = WriteRecordSize((int)sizeof(int) * 2 + len)))
       return hr;
@@ -355,9 +361,14 @@ BiffReader::BiffReader(IStream *pistream, ILoadable *piloadable, void *ppassdata
    m_hcryptkey = hcryptkey;
 }
 
-HRESULT BiffReader::ReadBytes(void *pv, const unsigned long count, unsigned long *foo)
+HRESULT BiffReader::ReadBytes(void * const pv, const unsigned long count, unsigned long * const foo)
 {
+   const bool iow = IsOnWine();
+   if (iow)
+      mtx.lock();
    const HRESULT hr = m_pistream->Read(pv, count, foo);
+   if (iow)
+      mtx.unlock();
 
    if (m_hcrypthash)
       CryptHashData(m_hcrypthash, (BYTE *)pv, count, 0);
@@ -370,7 +381,13 @@ HRESULT BiffReader::GetIntNoHash(int &value)
    m_bytesinrecordremaining -= sizeof(int);
 
    ULONG read = 0;
-   return m_pistream->Read(&value, sizeof(int), &read);
+   const bool iow = IsOnWine();
+   if (iow)
+      mtx.lock();
+   const HRESULT hr = m_pistream->Read(&value, sizeof(int), &read);
+   if (iow)
+      mtx.unlock();
+   return hr;
 }
 
 HRESULT BiffReader::GetInt(void * const value)
@@ -397,7 +414,7 @@ HRESULT BiffReader::GetString(char *const szvalue, const DWORD szvalue_maxlength
 
    if (FAILED(hr = ReadBytes(&len, sizeof(int), &read)))
    {
-      szvalue[0] = 0;
+      szvalue[0] = '\0';
       return hr;
    }
 
@@ -405,13 +422,13 @@ HRESULT BiffReader::GetString(char *const szvalue, const DWORD szvalue_maxlength
 
    char *tmp = new char[len+1];
    hr = ReadBytes(tmp, len, &read);
-   tmp[len] = 0;
+   tmp[len] = '\0';
    strncpy_s(szvalue, szvalue_maxlength, tmp, len);
    delete[] tmp;
    return hr;
 }
 
-HRESULT BiffReader::GetString(std::string &szvalue)
+HRESULT BiffReader::GetString(string &szvalue)
 {
    ULONG read = 0;
    HRESULT hr;
@@ -441,7 +458,7 @@ HRESULT BiffReader::GetWideString(WCHAR *wzvalue, const DWORD wzvalue_maxlength)
 
    if (FAILED(hr = ReadBytes(&len, sizeof(int), &read)))
    {
-      wzvalue[0] = 0;
+      wzvalue[0] = L'\0';
       return hr;
    }
 
@@ -449,7 +466,7 @@ HRESULT BiffReader::GetWideString(WCHAR *wzvalue, const DWORD wzvalue_maxlength)
 
    WCHAR * tmp = new WCHAR[len/sizeof(WCHAR)+1];
    hr = ReadBytes(tmp, len, &read);
-   tmp[len/sizeof(WCHAR)] = 0;
+   tmp[len/sizeof(WCHAR)] = L'\0';
    WideStrNCopy(tmp, wzvalue, wzvalue_maxlength);
    delete[] tmp;
    return hr;
@@ -797,11 +814,11 @@ long __stdcall FastIStream::Read(void *pv, const unsigned long count, unsigned l
 
 long __stdcall FastIStream::Write(const void *pv, const unsigned long count, unsigned long *foo)
 {
-   if ((m_cSeek + count) > m_cMax)
-      SetSize(max(m_cSeek * 2, m_cSeek + count));
+   if ((m_cSeek + (unsigned int)count) > m_cMax)
+      SetSize(max(m_cSeek * 2, m_cSeek + (unsigned int)count));
 
    memcpy(m_rg + m_cSeek, pv, count);
-   m_cSeek += count;
+   m_cSeek += (unsigned int)count;
 
    m_cSize = max(m_cSize, m_cSeek);
 

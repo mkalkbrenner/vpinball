@@ -1,8 +1,7 @@
 #pragma once
 
 #ifdef ENABLE_SDL
- #include <GL/glew.h>
- //#include <glad/glad.h>
+ #include <glad/glad.h>
  #include <sdl2/SDL_opengl.h>
  #include <sdl2/SDL.h>
  #include <sdl2/SDL_ttf.h>
@@ -15,44 +14,59 @@
  #include "openvr.h"
 #endif
 
+enum deviceNumber {
+   PRIMARY_DEVICE,
+   SECONDARY_DEVICE
+};
+
 #ifdef ENABLE_SDL
 
+#define MAX_DEVICE_IDENTIFIER_STRING 512
+#define D3DADAPTER_DEFAULT 0
+
 enum colorFormat {
-   GREY = GL_RED,
+   GREY8 = GL_RED,
+   RED16F = GL_R16F,
+
    GREY_ALPHA = GL_RG8,
-   RGB = GL_RGB8,
+   RG16F = GL_RG16F,
+
    RGB5 = GL_RGB5,
+   RGB = GL_RGB8,
    RGB8 = GL_RGB8,
    RGB10 = GL_RGB10_A2,
-   RGB32 = GL_RGB32F,
-   RGBA16 = GL_RGBA16F,
-   RGBA32 = GL_RGBA32F,
+   RGB16F = GL_RGB16F,
+   RGB32F = GL_RGB32F,
+
+   SRGB = GL_SRGB8,
+   SRGB8 = GL_SRGB8,
+
+   RGBA16F = GL_RGBA16F,
+   RGBA32F = GL_RGBA32F,
    RGBA = GL_RGBA8,
    RGBA8 = GL_RGBA8,
    RGBA10 = GL_RGB10_A2,
-   DXT5 = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
+   DXT5 = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
+   BC6S = GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,
+   BC6U = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,
+   BC7 = GL_COMPRESSED_RGBA_BPTC_UNORM,
+
+   SRGBA = GL_SRGB8_ALPHA8,
+   SRGBA8 = GL_SRGB8_ALPHA8,
+   SDXT5 = 0x8C4F, // GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,
+   SBC7 = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM
 };
 
 enum textureUsage {
-   RENDERTARGET_VR = 16,
    RENDERTARGET = 8,
    RENDERTARGET_DEPTH = 12,
+   RENDERTARGET_MSAA = 14,
+   RENDERTARGET_MSAA_DEPTH = 16,
    DEPTH = 4,
-   MIPMAP = 2,
+   AUTOMIPMAP = 2,
    STATIC = 0,
    DYNAMIC = 1
 };
-
-struct RenderTarget {
-   colorFormat format;
-   textureUsage usage;
-   GLuint texture = 0, zTexture = 0, framebuffer = 0, zBuffer = 0;
-   GLuint width = 0, height = 0;
-   GLint slot = -1;//Current slot for caching
-   int stereo = 0;
-};
-
-typedef RenderTarget D3DTexture;//It's easier to have them equal than saving 8 bytes and have a lot of trouble.
 
 struct ViewPort  {
    union {
@@ -95,9 +109,7 @@ enum clearType {
 #else
 
 typedef LPD3DXFONT FontHandle;
-typedef IDirect3DTexture9 D3DTexture;
 typedef D3DVIEWPORT9 ViewPort;
-typedef IDirect3DSurface9 RenderTarget;
 typedef D3DVERTEXELEMENT9 VertexElement;
 typedef IDirect3DVertexDeclaration9 VertexDeclaration;
 
@@ -109,6 +121,8 @@ enum colorFormat {
    RGB5 = D3DFMT_R5G6B5,
    RGB8 = D3DFMT_X8R8G8B8,
    //RGB10 = D3DFMT_A2R10G10B10,
+   //RGB16F = would be more appropriate for our use cases, but does not exist in DX9 :/
+   //RGB32F = would be more appropriate for our use cases, but does not exist in DX9 :/
    RGBA16F = D3DFMT_A16B16G16R16F,
    RGBA32F = D3DFMT_A32B32G32R32F,
    RGBA8 = D3DFMT_A8R8G8B8,

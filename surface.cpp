@@ -1,6 +1,9 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 //#include "forsyth.h"
 #include "objloader.h"
+#include "Shader.h"
+#include "IndexBuffer.h"
+#include "VertexBuffer.h"
 
 Surface::Surface()
 {
@@ -41,8 +44,8 @@ HRESULT Surface::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
    m_ptable = ptable;
    m_isWall = true;
 
-   const float width  = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Wall", "Width",  50.f) : 50.f;
-   const float length = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Wall", "Length", 50.f) : 50.f;
+   const float width  = fromMouseClick ? LoadValueFloatWithDefault(regKey[RegName::DefaultPropsWall], "Width"s,  50.f) : 50.f;
+   const float length = fromMouseClick ? LoadValueFloatWithDefault(regKey[RegName::DefaultPropsWall], "Length"s, 50.f) : 50.f;
 
    CComObject<DragPoint> *pdp;
    CComObject<DragPoint>::CreateInstance(&pdp);
@@ -81,46 +84,48 @@ HRESULT Surface::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Surface::WriteRegDefaults()
 {
-   const char * strKeyName = m_isWall ? "DefaultProps\\Wall" : "DefaultProps\\Target";
+#define strKeyName (m_isWall ? regKey[RegName::DefaultPropsWall] : regKey[RegName::DefaultPropsTarget])
 
-   SaveValueBool(strKeyName, "TimerEnabled", m_d.m_tdr.m_TimerEnabled);
-   SaveValueInt(strKeyName, "TimerInterval", m_d.m_tdr.m_TimerInterval);
-   SaveValueBool(strKeyName, "HitEvent", m_d.m_hitEvent);
-   SaveValueFloat(strKeyName, "HitThreshold", m_d.m_threshold);
-   SaveValueFloat(strKeyName, "SlingshotThreshold", m_d.m_slingshot_threshold);
-   SaveValue(strKeyName, "TopImage", m_d.m_szImage);
-   SaveValue(strKeyName, "SideImage", m_d.m_szSideImage);
-   SaveValueBool(strKeyName, "Droppable", m_d.m_droppable);
-   SaveValueBool(strKeyName, "Flipbook", m_d.m_flipbook);
-   SaveValueBool(strKeyName, "IsBottomSolid", m_d.m_isBottomSolid);
-   SaveValueFloat(strKeyName, "HeightBottom", m_d.m_heightbottom);
-   SaveValueFloat(strKeyName, "HeightTop", m_d.m_heighttop);
-   SaveValueBool(strKeyName, "DisplayTexture", m_d.m_displayTexture);
-   SaveValueFloat(strKeyName, "SlingshotForce", m_d.m_slingshotforce);
-   SaveValueBool(strKeyName, "SlingshotAnimation", m_d.m_slingshotAnimation);
-   SaveValueFloat(strKeyName, "Elasticity", m_d.m_elasticity);
-   SaveValueFloat(strKeyName, "ElasticityFallOff", m_d.m_elasticityFalloff);
-   SaveValueFloat(strKeyName, "Friction", m_d.m_friction);
-   SaveValueFloat(strKeyName, "Scatter", m_d.m_scatter);
-   SaveValueBool(strKeyName, "Visible", m_d.m_topBottomVisible);
-   SaveValueBool(strKeyName, "SideVisible", m_d.m_sideVisible);
-   SaveValueBool(strKeyName, "Collidable", m_d.m_collidable);
+   SaveValueBool(strKeyName, "TimerEnabled"s, m_d.m_tdr.m_TimerEnabled);
+   SaveValueInt(strKeyName, "TimerInterval"s, m_d.m_tdr.m_TimerInterval);
+   SaveValueBool(strKeyName, "HitEvent"s, m_d.m_hitEvent);
+   SaveValueFloat(strKeyName, "HitThreshold"s, m_d.m_threshold);
+   SaveValueFloat(strKeyName, "SlingshotThreshold"s, m_d.m_slingshot_threshold);
+   SaveValue(strKeyName, "TopImage"s, m_d.m_szImage);
+   SaveValue(strKeyName, "SideImage"s, m_d.m_szSideImage);
+   SaveValueBool(strKeyName, "Droppable"s, m_d.m_droppable);
+   SaveValueBool(strKeyName, "Flipbook"s, m_d.m_flipbook);
+   SaveValueBool(strKeyName, "IsBottomSolid"s, m_d.m_isBottomSolid);
+   SaveValueFloat(strKeyName, "HeightBottom"s, m_d.m_heightbottom);
+   SaveValueFloat(strKeyName, "HeightTop"s, m_d.m_heighttop);
+   SaveValueBool(strKeyName, "DisplayTexture"s, m_d.m_displayTexture);
+   SaveValueFloat(strKeyName, "SlingshotForce"s, m_d.m_slingshotforce);
+   SaveValueBool(strKeyName, "SlingshotAnimation"s, m_d.m_slingshotAnimation);
+   SaveValueFloat(strKeyName, "Elasticity"s, m_d.m_elasticity);
+   SaveValueFloat(strKeyName, "ElasticityFallOff"s, m_d.m_elasticityFalloff);
+   SaveValueFloat(strKeyName, "Friction"s, m_d.m_friction);
+   SaveValueFloat(strKeyName, "Scatter"s, m_d.m_scatter);
+   SaveValueBool(strKeyName, "Visible"s, m_d.m_topBottomVisible);
+   SaveValueBool(strKeyName, "SideVisible"s, m_d.m_sideVisible);
+   SaveValueBool(strKeyName, "Collidable"s, m_d.m_collidable);
    const int tmp = quantizeUnsigned<8>(clamp(m_d.m_disableLightingTop, 0.f, 1.f));
-   SaveValueInt(strKeyName, "DisableLighting", (tmp == 1) ? 0 : tmp); // backwards compatible saving
-   SaveValueFloat(strKeyName, "DisableLightingBelow", m_d.m_disableLightingBelow);
-   SaveValueBool(strKeyName, "ReflectionEnabled", m_d.m_reflectionEnabled);
+   SaveValueInt(strKeyName, "DisableLighting"s, (tmp == 1) ? 0 : tmp); // backwards compatible saving
+   SaveValueFloat(strKeyName, "DisableLightingBelow"s, m_d.m_disableLightingBelow);
+   SaveValueBool(strKeyName, "ReflectionEnabled"s, m_d.m_reflectionEnabled);
+
+#undef strKeyName
 }
 
 #if 0
 HRESULT Surface::InitTarget(PinTable * const ptable, const float x, const float y, bool fromMouseClick)
 {
-   static const char strKeyName[] = "DefaultProps\\Target";
+#define strKeyName regKey[RegName::DefaultPropsTarget]
 
    m_ptable = ptable;
    m_isWall = false;
 
-   const float width = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Width", 30.f) : 30.f;
-   const float length = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Length", 6.f) : 6.f;
+   const float width = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Width"s, 30.f) : 30.f;
+   const float length = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Length"s, 6.f) : 6.f;
 
    CComObject<DragPoint> *pdp;
    CComObject<DragPoint>::CreateInstance(&pdp);
@@ -158,39 +163,39 @@ HRESULT Surface::InitTarget(PinTable * const ptable, const float x, const float 
    //SetDefaults();
    //Set seperate defaults for targets (SetDefaults sets the Wall defaults)
 
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled", false) : false;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval", 100) : 100;
-   m_d.m_hitEvent = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "HitEvent", true) : true;
-   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold", 2.0f) : 2.0f;
-   m_d.m_slingshot_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "SlingshotThreshold", 0.0f) : 0.0f;
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled"s, false) : false;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval"s, 100) : 100;
+   m_d.m_hitEvent = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "HitEvent"s, true) : true;
+   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold"s, 2.0f) : 2.0f;
+   m_d.m_slingshot_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "SlingshotThreshold"s, 0.0f) : 0.0f;
    m_d.m_inner = true; //!! Deprecated, do not use anymore
 
-   HRESULT hr = LoadValue(strKeyName, "TopImage", m_d.m_szImage);
+   HRESULT hr = LoadValue(strKeyName, "TopImage"s, m_d.m_szImage);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szImage.clear();
 
-   hr = LoadValue(strKeyName, "SideImage", m_d.m_szSideImage);
+   hr = LoadValue(strKeyName, "SideImage"s, m_d.m_szSideImage);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szSideImage.clear();
 
-   m_d.m_droppable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Droppable", false) : false;
-   m_d.m_flipbook = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Flipbook", false) : false;
-   m_d.m_isBottomSolid = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "IsBottomSolid", true) : false;
+   m_d.m_droppable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Droppable"s, false) : false;
+   m_d.m_flipbook = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Flipbook"s, false) : false;
+   m_d.m_isBottomSolid = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "IsBottomSolid"s, true) : false;
 
-   m_d.m_heightbottom = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightBottom", 0.0f) : 0.0f;
-   m_d.m_heighttop = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightTop", 50.0f) : 50.0f;
+   m_d.m_heightbottom = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightBottom"s, 0.0f) : 0.0f;
+   m_d.m_heighttop = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightTop"s, 50.0f) : 50.0f;
 
-   m_d.m_displayTexture = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "DisplayTexture", false) : false;
-   m_d.m_slingshotforce = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "SlingshotForce", 80.0f) : 80.0f;
-   m_d.m_slingshotAnimation = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "SlingshotAnimation", true) : true;
+   m_d.m_displayTexture = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "DisplayTexture"s, false) : false;
+   m_d.m_slingshotforce = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "SlingshotForce"s, 80.0f) : 80.0f;
+   m_d.m_slingshotAnimation = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "SlingshotAnimation"s, true) : true;
 
-   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity", 0.3f) : 0.3f;
-   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction", 0.3f) : 0.3f;
-   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter", 0) : 0;
+   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity"s, 0.3f) : 0.3f;
+   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction"s, 0.3f) : 0.3f;
+   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter"s, 0) : 0;
 
-   m_d.m_topBottomVisible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible", true) : true;
-   m_d.m_sideVisible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "SideVisible", true) : true;
-   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable", true) : true;
+   m_d.m_topBottomVisible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible"s, true) : true;
+   m_d.m_sideVisible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "SideVisible"s, true) : true;
+   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable"s, true) : true;
 
    return InitVBA(fTrue, 0, nullptr);
 }
@@ -198,42 +203,44 @@ HRESULT Surface::InitTarget(PinTable * const ptable, const float x, const float 
 
 void Surface::SetDefaults(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Wall";
+#define strKeyName regKey[RegName::DefaultPropsWall]
 
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled", false) : false;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval", 100) : 100;
-   m_d.m_hitEvent = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "HitEvent", false) : false;
-   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold", 2.0f) : 2.0f;
-   m_d.m_slingshot_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "SlingshotThreshold", 0.0f) : 0.0f;
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "TimerEnabled"s, false) : false;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(strKeyName, "TimerInterval"s, 100) : 100;
+   m_d.m_hitEvent = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "HitEvent"s, false) : false;
+   m_d.m_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HitThreshold"s, 2.0f) : 2.0f;
+   m_d.m_slingshot_threshold = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "SlingshotThreshold"s, 0.0f) : 0.0f;
    m_d.m_inner = true; //!! Deprecated, do not use anymore
 
-   HRESULT hr = LoadValue(strKeyName, "TopImage", m_d.m_szImage);
+   HRESULT hr = LoadValue(strKeyName, "TopImage"s, m_d.m_szImage);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szImage.clear();
 
-   hr = LoadValue(strKeyName, "SideImage", m_d.m_szSideImage);
+   hr = LoadValue(strKeyName, "SideImage"s, m_d.m_szSideImage);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szSideImage.clear();
 
-   m_d.m_droppable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Droppable", false) : false;
-   m_d.m_flipbook = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Flipbook", false) : false;
-   m_d.m_isBottomSolid = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "IsBottomSolid", true) : false;
+   m_d.m_droppable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Droppable"s, false) : false;
+   m_d.m_flipbook = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Flipbook"s, false) : false;
+   m_d.m_isBottomSolid = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "IsBottomSolid"s, true) : false;
 
-   m_d.m_heightbottom = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightBottom", 0.0f) : 0.0f;
-   m_d.m_heighttop = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightTop", 50.0f) : 50.0f;
+   m_d.m_heightbottom = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightBottom"s, 0.0f) : 0.0f;
+   m_d.m_heighttop = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "HeightTop"s, 50.0f) : 50.0f;
 
-   m_d.m_displayTexture = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "DisplayTexture", false) : false;
-   m_d.m_slingshotforce = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "SlingshotForce", 80.0f) : 80.0f;
-   m_d.m_slingshotAnimation = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "SlingshotAnimation", true) : true;
+   m_d.m_displayTexture = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "DisplayTexture"s, false) : false;
+   m_d.m_slingshotforce = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "SlingshotForce"s, 80.0f) : 80.0f;
+   m_d.m_slingshotAnimation = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "SlingshotAnimation"s, true) : true;
 
    SetDefaultPhysics(fromMouseClick);
 
-   m_d.m_topBottomVisible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible", true) : true;
-   m_d.m_sideVisible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "SideVisible", true) : true;
-   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable", true) : true;
-   m_d.m_disableLightingTop = dequantizeUnsigned<8>(fromMouseClick ? LoadValueIntWithDefault(strKeyName, "DisableLighting", 0) : 0); // stored as uchar for backward compatibility
-   m_d.m_disableLightingBelow = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DisableLightingBelow", 0.f) : 0.f;
-   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled", true) : true;
+   m_d.m_topBottomVisible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Visible"s, true) : true;
+   m_d.m_sideVisible = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "SideVisible"s, true) : true;
+   m_d.m_collidable = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "Collidable"s, true) : true;
+   m_d.m_disableLightingTop = dequantizeUnsigned<8>(fromMouseClick ? LoadValueIntWithDefault(strKeyName, "DisableLighting"s, 0) : 0); // stored as uchar for backward compatibility
+   m_d.m_disableLightingBelow = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "DisableLightingBelow"s, 0.f) : 0.f;
+   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(strKeyName, "ReflectionEnabled"s, true) : true;
+
+#undef strKeyName
 }
 
 
@@ -244,7 +251,7 @@ void Surface::UIRenderPass1(Sur * const psur)
    // Don't want border color to be over-ridden when selected - that will be drawn later
    psur->SetBorderColor(-1, false, 0);
 
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    Texture *ppi;
@@ -270,7 +277,7 @@ void Surface::UIRenderPass2(Sur * const psur)
    psur->SetObject(nullptr);
 
    {
-      std::vector<RenderVertex> vvertex; //!! check/reuse from prerender
+      vector<RenderVertex> vvertex; //!! check/reuse from prerender
       GetRgVertex(vvertex);
       psur->Polygon(vvertex);
    }
@@ -328,7 +335,7 @@ void Surface::RenderBlueprint(Sur *psur, const bool solid)
    psur->SetObject(this); // For selected formatting
    psur->SetObject(nullptr);
 
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    psur->Polygon(vvertex);
@@ -368,7 +375,7 @@ void Surface::GetHitShapesDebug(vector<HitObject*> &pvho)
 
 void Surface::CurvesToShapes(vector<HitObject*> &pvho)
 {
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    const int count = (int)vvertex.size();
@@ -501,7 +508,7 @@ void Surface::AddLine(vector<HitObject*> &pvho, const RenderVertex &pv1, const R
 // end of license:GPLv3+, back to 'old MAME'-like
 //
 
-void Surface::GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D)
+void Surface::GetBoundingVertices(vector<Vertex3Ds>& pvvertex3D)
 {
    // hardwired to table dimensions, but with bottom/top of surface, returns all 8 corners as this will be used for further transformations later-on
 	for (int i = 0; i < 8; i++)
@@ -546,7 +553,7 @@ void Surface::RenderDynamic()
 
    RenderSlingshots();
 
-   if (m_d.m_droppable || m_isDynamic)
+   if (!StaticRendering())
    {
       if (!m_isDropped)
       {
@@ -570,9 +577,9 @@ void Surface::RenderDynamic()
 // Ported at: VisualPinball.Engine/VPT/Surface/SurfaceMeshGenerator.cs
 //
 
-void Surface::GenerateMesh(std::vector<Vertex3D_NoTex2> &topBuf, std::vector<Vertex3D_NoTex2> &sideBuf, std::vector<WORD> &topBottomIndices, std::vector<WORD> &sideIndices)
+void Surface::GenerateMesh(vector<Vertex3D_NoTex2> &topBuf, vector<Vertex3D_NoTex2> &sideBuf, vector<WORD> &topBottomIndices, vector<WORD> &sideIndices)
 {
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
    float *rgtexcoord = nullptr;
 
@@ -708,7 +715,7 @@ void Surface::GenerateMesh(std::vector<Vertex3D_NoTex2> &topBuf, std::vector<Ver
       topBottomIndices.clear();
 
       {
-      std::vector<unsigned int> vpoly(m_numVertices);
+      vector<unsigned int> vpoly(m_numVertices);
       for (unsigned int i = 0; i < m_numVertices; i++)
          vpoly[i] = i;
 
@@ -777,10 +784,10 @@ void Surface::ExportMesh(ObjLoader& loader)
    m_d.m_heightbottom *= m_ptable->m_BG_scalez[m_ptable->m_BG_current_set];
    m_d.m_heighttop *= m_ptable->m_BG_scalez[m_ptable->m_BG_current_set];
 
-   std::vector<Vertex3D_NoTex2> topBuf;
-   std::vector<Vertex3D_NoTex2> sideBuf;
-   std::vector<WORD> topBottomIndices;
-   std::vector<WORD> sideIndices;
+   vector<Vertex3D_NoTex2> topBuf;
+   vector<Vertex3D_NoTex2> sideBuf;
+   vector<WORD> topBottomIndices;
+   vector<WORD> sideIndices;
    GenerateMesh(topBuf, sideBuf, topBottomIndices, sideIndices);
 
    m_d.m_heightbottom = oldBottomHeight;
@@ -801,8 +808,8 @@ void Surface::ExportMesh(ObjLoader& loader)
       }
       else
       {
-         loader.WriteMaterial("none", string(), mat);
-         loader.UseTexture("none");
+         loader.WriteMaterial("none"s, string(), mat);
+         loader.UseTexture("none"s);
       }
       loader.WriteFaceInfo(topBottomIndices);
       loader.UpdateFaceOffset(m_numVertices);
@@ -841,20 +848,16 @@ void Surface::ExportMesh(ObjLoader& loader)
 
 void Surface::PrepareWallsAtHeight()
 {
-   if (m_IBuffer)
-      m_IBuffer->release();
-   if (m_VBuffer)
-      m_VBuffer->release();
+   SAFE_BUFFER_RELEASE(m_IBuffer);
+   SAFE_BUFFER_RELEASE(m_VBuffer);
 
-   std::vector<Vertex3D_NoTex2> topBottomBuf;
-   std::vector<Vertex3D_NoTex2> sideBuf;
-   std::vector<WORD> topBottomIndices;
-   std::vector<WORD> sideIndices;
+   vector<Vertex3D_NoTex2> topBottomBuf;
+   vector<Vertex3D_NoTex2> sideBuf;
+   vector<WORD> topBottomIndices;
+   vector<WORD> sideIndices;
    GenerateMesh(topBottomBuf, sideBuf, topBottomIndices, sideIndices);
 
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
-   pd3dDevice->CreateVertexBuffer(m_numVertices * 4 + (!topBottomBuf.empty() ? m_numVertices * 3 : 0), 0, MY_D3DFVF_NOTEX2_VERTEX, &m_VBuffer);
+   VertexBuffer::CreateVertexBuffer(m_numVertices * 4 + (!topBottomBuf.empty() ? m_numVertices * 3 : 0), 0, MY_D3DFVF_NOTEX2_VERTEX, &m_VBuffer, PRIMARY_DEVICE);
 
    Vertex3D_NoTex2 *verts;
    m_VBuffer->lock(0, 0, (void**)&verts, VertexBuffer::WRITEONLY);
@@ -862,18 +865,15 @@ void Surface::PrepareWallsAtHeight()
 
    if (!topBottomBuf.empty())
       //if (m_d.m_visible) // Visible could still be set later if rendered dynamically
-      {
          memcpy(verts+m_numVertices * 4, topBottomBuf.data(), sizeof(Vertex3D_NoTex2)*m_numVertices * 3);
-      }
-
    m_VBuffer->unlock();
 
    //
 
-   pd3dDevice->CreateIndexBuffer((unsigned int)topBottomIndices.size() + (unsigned int)sideIndices.size(), 0, IndexBuffer::FMT_INDEX16, &m_IBuffer);
+   IndexBuffer::CreateIndexBuffer((unsigned int)topBottomIndices.size() + (unsigned int)sideIndices.size(), 0, IndexBuffer::FMT_INDEX16, &m_IBuffer, PRIMARY_DEVICE);
 
    WORD* buf;
-   m_IBuffer->lock(0, 0, (void**)&buf, 0);
+   m_IBuffer->lock(0, 0, (void**)&buf, IndexBuffer::WRITEONLY);
    memcpy(buf, sideIndices.data(), sideIndices.size() * sizeof(WORD));
    if (!topBottomIndices.empty())
       memcpy(buf + sideIndices.size(), topBottomIndices.data(), topBottomIndices.size() * sizeof(WORD));
@@ -926,12 +926,8 @@ void Surface::PrepareSlingshots()
       ComputeNormals(rgv3D + offset, 9, rgiSlingshot, 24);
    }
 
-   if (m_slingshotVBuffer)
-      m_slingshotVBuffer->release();
-
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
-   pd3dDevice->CreateVertexBuffer((unsigned int)m_vlinesling.size() * 9, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_slingshotVBuffer);
+   SAFE_BUFFER_RELEASE(m_slingshotVBuffer);
+   VertexBuffer::CreateVertexBuffer((unsigned int)m_vlinesling.size() * 9, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_slingshotVBuffer, PRIMARY_DEVICE);
 
    Vertex3D_NoTex2 *buf;
    m_slingshotVBuffer->lock(0, 0, (void**)&buf, VertexBuffer::WRITEONLY);
@@ -941,7 +937,7 @@ void Surface::PrepareSlingshots()
    delete[] rgv3D;
 
    if (!slingIBuffer)
-      slingIBuffer = pd3dDevice->CreateAndFillIndexBuffer(24, rgiSlingshot);
+      slingIBuffer = IndexBuffer::CreateAndFillIndexBuffer(24, rgiSlingshot, PRIMARY_DEVICE);
 }
 
 void Surface::RenderSetup()
@@ -974,26 +970,10 @@ void Surface::RenderSetup()
 
 void Surface::FreeBuffers()
 {
-   if (m_slingshotVBuffer)
-   {
-      m_slingshotVBuffer->release();
-      m_slingshotVBuffer = 0;
-   }
-   if (m_VBuffer)
-   {
-      m_VBuffer->release();
-      m_VBuffer = 0;
-   }
-   if (m_IBuffer)
-   {
-      m_IBuffer->release();
-      m_IBuffer = 0;
-   }
-   if (slingIBuffer)    // NB: global instance
-   {
-      slingIBuffer->release();
-      slingIBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_slingshotVBuffer);
+   SAFE_BUFFER_RELEASE(m_VBuffer);
+   SAFE_BUFFER_RELEASE(m_IBuffer);
+   SAFE_BUFFER_RELEASE(slingIBuffer); // NB: global instance
 }
 
 void Surface::RenderStatic()
@@ -1002,7 +982,7 @@ void Surface::RenderStatic()
       return;
 
    RenderSlingshots();
-   if (!m_d.m_droppable && !m_isDynamic)
+   if (StaticRendering())
       RenderWallsAtHeight(false);
 }
 
@@ -1028,12 +1008,12 @@ void Surface::RenderSlingshots()
    RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
 
    const Material * const mat = m_ptable->GetMaterial(m_d.m_szSlingShotMaterial);
-   pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+   pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
    pd3dDevice->basicShader->SetMaterial(mat);
 
-   pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+   pd3dDevice->SetRenderStateDepthBias(0.0f);
    pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
-   pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_NONE);
+   pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_NONE);
 
    pd3dDevice->basicShader->Begin(0);
    for (size_t i = 0; i < m_vlinesling.size(); i++)
@@ -1056,7 +1036,7 @@ void Surface::RenderSlingshots()
    }
    pd3dDevice->basicShader->End();
 
-   //pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   //pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 }
 
 void Surface::RenderWallsAtHeight(const bool drop)
@@ -1067,10 +1047,7 @@ void Surface::RenderWallsAtHeight(const bool drop)
    RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
 
    if ((m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f) && (m_d.m_sideVisible || m_d.m_topBottomVisible))
-   {
-      const vec4 tmp(m_d.m_disableLightingTop,m_d.m_disableLightingBelow, 0.f,0.f);
-      pd3dDevice->basicShader->SetDisableLighting(tmp);
-   }
+      pd3dDevice->basicShader->SetDisableLighting(vec4(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f,0.f));
 
    // render side
    if (m_d.m_sideVisible && !drop && (m_numVertices > 0)) // Don't need to render walls if dropped
@@ -1078,29 +1055,29 @@ void Surface::RenderWallsAtHeight(const bool drop)
       const Material * const mat = m_ptable->GetMaterial(m_d.m_szSideMaterial);
       pd3dDevice->basicShader->SetMaterial(mat);
 
-      pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+      pd3dDevice->SetRenderStateDepthBias(0.0f);
       pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
 
       if (mat->m_bOpacityActive || !m_isDynamic)
-         pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_NONE);
+         pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_NONE);
       else
       {
          if (m_d.m_topBottomVisible && m_isDynamic)
-            pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_NONE);
+            pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_NONE);
          else
-            pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+            pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
       }
       Texture * const pinSide = m_ptable->GetImage(m_d.m_szSideImage);
       if (pinSide)
       {
-         pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
-         pd3dDevice->basicShader->SetTexture("Texture0", pinSide, false);
+         pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pinSide, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
          pd3dDevice->basicShader->SetAlphaTestValue(pinSide->m_alphaTestValue * (float)(1.0 / 255.0));
 
          //g_pplayer->m_pin3d.SetPrimaryTextureFilter( 0, TEXTURE_MODE_TRILINEAR );
       }
       else
-         pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+         pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
 
       // combine drawcalls into one (hopefully faster)
       pd3dDevice->basicShader->Begin(0);
@@ -1114,25 +1091,25 @@ void Surface::RenderWallsAtHeight(const bool drop)
       const Material * const mat = m_ptable->GetMaterial(m_d.m_szTopMaterial);
       pd3dDevice->basicShader->SetMaterial(mat);
 
-      pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+      pd3dDevice->SetRenderStateDepthBias(0.0f);
       pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
 
       if (mat->m_bOpacityActive || !m_isDynamic)
-         pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_NONE);
+         pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_NONE);
       else
-         pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+         pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 
       Texture * const pin = m_ptable->GetImage(m_d.m_szImage);
       if (pin)
       {
-         pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
-         pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
+         pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
          pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
 
-         //g_pplayer->m_pin3d.SetTextureFilter( 0, TEXTURE_MODE_TRILINEAR );
+         //g_pplayer->m_pin3d.SetPrimaryTextureFilter( 0, TEXTURE_MODE_TRILINEAR );
       }
       else
-         pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+         pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
 
       // Top
       pd3dDevice->basicShader->Begin(0);
@@ -1142,26 +1119,22 @@ void Surface::RenderWallsAtHeight(const bool drop)
       // Only render Bottom for Reflections
       if (m_ptable->m_reflectionEnabled)
       {
-          if (mat->m_bOpacityActive || !m_isDynamic)
-              pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_NONE);
-          else
-              pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CW);
+         if (mat->m_bOpacityActive || !m_isDynamic)
+            pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_NONE);
+         else
+            pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CW);
 
-          pd3dDevice->basicShader->Begin(0);
-          pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_VBuffer, m_numVertices * 4 + m_numVertices * 2, m_numVertices, m_IBuffer, m_numVertices * 6, m_numPolys * 3);
-          pd3dDevice->basicShader->End();
+         pd3dDevice->basicShader->Begin(0);
+         pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_VBuffer, m_numVertices * 4 + m_numVertices * 2, m_numVertices, m_IBuffer, m_numVertices * 6, m_numPolys * 3);
+         pd3dDevice->basicShader->End();
       }
    }
 
    // reset render states
-   //g_pplayer->m_pin3d.DisableAlphaBlend(); //!!  not necessary anymore
-   //pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   //pd3dDevice->SetRenderState(RenderDevice::ALPHABLENDENABLE, RenderDevice::RS_FALSE); //!!  not necessary anymore
+   //pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
    if ((m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f) && (m_d.m_sideVisible || m_d.m_topBottomVisible))
-   {
-      const vec4 tmp(0.f,0.f, 0.f,0.f);
-      pd3dDevice->basicShader->SetDisableLighting(tmp);
-   }
-
+      pd3dDevice->basicShader->SetDisableLighting(vec4(0.f,0.f, 0.f,0.f));
 }
 
 void Surface::AddPoint(int x, int y, const bool smooth)
@@ -1170,7 +1143,7 @@ void Surface::AddPoint(int x, int y, const bool smooth)
 
    const Vertex2D v = m_ptable->TransformPoint(x, y);
 
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    Vertex2D vOut;
@@ -1457,7 +1430,7 @@ HRESULT Surface::InitPostLoad()
 void Surface::UpdateStatusBarInfo()
 {
    char tbuf[128];
-   sprintf_s(tbuf, "TopHeight: %.03f | BottomHeight: %0.3f", m_vpinball->ConvertToUnit(m_d.m_heighttop), m_vpinball->ConvertToUnit(m_d.m_heightbottom));
+   sprintf_s(tbuf, sizeof(tbuf), "TopHeight: %.03f | BottomHeight: %0.3f", m_vpinball->ConvertToUnit(m_d.m_heighttop), m_vpinball->ConvertToUnit(m_d.m_heightbottom));
    m_vpinball->SetStatusBarUnitInfo(tbuf, true);
 }
 
@@ -1988,9 +1961,12 @@ STDMETHODIMP Surface::PlaySlingshotHit()
 
 void Surface::SetDefaultPhysics(bool fromMouseClick)
 {
-   static constexpr char strKeyName[] = "DefaultProps\\Wall";
-   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity", 0.3f) : 0.3f;
-   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ElasticityFallOff", 0.0f) : 0.0f;
-   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction", 0.3f) : 0.3f;
-   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter", 0) : 0;
+#define strKeyName regKey[RegName::DefaultPropsWall]
+
+   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Elasticity"s, 0.3f) : 0.3f;
+   m_d.m_elasticityFalloff = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "ElasticityFallOff"s, 0.0f) : 0.0f;
+   m_d.m_friction = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Friction"s, 0.3f) : 0.3f;
+   m_d.m_scatter = fromMouseClick ? LoadValueFloatWithDefault(strKeyName, "Scatter"s, 0) : 0;
+
+#undef strKeyName
 }

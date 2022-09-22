@@ -1,4 +1,5 @@
-#include "StdAfx.h"
+#include "stdafx.h"
+#include "Shader.h"
 
 Plunger::Plunger()
 {
@@ -9,16 +10,8 @@ Plunger::Plunger()
 
 Plunger::~Plunger()
 {
-   if (m_vertexBuffer)
-   {
-      m_vertexBuffer->release();
-      m_vertexBuffer = nullptr;
-   }
-   if (m_indexBuffer)
-   {
-      m_indexBuffer->release();
-      m_indexBuffer = nullptr;
-   }
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
 }
 
 HRESULT Plunger::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
@@ -34,80 +27,88 @@ HRESULT Plunger::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Plunger::SetDefaults(bool fromMouseClick)
 {
+#define regKey regKey[RegName::DefaultPropsPlunger]
+
    SetDefaultPhysics(fromMouseClick);
 
-   m_d.m_height = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "Height", 20.f) : 20.f;
-   m_d.m_width = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "Width", 25.f) : 25.f;
-   m_d.m_zAdjust = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "ZAdjust", 0) : 0;
-   m_d.m_stroke = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "Stroke", m_d.m_height*4) : (m_d.m_height*4);
-   m_d.m_speedPull = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "PullSpeed", 5.f) : 5.f;
-   m_d.m_type = fromMouseClick ? (PlungerType)LoadValueIntWithDefault("DefaultProps\\Plunger", "PlungerType", PlungerTypeModern) : PlungerTypeModern;
-   m_d.m_color = fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Plunger", "Color", RGB(76,76,76)) : RGB(76,76,76);
+   m_d.m_height = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Height"s, 20.f) : 20.f;
+   m_d.m_width = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Width"s, 25.f) : 25.f;
+   m_d.m_zAdjust = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ZAdjust"s, 0) : 0;
+   m_d.m_stroke = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Stroke"s, m_d.m_height*4) : (m_d.m_height*4);
+   m_d.m_speedPull = fromMouseClick ? LoadValueFloatWithDefault(regKey, "PullSpeed"s, 5.f) : 5.f;
+   m_d.m_type = fromMouseClick ? (PlungerType)LoadValueIntWithDefault(regKey, "PlungerType"s, PlungerTypeModern) : PlungerTypeModern;
+   m_d.m_color = fromMouseClick ? LoadValueIntWithDefault(regKey, "Color"s, RGB(76,76,76)) : RGB(76,76,76);
 
-   HRESULT hr = LoadValue("DefaultProps\\Plunger", "Image", m_d.m_szImage);
+   HRESULT hr = LoadValue(regKey, "Image"s, m_d.m_szImage);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szImage.clear();
 
-   m_d.m_animFrames = fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Plunger", "AnimFrames", 1) : 1;
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Plunger", "TimerEnabled", false) : false;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Plunger", "TimerInterval", 100) : 100;
+   m_d.m_animFrames = fromMouseClick ? LoadValueIntWithDefault(regKey, "AnimFrames"s, 1) : 1;
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "TimerEnabled"s, false) : false;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(regKey, "TimerInterval"s, 100) : 100;
 
-   hr = LoadValue("DefaultProps\\Plunger", "Surface", m_d.m_szSurface);
+   hr = LoadValue(regKey, "Surface"s, m_d.m_szSurface);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szSurface.clear();
 
-   m_d.m_mechPlunger = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Plunger", "MechPlunger", false) : false; // plungers require selection for mechanical input
-   m_d.m_autoPlunger = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Plunger", "AutoPlunger", false) : false;
-   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Plunger", "Visible", true) : true;
+   m_d.m_mechPlunger = fromMouseClick ? LoadValueBoolWithDefault(regKey, "MechPlunger"s, false) : false; // plungers require selection for mechanical input
+   m_d.m_autoPlunger = fromMouseClick ? LoadValueBoolWithDefault(regKey, "AutoPlunger"s, false) : false;
+   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(regKey, "Visible"s, true) : true;
 
-   hr = LoadValue("DefaultProps\\Plunger", "CustomTipShape", m_d.m_szTipShape, MAXTIPSHAPE);
+   hr = LoadValue(regKey, "CustomTipShape"s, m_d.m_szTipShape, MAXTIPSHAPE);
    if ((hr != S_OK) || !fromMouseClick)
       strncpy_s(m_d.m_szTipShape,
       "0 .34; 2 .6; 3 .64; 5 .7; 7 .84; 8 .88; 9 .9; 11 .92; 14 .92; 39 .84", sizeof(m_d.m_szTipShape)-1);
 
-   m_d.m_rodDiam = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "CustomRodDiam", 0.60f) : 0.60f;
-   m_d.m_ringGap = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "CustomRingGap", 2.0f) : 2.0f;
-   m_d.m_ringDiam = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "CustomRingDiam", 0.94f) : 0.94f;
-   m_d.m_ringWidth = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "CustomRingWidth", 3.0f) : 3.0f;
-   m_d.m_springDiam = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "CustomSpringDiam", 0.77f) : 0.77f;
-   m_d.m_springGauge = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "CustomSpringGauge", 1.38f) : 1.38f;
-   m_d.m_springLoops = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "CustomSpringLoops", 8.0f) : 8.0f;
-   m_d.m_springEndLoops = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "CustomSpringEndLoops", 2.5f) : 2.5f;
-   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Plunger", "ReflectionEnabled", true) : true;
+   m_d.m_rodDiam = fromMouseClick ? LoadValueFloatWithDefault(regKey, "CustomRodDiam"s, 0.60f) : 0.60f;
+   m_d.m_ringGap = fromMouseClick ? LoadValueFloatWithDefault(regKey, "CustomRingGap"s, 2.0f) : 2.0f;
+   m_d.m_ringDiam = fromMouseClick ? LoadValueFloatWithDefault(regKey, "CustomRingDiam"s, 0.94f) : 0.94f;
+   m_d.m_ringWidth = fromMouseClick ? LoadValueFloatWithDefault(regKey, "CustomRingWidth"s, 3.0f) : 3.0f;
+   m_d.m_springDiam = fromMouseClick ? LoadValueFloatWithDefault(regKey, "CustomSpringDiam"s, 0.77f) : 0.77f;
+   m_d.m_springGauge = fromMouseClick ? LoadValueFloatWithDefault(regKey, "CustomSpringGauge"s, 1.38f) : 1.38f;
+   m_d.m_springLoops = fromMouseClick ? LoadValueFloatWithDefault(regKey, "CustomSpringLoops"s, 8.0f) : 8.0f;
+   m_d.m_springEndLoops = fromMouseClick ? LoadValueFloatWithDefault(regKey, "CustomSpringEndLoops"s, 2.5f) : 2.5f;
+   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "ReflectionEnabled"s, true) : true;
+
+#undef regKey
 }
 
 void Plunger::WriteRegDefaults()
 {
-   SaveValueFloat("DefaultProps\\Plunger", "Height", m_d.m_height);
-   SaveValueFloat("DefaultProps\\Plunger", "Width", m_d.m_width);
-   SaveValueFloat("DefaultProps\\Plunger", "ZAdjust", m_d.m_zAdjust);
-   SaveValueFloat("DefaultProps\\Plunger", "Stroke", m_d.m_stroke);
-   SaveValueFloat("DefaultProps\\Plunger", "PullSpeed", m_d.m_speedPull);
-   SaveValueFloat("DefaultProps\\Plunger", "ReleaseSpeed", m_d.m_speedFire);
-   SaveValueInt("DefaultProps\\Plunger", "PlungerType", m_d.m_type);
-   SaveValueInt("DefaultProps\\Plunger", "AnimFrames", m_d.m_animFrames);
-   SaveValueInt("DefaultProps\\Plunger", "Color", m_d.m_color);
-   SaveValue("DefaultProps\\Plunger", "Image", m_d.m_szImage);
-   SaveValueBool("DefaultProps\\Plunger", "TimerEnabled", m_d.m_tdr.m_TimerEnabled);
-   SaveValueInt("DefaultProps\\Plunger", "TimerInterval", m_d.m_tdr.m_TimerInterval);
-   SaveValue("DefaultProps\\Plunger", "Surface", m_d.m_szSurface);
-   SaveValueBool("DefaultProps\\Plunger", "MechPlunger", m_d.m_mechPlunger);
-   SaveValueBool("DefaultProps\\Plunger", "AutoPlunger", m_d.m_autoPlunger);
-   SaveValueFloat("DefaultProps\\Plunger", "MechStrength", m_d.m_mechStrength);
-   SaveValueFloat("DefaultProps\\Plunger", "ParkPosition", m_d.m_parkPosition);
-   SaveValueBool("DefaultProps\\Plunger", "Visible", m_d.m_visible);
-   SaveValueFloat("DefaultProps\\Plunger", "ScatterVelocity", m_d.m_scatterVelocity);
-   SaveValueFloat("DefaultProps\\Plunger", "MomentumXfer", m_d.m_momentumXfer);
-   SaveValue("DefaultProps\\Plunger", "CustomTipShape", m_d.m_szTipShape);
-   SaveValueFloat("DefaultProps\\Plunger", "CustomRodDiam", m_d.m_rodDiam);
-   SaveValueFloat("DefaultProps\\Plunger", "CustomRingGap", m_d.m_ringGap);
-   SaveValueFloat("DefaultProps\\Plunger", "CustomRingDiam", m_d.m_ringDiam);
-   SaveValueFloat("DefaultProps\\Plunger", "CustomRingWidth", m_d.m_ringWidth);
-   SaveValueFloat("DefaultProps\\Plunger", "CustomSpringDiam", m_d.m_springDiam);
-   SaveValueFloat("DefaultProps\\Plunger", "CustomSpringGauge", m_d.m_springGauge);
-   SaveValueFloat("DefaultProps\\Plunger", "CustomSpringLoops", m_d.m_springLoops);
-   SaveValueFloat("DefaultProps\\Plunger", "CustomSpringEndLoops", m_d.m_springEndLoops);
-   SaveValueBool("DefaultProps\\Plunger", "ReflectionEnabled", m_d.m_reflectionEnabled);
+#define regKey regKey[RegName::DefaultPropsPlunger]
+
+   SaveValueFloat(regKey, "Height"s, m_d.m_height);
+   SaveValueFloat(regKey, "Width"s, m_d.m_width);
+   SaveValueFloat(regKey, "ZAdjust"s, m_d.m_zAdjust);
+   SaveValueFloat(regKey, "Stroke"s, m_d.m_stroke);
+   SaveValueFloat(regKey, "PullSpeed"s, m_d.m_speedPull);
+   SaveValueFloat(regKey, "ReleaseSpeed"s, m_d.m_speedFire);
+   SaveValueInt(regKey, "PlungerType"s, m_d.m_type);
+   SaveValueInt(regKey, "AnimFrames"s, m_d.m_animFrames);
+   SaveValueInt(regKey, "Color"s, m_d.m_color);
+   SaveValue(regKey, "Image"s, m_d.m_szImage);
+   SaveValueBool(regKey, "TimerEnabled"s, m_d.m_tdr.m_TimerEnabled);
+   SaveValueInt(regKey, "TimerInterval"s, m_d.m_tdr.m_TimerInterval);
+   SaveValue(regKey, "Surface"s, m_d.m_szSurface);
+   SaveValueBool(regKey, "MechPlunger"s, m_d.m_mechPlunger);
+   SaveValueBool(regKey, "AutoPlunger"s, m_d.m_autoPlunger);
+   SaveValueFloat(regKey, "MechStrength"s, m_d.m_mechStrength);
+   SaveValueFloat(regKey, "ParkPosition"s, m_d.m_parkPosition);
+   SaveValueBool(regKey, "Visible"s, m_d.m_visible);
+   SaveValueFloat(regKey, "ScatterVelocity"s, m_d.m_scatterVelocity);
+   SaveValueFloat(regKey, "MomentumXfer"s, m_d.m_momentumXfer);
+   SaveValue(regKey, "CustomTipShape"s, m_d.m_szTipShape);
+   SaveValueFloat(regKey, "CustomRodDiam"s, m_d.m_rodDiam);
+   SaveValueFloat(regKey, "CustomRingGap"s, m_d.m_ringGap);
+   SaveValueFloat(regKey, "CustomRingDiam"s, m_d.m_ringDiam);
+   SaveValueFloat(regKey, "CustomRingWidth"s, m_d.m_ringWidth);
+   SaveValueFloat(regKey, "CustomSpringDiam"s, m_d.m_springDiam);
+   SaveValueFloat(regKey, "CustomSpringGauge"s, m_d.m_springGauge);
+   SaveValueFloat(regKey, "CustomSpringLoops"s, m_d.m_springLoops);
+   SaveValueFloat(regKey, "CustomSpringEndLoops"s, m_d.m_springEndLoops);
+   SaveValueBool(regKey, "ReflectionEnabled"s, m_d.m_reflectionEnabled);
+
+#undef regKey
 }
 
 void Plunger::UIRenderPass1(Sur * const psur)
@@ -171,16 +172,8 @@ void Plunger::EndPlay()
    m_phitplunger = nullptr;       // possible memory leak here?
 
    IEditable::EndPlay();
-   if (m_vertexBuffer)
-   {
-      m_vertexBuffer->release();
-      m_vertexBuffer = nullptr;
-   }
-   if (m_indexBuffer)
-   {
-      m_indexBuffer->release();
-      m_indexBuffer = nullptr;
-   }
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
 }
 
 void Plunger::SetObjectPos()
@@ -206,17 +199,19 @@ void Plunger::PutCenter(const Vertex2D& pv)
 
 void Plunger::SetDefaultPhysics(bool fromMouseClick)
 {
-   m_d.m_speedFire = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "ReleaseSpeed", 80.f) : 80.f;
-   m_d.m_mechStrength = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "MechStrength", 85.f) : 85.f;
-   m_d.m_parkPosition = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "ParkPosition", (float)(0.5/3.0)) : (float)(0.5/3.0); // typical mechanical plunger has 3 inch stroke and 0.5 inch rest position //!! 0.01f better for some HW-plungers, but this seems to be rather a firmware/config issue
-   m_d.m_scatterVelocity = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "ScatterVelocity", 0.f) : 0.f;
-   m_d.m_momentumXfer = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Plunger", "MomentumXfer", 1.f) : 1.f;
+#define regKey regKey[RegName::DefaultPropsPlunger]
+
+   m_d.m_speedFire = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ReleaseSpeed"s, 80.f) : 80.f;
+   m_d.m_mechStrength = fromMouseClick ? LoadValueFloatWithDefault(regKey, "MechStrength"s, 85.f) : 85.f;
+   m_d.m_parkPosition = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ParkPosition"s, (float)(0.5/3.0)) : (float)(0.5/3.0); // typical mechanical plunger has 3 inch stroke and 0.5 inch rest position //!! 0.01f better for some HW-plungers, but this seems to be rather a firmware/config issue
+   m_d.m_scatterVelocity = fromMouseClick ? LoadValueFloatWithDefault(regKey, "ScatterVelocity"s, 0.f) : 0.f;
+   m_d.m_momentumXfer = fromMouseClick ? LoadValueFloatWithDefault(regKey, "MomentumXfer"s, 1.f) : 1.f;
+
+#undef regKey
 }
 
 void Plunger::RenderDynamic()
 {
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
    TRACE_FUNCTION();
 
    // TODO: get rid of frame stuff
@@ -233,21 +228,24 @@ void Plunger::RenderDynamic()
    const int frame = (frame0 < 0 ? 0 : frame0 >= m_cframes ? m_cframes - 1 : frame0);
 
    const Material * const mat = m_ptable->GetMaterial(m_d.m_szMaterial);
+
+   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
+
    pd3dDevice->basicShader->SetMaterial(mat);
 
-   pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+   pd3dDevice->SetRenderStateDepthBias(0.0f);
    pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
-   pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 
    Texture * const pin = m_ptable->GetImage(m_d.m_szImage);
    if (pin)
    {
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
-      pd3dDevice->basicShader->SetTexture("Texture0", pin, false);
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+      pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
       pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
    }
    else
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
 
    pd3dDevice->basicShader->Begin(0);
    pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_vertexBuffer,
@@ -322,8 +320,6 @@ static const char *nextTipToken(const char* &p)
 
 void Plunger::RenderSetup()
 {
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
    const float zheight = m_ptable->GetSurfaceHeight(m_d.m_szSurface, m_d.m_v.x, m_d.m_v.y) + m_d.m_zAdjust;
    const float stroke = m_d.m_stroke;
    const float beginy = m_d.m_v.y;
@@ -377,10 +373,11 @@ void Plunger::RenderSetup()
       // by semicolons.
       int nTip = 1;
       for (const char *p = m_d.m_szTipShape; *p != '\0'; ++p)
-      {
          if (*p == ';')
-            ++nTip, ++nn;
-      }
+         {
+            ++nTip;
+            ++nn;
+         }
 
       // allocate the descriptor and the coordinate array
       desc = customDesc = new PlungerDesc;
@@ -540,9 +537,8 @@ void Plunger::RenderSetup()
    // figure the relative spring gauge, in terms of the overall width
    const float springGaugeRel = springGauge / m_d.m_width;
 
-   if (m_vertexBuffer)
-      m_vertexBuffer->release();
-   pd3dDevice->CreateVertexBuffer(m_cframes*m_vtsPerFrame, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer);
+   SAFE_BUFFER_RELEASE(m_vertexBuffer);
+   VertexBuffer::CreateVertexBuffer(m_cframes*m_vtsPerFrame, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_vertexBuffer, PRIMARY_DEVICE);
 
    Vertex3D_NoTex2 *buf;
    m_vertexBuffer->lock(0, 0, (void**)&buf, VertexBuffer::WRITEONLY);
@@ -845,9 +841,8 @@ void Plunger::RenderSetup()
    }
 
    // create the new index buffer
-   if (m_indexBuffer)
-      m_indexBuffer->release();
-   m_indexBuffer = pd3dDevice->CreateAndFillIndexBuffer(k, indices);
+   SAFE_BUFFER_RELEASE(m_indexBuffer);
+   m_indexBuffer = IndexBuffer::CreateAndFillIndexBuffer(k, indices, PRIMARY_DEVICE);
 
    // done with the index scratch pad
    delete[] indices;
@@ -1371,7 +1366,7 @@ STDMETHODIMP Plunger::CreateBall(IBall **pBallEx)
 STDMETHODIMP Plunger::get_X(float *pVal)
 {
    *pVal = m_d.m_v.x;
-   m_vpinball->SetStatusBarUnitInfo("", true);
+   m_vpinball->SetStatusBarUnitInfo(string(), true);
 
    return S_OK;
 }

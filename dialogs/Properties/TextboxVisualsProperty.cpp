@@ -59,6 +59,8 @@ void TextboxVisualsProperty::UpdateVisuals(const int dispid/*=-1*/)
             if (text->m_pIFont)
             {
                 m_fontDialogButton.SetWindowText(text->GetFontName());
+                if (!m_font)
+                  delete m_font;
                 m_font = new CFont(text->GetFont());
             }
         }
@@ -198,8 +200,14 @@ void TextboxVisualsProperty::UpdateProperties(const int dispid)
                     text->m_pIFont->Release();
                     // create the new one
                     OleCreateFontIndirect(&fd, IID_IFont, (void **)&text->m_pIFont);
+                    text->m_d.m_fontsize = (float)((-font.lfHeight * 72) / GetDeviceCaps(g_pvp->GetDC(), LOGPIXELSY));
+                    CY size;
+                    size.int64 = (LONGLONG)(text->m_d.m_fontsize * 10000.0f);
+                    text->m_pIFont->put_Size(size);
                     free(fd.lpstrName);
                     text->m_d.m_fontcolor = m_fontDialog.GetColor();
+                    delete m_font;
+                    m_font = new CFont(text->GetFont());
                 }
                 break;
             }
@@ -228,29 +236,30 @@ BOOL TextboxVisualsProperty::OnInitDialog()
     UpdateVisuals();
 
     m_resizer.Initialize(*this, CRect(0, 0, 0, 0));
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC1), topleft, 0);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC2), topleft, 0);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC3), topleft, 0);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC4), topleft, 0);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC5), topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC6), topleft, 0);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC7), topleft, 0);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC8), topleft, 0);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC9), topleft, 0);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC10), topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(GetDlgItem(IDC_STATIC11), topleft, 0);
-    m_resizer.AddChild(m_hTransparentCheck, topleft, 0);
-    m_resizer.AddChild(m_backgroundColorButton, topleft, 0);
-    m_resizer.AddChild(m_textColorButton, topleft, 0);
-    m_resizer.AddChild(m_fontDialogButton, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_alignmentCombo, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_posXEdit, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_posYEdit, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_widthEdit, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_heightEdit, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_textIntensityEdit, topleft, RD_STRETCH_WIDTH);
-    m_resizer.AddChild(m_hUseScriptDMDCheck, topleft, 0);
-    m_resizer.AddChild(m_textEdit, topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC1), CResizer::topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC2), CResizer::topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC3), CResizer::topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC4), CResizer::topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC5), CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC6), CResizer::topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC7), CResizer::topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC8), CResizer::topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC9), CResizer::topleft, 0);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC10), CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(GetDlgItem(IDC_STATIC11), CResizer::topleft, 0);
+    m_resizer.AddChild(m_hTransparentCheck, CResizer::topleft, 0);
+    m_resizer.AddChild(m_backgroundColorButton, CResizer::topleft, 0);
+    m_resizer.AddChild(m_textColorButton, CResizer::topleft, 0);
+    m_resizer.AddChild(m_fontDialogButton, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_alignmentCombo, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_posXEdit, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_posYEdit, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_widthEdit, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_heightEdit, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_textIntensityEdit, CResizer::topleft, RD_STRETCH_WIDTH);
+    m_resizer.AddChild(m_hUseScriptDMDCheck, CResizer::topleft, 0);
+    m_resizer.AddChild(m_textEdit, CResizer::topleft, RD_STRETCH_WIDTH);
+
     return TRUE;
 }
 

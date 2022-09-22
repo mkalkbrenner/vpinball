@@ -1,7 +1,7 @@
 #pragma once
 
 // NB: these are used for file I/O and must not be changed/reordered!
-enum ItemTypeEnum
+enum ItemTypeEnum : unsigned int
 {
    eItemSurface,
    eItemFlipper,
@@ -54,9 +54,9 @@ INT_PTR CALLBACK TranslateProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lP
 class BaseProperty // not everything in here is used in all of the derived classes, but it simplifies the UI code!
 {
 public:
-    std::string m_szImage;
-    std::string m_szMaterial;
-    std::string m_szPhysicsMaterial;
+    string m_szImage;
+    string m_szMaterial;
+    string m_szPhysicsMaterial;
     float m_elasticity;
     float m_friction;
     float m_scatter;

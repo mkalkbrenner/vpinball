@@ -10,7 +10,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Gate
 
-class GateData : public BaseProperty
+class GateData final : public BaseProperty
 {
 public:
    Vertex2D m_vCenter;
@@ -20,7 +20,7 @@ public:
    TimerDataRoot m_tdr;
    float m_damping;
    float m_gravityfactor;
-   std::string m_szSurface;
+   string m_szSurface;
    float m_angleMin;
    float m_angleMax;
    GateType m_type;
@@ -75,21 +75,21 @@ public:
    // ISupportsErrorInfo
    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid);
 
-   virtual void MoveOffset(const float dx, const float dy);
-   virtual void SetObjectPos();
+   void MoveOffset(const float dx, const float dy) final;
+   void SetObjectPos() final;
    // Multi-object manipulation
-   virtual Vertex2D GetCenter() const;
-   virtual void PutCenter(const Vertex2D& pv);
-   virtual void SetDefaultPhysics(bool fromMouseClick);
+   Vertex2D GetCenter() const final;
+   void PutCenter(const Vertex2D &pv) final;
+   void SetDefaultPhysics(bool fromMouseClick) final;
 
-   virtual void RenderBlueprint(Sur *psur, const bool solid);
-   virtual void ExportMesh(ObjLoader& loader);
+   void RenderBlueprint(Sur *psur, const bool solid) final;
+   void ExportMesh(ObjLoader &loader) final;
 
-   virtual unsigned long long GetMaterialID() const { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemGate; }
-   virtual void UpdateStatusBarInfo();
+   unsigned long long GetMaterialID() const final { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
+   ItemTypeEnum HitableGetItemType() const final { return eItemGate; }
+   void UpdateStatusBarInfo() final;
 
-   virtual void WriteRegDefaults();
+   void WriteRegDefaults() final;
 
    float GetOpenAngle() const;
    void SetOpenAngle(const float angle);

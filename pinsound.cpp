@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 extern bool bass_init;
 extern int bass_BG_idx;
@@ -123,7 +123,7 @@ HRESULT PinSound::ReInitialize()
 
    if(!IsWav())
    {
-	   const SoundConfigTypes SoundMode3D = (m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault("Player", "Sound3D", (int)SNDCFG_SND3D2CH);
+	   const SoundConfigTypes SoundMode3D = (m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault(regKey[RegName::Player], "Sound3D"s, (int)SNDCFG_SND3D2CH);
 
 	   SetDevice();
 	   m_BASSstream = BASS_StreamCreateFile(
@@ -134,13 +134,12 @@ HRESULT PinSound::ReInitialize()
 		   (SoundMode3D != SNDCFG_SND3D2CH) ? (BASS_SAMPLE_3D | BASS_SAMPLE_MONO) : 0 /*| BASS_SAMPLE_LOOP*/ //!! mono really needed? doc claims so
 	   );
 
-	   if (m_BASSstream == NULL)
+	   if (m_BASSstream == 0)
 	   {
 		   const int code = BASS_ErrorGetCode();
 		   string bla2;
 		   BASS_ErrorMapCode(code, bla2);
-		   const string bla = "BASS music/sound library cannot create stream \"" + m_szPath + "\" (error " + std::to_string(code) + ": " + bla2 + ")";
-		   g_pvp->MessageBox(bla.c_str(), "Error", MB_ICONERROR);
+		   g_pvp->MessageBox(("BASS music/sound library cannot create stream \"" + m_szPath + "\" (error " + std::to_string(code) + ": " + bla2 + ')').c_str(), "Error", MB_ICONERROR);
 		   return E_FAIL;
 	   }
 
@@ -157,11 +156,15 @@ HRESULT PinSound::ReInitialize()
       return E_FAIL;
    }
 
-   const SoundConfigTypes SoundMode3D = (m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault("Player", "Sound3D", (int)SNDCFG_SND3D2CH);
+   const SoundConfigTypes SoundMode3D = (m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault(regKey[RegName::Player], "Sound3D"s, (int)SNDCFG_SND3D2CH);
 
    WAVEFORMATEX wfx = m_wfx;  // Use a copy as we might be modifying it
-   DSBUFFERDESC dsbd;
-   ZeroMemory(&dsbd, sizeof(DSBUFFERDESC));
+   // Remark from MSDN: "If wFormatTag = WAVE_FORMAT_PCM or wFormatTag = WAVE_FORMAT_IEEE_FLOAT, set cbSize to zero"
+   // Otherwise some tables crash in dsound when using certain WAVE_FORMAT_IEEE_FLOAT samples
+   if ((wfx.wFormatTag == WAVE_FORMAT_PCM) || (wfx.wFormatTag == WAVE_FORMAT_IEEE_FLOAT))
+      wfx.cbSize = 0;
+
+   DSBUFFERDESC dsbd = {};
    dsbd.dwSize = sizeof(DSBUFFERDESC);
    dsbd.dwFlags = DSBCAPS_STATIC | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY | ((SoundMode3D != SNDCFG_SND3D2CH) ? DSBCAPS_CTRL3D : DSBCAPS_CTRLPAN);
    dsbd.dwBufferBytes = m_cdata;
@@ -187,7 +190,7 @@ HRESULT PinSound::ReInitialize()
    if (FAILED(hr = pds->m_pDS->CreateSoundBuffer(&dsbd, &m_pDSBuffer, nullptr)))
    {
       char bla[128];
-      sprintf_s(bla, "Error: 0x%X. Could not create sound buffer for load.", hr);
+      sprintf_s(bla, sizeof(bla), "Error: 0x%X. Could not create sound buffer for load.", hr);
       ShowError(bla);
       m_pPinDirectSound = nullptr;
       m_pDSBuffer = nullptr;
@@ -274,7 +277,7 @@ void PinSound::Play(const float volume, const float randompitch, const int pitch
          BASS_ChannelSetAttribute(m_BASSstream, BASS_ATTRIB_FREQ, (float)(freq + pitch));
       }
 
-      const SoundConfigTypes SoundMode3D = (m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault("Player", "Sound3D", (int)SNDCFG_SND3D2CH);
+      const SoundConfigTypes SoundMode3D = (m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault(regKey[RegName::Player], "Sound3D"s, (int)SNDCFG_SND3D2CH);
       switch (SoundMode3D)
       {
       case SNDCFG_SND3DALLREAR:
@@ -377,7 +380,7 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
    int DSidx = 0;
    if (!FAILED(DirectSoundEnumerate(DSEnumCallBack, &DSads)))
    {
-      const HRESULT hr = LoadValue("Player", IsBackglass ? "SoundDeviceBG" : "SoundDevice", DSidx);
+      const HRESULT hr = LoadValue(regKey[RegName::Player], IsBackglass ? "SoundDeviceBG"s : "SoundDevice"s, DSidx);
       if ((hr != S_OK) || ((size_t)DSidx >= DSads.size()))
          DSidx = 0; // The default primary sound device
    }
@@ -387,7 +390,7 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
    if (FAILED(hr = DirectSoundCreate((DSidx != 0) ? DSads[DSidx]->guid : nullptr, &m_pDS, nullptr)))
    {
       char bla[128];
-      sprintf_s(bla, "Error 0x%X. Could not create Direct Sound.", hr);
+      sprintf_s(bla, sizeof(bla), "Error 0x%X. Could not create Direct Sound.", hr);
       ShowError(bla);
       return;// hr;
    }
@@ -400,16 +403,15 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
    if (FAILED(hr = m_pDS->SetCooperativeLevel(hwnd, DSSCL_PRIORITY)))
    {
       char bla[128];
-      sprintf_s(bla, "Error 0x%X. Could not set Direct Sound Priority.", hr);
+      sprintf_s(bla, sizeof(bla), "Error 0x%X. Could not set Direct Sound Priority.", hr);
       ShowError(bla);
       return;// hr;
    }
 
-   const SoundConfigTypes SoundMode3D = (SoundConfigTypes)LoadValueIntWithDefault("Player", "Sound3D", (int)SNDCFG_SND3D2CH);
+   const SoundConfigTypes SoundMode3D = (SoundConfigTypes)LoadValueIntWithDefault(regKey[RegName::Player], "Sound3D"s, (int)SNDCFG_SND3D2CH);
 
    // Get the primary buffer 
-   DSBUFFERDESC dsbd;
-   ZeroMemory(&dsbd, sizeof(DSBUFFERDESC));
+   DSBUFFERDESC dsbd = {};
    dsbd.dwSize = sizeof(DSBUFFERDESC);
    dsbd.dwFlags = DSBCAPS_PRIMARYBUFFER;
    if (!IsBackglass && (SoundMode3D != SNDCFG_SND3D2CH))
@@ -421,14 +423,13 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
    if (FAILED(hr = m_pDS->CreateSoundBuffer(&dsbd, &pDSBPrimary, nullptr)))
    {
       char bla[128];
-      sprintf_s(bla, "Error 0x%X. Could not create primary sound buffer.", hr);
+      sprintf_s(bla, sizeof(bla), "Error 0x%X. Could not create primary sound buffer.", hr);
       ShowError(bla);
       return;// hr;
    }
 
    // Set primary buffer format to 44kHz and 16-bit output.
-   WAVEFORMATEX wfx;
-   ZeroMemory(&wfx, sizeof(WAVEFORMATEX));
+   WAVEFORMATEX wfx = {};
    wfx.wFormatTag = WAVE_FORMAT_PCM;
    wfx.nChannels = (!IsBackglass && (SoundMode3D != SNDCFG_SND3D2CH)) ?  1 : 2;
    wfx.nSamplesPerSec = 44100;
@@ -439,7 +440,7 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
    if (FAILED(hr = pDSBPrimary->SetFormat(&wfx)))
    {
       char bla[128];
-      sprintf_s(bla, "Error 0x%X. Could not set sound format.", hr);
+      sprintf_s(bla, sizeof(bla), "Error 0x%X. Could not set sound format.", hr);
       ShowError(bla);
       return;// hr;
    }
@@ -450,7 +451,7 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
 	   if (FAILED(hr))
 	   {
 	      char bla[128];
-	      sprintf_s(bla, "Error 0x%X. Could not acquire 3D listener interface.", hr);
+	      sprintf_s(bla, sizeof(bla), "Error 0x%X. Could not acquire 3D listener interface.", hr);
 	      ShowError(bla);
 	      return;// hr;
 	   }
@@ -468,7 +469,7 @@ PinSound *AudioMusicPlayer::LoadFile(const string& strFileName)
    PinSound * const pps = new PinSound();
 
    pps->m_szPath = strFileName;
-   TitleFromFilename(strFileName, pps->m_szName);
+   pps->m_szName = TitleFromFilename(strFileName);
 
    if (pps->IsWav()) // only use old direct sound code and wav reader if playing wav's
    {
@@ -484,13 +485,12 @@ PinSound *AudioMusicPlayer::LoadFile(const string& strFileName)
 		   return nullptr;
 	   }
 
-	   const SoundConfigTypes SoundMode3D = (SoundConfigTypes)LoadValueIntWithDefault("Player", "Sound3D", (int)SNDCFG_SND3D2CH);
+	   const SoundConfigTypes SoundMode3D = (SoundConfigTypes)LoadValueIntWithDefault(regKey[RegName::Player], "Sound3D"s, (int)SNDCFG_SND3D2CH);
 
 	   // Set up the direct sound buffer, and only request the flags needed
 	   // since each requires some overhead and limits if the buffer can
 	   // be hardware accelerated
-	   DSBUFFERDESC dsbd;
-	   ZeroMemory(&dsbd, sizeof(DSBUFFERDESC));
+	   DSBUFFERDESC dsbd = {};
 	   dsbd.dwSize = sizeof(DSBUFFERDESC);
 	   dsbd.dwFlags = DSBCAPS_STATIC | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY | DSBCAPS_CTRLPAN;
 	   if (SoundMode3D != SNDCFG_SND3D2CH)
@@ -504,7 +504,7 @@ PinSound *AudioMusicPlayer::LoadFile(const string& strFileName)
 	   if (FAILED(hr = m_pds.m_pDS->CreateSoundBuffer(&dsbd, &pps->m_pDSBuffer, nullptr)))
 	   {
 		   char bla[128];
-		   sprintf_s(bla, "Error 0x%X. Could not create static sound buffer.", hr);
+		   sprintf_s(bla, sizeof(bla), "Error 0x%X. Could not create static sound buffer.", hr);
 		   ShowError(bla);
 		   delete pWaveSoundRead;
 		   delete pps;
@@ -570,7 +570,7 @@ PinSound *AudioMusicPlayer::LoadFile(const string& strFileName)
 	   fread_s(pps->m_pdata, pps->m_cdata, 1, pps->m_cdata, f);
 	   fclose(f);
 
-	   const SoundConfigTypes SoundMode3D = (pps->m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault("Player", "Sound3D", (int)SNDCFG_SND3D2CH);
+	   const SoundConfigTypes SoundMode3D = (pps->m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault(regKey[RegName::Player], "Sound3D"s, (int)SNDCFG_SND3D2CH);
 
 	   pps->SetDevice();
 	   pps->m_BASSstream = BASS_StreamCreateFile(
@@ -581,15 +581,14 @@ PinSound *AudioMusicPlayer::LoadFile(const string& strFileName)
 		   (SoundMode3D != SNDCFG_SND3D2CH) ? (BASS_SAMPLE_3D | BASS_SAMPLE_MONO) : 0 /*| BASS_SAMPLE_LOOP*/ //!! mono really needed? doc claims so
 	   );
 
-	   if (pps->m_BASSstream == NULL)
+	   if (pps->m_BASSstream == 0)
 	   {
 		   delete pps;
 
 		   const int code = BASS_ErrorGetCode();
 		   string bla2;
 		   BASS_ErrorMapCode(code, bla2);
-		   const string bla = "BASS music/sound library cannot load \"" + strFileName + "\" (error " + std::to_string(code) + ": " + bla2 + ")";
-		   g_pvp->MessageBox(bla.c_str(), "Error", MB_ICONERROR);
+		   g_pvp->MessageBox(("BASS music/sound library cannot load \"" + strFileName + "\" (error " + std::to_string(code) + ": " + bla2 + ')').c_str(), "Error", MB_ICONERROR);
 		   return nullptr;
 	   }
    }
@@ -816,7 +815,7 @@ void PinDirectSoundWavCopy::PlayInternal(const float volume, const float randomp
 		}
 	}
 
-	const SoundConfigTypes SoundMode3D = (m_ppsOriginal->m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault("Player", "Sound3D", (int)SNDCFG_SND3D2CH);
+	const SoundConfigTypes SoundMode3D = (m_ppsOriginal->m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault(regKey[RegName::Player], "Sound3D"s, (int)SNDCFG_SND3D2CH);
 
 	switch (SoundMode3D)
 	{
@@ -856,7 +855,7 @@ HRESULT PinDirectSoundWavCopy::Get3DBuffer()
 	if (FAILED(hr))
 	{
 		char bla[128];
-		sprintf_s(bla, "Error 0x%X. Could not get interface to 3D sound buffer.", hr);
+		sprintf_s(bla, sizeof(bla), "Error 0x%X. Could not get interface to 3D sound buffer.", hr);
 		ShowError(bla);
 	}
 	else

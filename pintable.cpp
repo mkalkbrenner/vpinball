@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "vpversion.h"
 #include "resource.h"
 #include "hash.h"
@@ -9,6 +9,7 @@
 #include <rapidxml_print.hpp>
 #include <fstream>
 #include <sstream>
+#include "Shader.h"
 #include "freeimage.h"
 #include "inc\ThreadPool.h"
 #include "inc\scalefx.h"
@@ -90,17 +91,17 @@ STDMETHODIMP ScriptGlobalTable::NudgeGetCalibration(VARIANT *XMax, VARIANT *YMax
 {
 	int tmp;
 
-	if (SUCCEEDED(::LoadValue("Player", "PBWAccelGainX", tmp)))
+	if (SUCCEEDED(::LoadValue(regKey[RegName::Player], "PBWAccelGainX"s, tmp)))
 		CComVariant(tmp).Detach(XGain);
-	if (SUCCEEDED(::LoadValue("Player", "PBWAccelGainY", tmp)))
+	if (SUCCEEDED(::LoadValue(regKey[RegName::Player], "PBWAccelGainY"s, tmp)))
 		CComVariant(tmp).Detach(YGain);
-	if (SUCCEEDED(::LoadValue("Player", "PBWAccelMaxX", tmp)))
+	if (SUCCEEDED(::LoadValue(regKey[RegName::Player], "PBWAccelMaxX"s, tmp)))
 		CComVariant(tmp).Detach(XMax);
-	if (SUCCEEDED(::LoadValue("Player", "PBWAccelMaxY", tmp)))
+	if (SUCCEEDED(::LoadValue(regKey[RegName::Player], "PBWAccelMaxY"s, tmp)))
 		CComVariant(tmp).Detach(YMax);
-	if (SUCCEEDED(::LoadValue("player", "DeadZone", tmp)))
+	if (SUCCEEDED(::LoadValue(regKey[RegName::Player], "DeadZone"s, tmp)))
 		CComVariant(tmp).Detach(DeadZone);
-	if (SUCCEEDED(::LoadValue("Player", "TiltSensitivity", tmp)))
+	if (SUCCEEDED(::LoadValue(regKey[RegName::Player], "TiltSensitivity"s, tmp)))
 		CComVariant(tmp).Detach(TiltSensitivty);
 
 	return S_OK;
@@ -112,37 +113,37 @@ STDMETHODIMP ScriptGlobalTable::NudgeSetCalibration(int XMax, int YMax, int XGai
 
 	newvalue = XGain;
 	if ((SSIZE_T)newvalue < 0) { newvalue = 0; }
-	SaveValueInt("Player", "PBWAccelGainX", newvalue);
+	SaveValueInt(regKey[RegName::Player], "PBWAccelGainX"s, newvalue);
 
 	newvalue = YGain;
 	if ((SSIZE_T)newvalue < 0) { newvalue = 0; }
-	SaveValueInt("Player", "PBWAccelGainY", newvalue);
+	SaveValueInt(regKey[RegName::Player], "PBWAccelGainY"s, newvalue);
 
 	newvalue = DeadZone;
 	if ((SSIZE_T)newvalue < 0) { newvalue = 0; }
 	if (newvalue > 100) { newvalue = 100; }
-	SaveValueInt("Player", "DeadZone", newvalue);
+	SaveValueInt(regKey[RegName::Player], "DeadZone"s, newvalue);
 
 	newvalue = XMax;
 	if ((SSIZE_T)newvalue < 0) { newvalue = 0; }
 	if (newvalue > 100) { newvalue = 100; }
-	SaveValueInt("Player", "PBWAccelMaxX", newvalue);
+	SaveValueInt(regKey[RegName::Player], "PBWAccelMaxX"s, newvalue);
 
 	newvalue = YMax;
 	if ((SSIZE_T)newvalue < 0) { newvalue = 0; }
 	if (newvalue > 100) { newvalue = 100; }
-	SaveValueInt("Player", "PBWAccelMaxY", newvalue);
+	SaveValueInt(regKey[RegName::Player], "PBWAccelMaxY"s, newvalue);
 
-	SaveValueBool("Player", "TiltSensCB", TiltSensitivity > 0);
+	SaveValueBool(regKey[RegName::Player], "TiltSensCB"s, TiltSensitivity > 0);
 	if (TiltSensitivity > 0)
 	{
 		newvalue = TiltSensitivity;
-		SaveValueInt("Player", "TiltSensValue", newvalue);
-		SaveValueInt("Player", "TiltSensitivity", newvalue);
+		SaveValueInt(regKey[RegName::Player], "TiltSensValue"s, newvalue);
+		SaveValueInt(regKey[RegName::Player], "TiltSensitivity"s, newvalue);
 	}
 	else
-		DeleteValue("Player", "TiltSensitivity");
-	
+		DeleteValue(regKey[RegName::Player], "TiltSensitivity"s);
+
 	m_pt->ReadAccelerometerCalibration();
 
 	return S_OK;
@@ -210,7 +211,7 @@ STDMETHODIMP ScriptGlobalTable::PlayMusic(BSTR str, float volume)
       char szT[512];
       WideCharToMultiByteNull(CP_ACP, 0, str, -1, szT, 512, nullptr, nullptr);
 
-      if (!g_pplayer->m_audio->MusicInit(m_vpinball->m_szMyPath + "Music\\" + szT, string("C:\\Visual Pinball\\Music\\") + szT, MusicVolume))
+      if (!g_pplayer->m_audio->MusicInit(m_vpinball->m_szMyPath + "Music\\" + szT, "C:\\Visual Pinball\\Music\\"s + szT, MusicVolume))
       {
          delete g_pplayer->m_audio;
          g_pplayer->m_audio = nullptr;
@@ -422,25 +423,25 @@ STDMETHODIMP ScriptGlobalTable::GetTextFile(BSTR FileName, BSTR *pContents)
       success = GetTextFileFromDirectory(szFileName, "Tables\\", pContents);
    // if that also fails, try the standard installation path
    if (!success)
-      success = GetTextFileFromDirectory((string("C:\\Visual Pinball\\User\\")+szFileName).c_str(), nullptr, pContents);
+      success = GetTextFileFromDirectory(("C:\\Visual Pinball\\User\\"s + szFileName).c_str(), nullptr, pContents);
    if (!success)
-      success = GetTextFileFromDirectory((string("C:\\Visual Pinball\\Scripts\\")+szFileName).c_str(), nullptr, pContents);
+      success = GetTextFileFromDirectory(("C:\\Visual Pinball\\Scripts\\"s + szFileName).c_str(), nullptr, pContents);
    if (!success)
-      success = GetTextFileFromDirectory((string("C:\\Visual Pinball\\Tables\\")+szFileName).c_str(), nullptr, pContents);
+      success = GetTextFileFromDirectory(("C:\\Visual Pinball\\Tables\\"s + szFileName).c_str(), nullptr, pContents);
 
    return success ? S_OK : E_FAIL;
 }
 
 STDMETHODIMP ScriptGlobalTable::get_UserDirectory(BSTR *pVal)
 {
-   const std::wstring wzPath = m_vpinball->m_wzMyPath + L"User\\";
+   const wstring wzPath = m_vpinball->m_wzMyPath + L"User\\";
    *pVal = SysAllocString(wzPath.c_str());
 
    return S_OK;
 }
 
 #ifdef _WIN64
-STDMETHODIMP ScriptGlobalTable::get_GetPlayerHWnd(size_t *pVal)
+STDMETHODIMP ScriptGlobalTable::get_GetPlayerHWnd(SIZE_T *pVal)
 #else
 STDMETHODIMP ScriptGlobalTable::get_GetPlayerHWnd(long *pVal)
 #endif
@@ -472,7 +473,7 @@ STDMETHODIMP ScriptGlobalTable::SaveValue(BSTR TableName, BSTR ValueName, VARIAN
 {
    HRESULT hr;
 
-   const std::wstring wzPath = m_vpinball->m_wzMyPath + L"User\\VPReg.stg";
+   const wstring wzPath = m_vpinball->m_wzMyPath + L"User\\VPReg.stg";
 
    IStorage *pstgRoot;
    if (FAILED(hr = StgOpenStorage(wzPath.c_str(), nullptr, STGM_TRANSACTED | STGM_READWRITE | STGM_SHARE_EXCLUSIVE, nullptr, 0, &pstgRoot)))
@@ -480,7 +481,7 @@ STDMETHODIMP ScriptGlobalTable::SaveValue(BSTR TableName, BSTR ValueName, VARIAN
       // Registry file does not exist - create it
       if (FAILED(hr = StgCreateDocfile(wzPath.c_str(), STGM_TRANSACTED | STGM_READWRITE | STGM_SHARE_EXCLUSIVE | STGM_CREATE, 0, &pstgRoot)))
       {
-         const std::wstring wzMkPath = m_vpinball->m_wzMyPath + L"User";
+         const wstring wzMkPath = m_vpinball->m_wzMyPath + L"User";
          if (_wmkdir(wzMkPath.c_str()) != 0)
             return hr;
 
@@ -530,7 +531,7 @@ STDMETHODIMP ScriptGlobalTable::LoadValue(BSTR TableName, BSTR ValueName, VARIAN
 {
    HRESULT hr;
 
-   const std::wstring wzPath = m_vpinball->m_wzMyPath + L"User\\VPReg.stg";
+   const wstring wzPath = m_vpinball->m_wzMyPath + L"User\\VPReg.stg";
 
    IStorage *pstgRoot;
    if (FAILED(hr = StgOpenStorage(wzPath.c_str(), nullptr, STGM_TRANSACTED | STGM_READWRITE | STGM_SHARE_EXCLUSIVE, nullptr, 0, &pstgRoot)))
@@ -659,7 +660,7 @@ STDMETHODIMP ScriptGlobalTable::get_ShowFSS(VARIANT_BOOL *pVal)
    if (m_BG_enable_FSS)
       m_BG_current_set = FULL_SINGLE_SCREEN;
    else
-      LoadValue("Player", "BGSet", m_BG_current_set);
+      LoadValue(regKey[RegName::Player], "BGSet"s, m_BG_current_set);
    STOPUNDO
 
    return S_OK;
@@ -843,14 +844,14 @@ STDMETHODIMP ScriptGlobalTable::put_DMDPixels(VARIANT pVal) // assumes VT_UI1 as
       {
          if (g_pplayer->m_texdmd)
          {
-            g_pplayer->m_pin3d.m_pd3dPrimaryDevice->DMDShader->SetTexture("Texture0", (D3DTexture*)nullptr);
+            g_pplayer->m_pin3d.m_pd3dPrimaryDevice->DMDShader->SetTextureNull(SHADER_Texture0);
             g_pplayer->m_pin3d.m_pd3dPrimaryDevice->m_texMan.UnloadTexture(g_pplayer->m_texdmd);
             delete g_pplayer->m_texdmd;
          }
 #ifdef DMD_UPSCALE
-         g_pplayer->m_texdmd = new BaseTexture(g_pplayer->m_dmd.x*3, g_pplayer->m_dmd.y*3, BaseTexture::RGBA, false);
+         g_pplayer->m_texdmd = new BaseTexture(g_pplayer->m_dmd.x*3, g_pplayer->m_dmd.y*3, BaseTexture::RGBA);
 #else
-         g_pplayer->m_texdmd = new BaseTexture(g_pplayer->m_dmd.x, g_pplayer->m_dmd.y, BaseTexture::RGBA, false);
+         g_pplayer->m_texdmd = new BaseTexture(g_pplayer->m_dmd.x, g_pplayer->m_dmd.y, BaseTexture::RGBA);
 #endif
       }
 
@@ -884,19 +885,19 @@ STDMETHODIMP ScriptGlobalTable::put_DMDColoredPixels(VARIANT pVal) //!! assumes 
 #else
             || (g_pplayer->m_texdmd->width()*g_pplayer->m_texdmd->height() != size))
 #endif
-		{
-			if (g_pplayer->m_texdmd)
-			{
-				g_pplayer->m_pin3d.m_pd3dPrimaryDevice->DMDShader->SetTexture("Texture0", (D3DTexture*)nullptr);
-				g_pplayer->m_pin3d.m_pd3dPrimaryDevice->m_texMan.UnloadTexture(g_pplayer->m_texdmd);
-				delete g_pplayer->m_texdmd;
-			}
+      {
+         if (g_pplayer->m_texdmd)
+         {
+            g_pplayer->m_pin3d.m_pd3dPrimaryDevice->DMDShader->SetTextureNull(SHADER_Texture0);
+            g_pplayer->m_pin3d.m_pd3dPrimaryDevice->m_texMan.UnloadTexture(g_pplayer->m_texdmd);
+            delete g_pplayer->m_texdmd;
+         }
 #ifdef DMD_UPSCALE
-			g_pplayer->m_texdmd = new BaseTexture(g_pplayer->m_dmd.x*3, g_pplayer->m_dmd.y*3, BaseTexture::RGBA, false);
+         g_pplayer->m_texdmd = new BaseTexture(g_pplayer->m_dmd.x*3, g_pplayer->m_dmd.y*3, BaseTexture::RGBA);
 #else
-			g_pplayer->m_texdmd = new BaseTexture(g_pplayer->m_dmd.x, g_pplayer->m_dmd.y, BaseTexture::RGBA, false);
+         g_pplayer->m_texdmd = new BaseTexture(g_pplayer->m_dmd.x, g_pplayer->m_dmd.y, BaseTexture::RGBA);
 #endif
-		}
+      }
 
 		DWORD* const data = (DWORD*)g_pplayer->m_texdmd->data(); //!! assumes tex data to be always 32bit
 
@@ -1113,6 +1114,12 @@ STDMETHODIMP ScriptGlobalTable::GetSerialDevices(VARIANT *pVal)
    return S_OK;
 }
 
+STDMETHODIMP ScriptGlobalTable::get_RenderingMode(int *pVal)
+{
+   *pVal = (g_pplayer->m_stereo3D == STEREO_VR) ? 2 : (((g_pplayer->m_stereo3D != 0) && g_pplayer->m_stereo3Denabled) ? 1 : 0); // 0 = Normal 2D, 1 = Stereo 3D, 2 = VR
+   return S_OK;
+}
+
 #pragma endregion
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1122,7 +1129,7 @@ STDMETHODIMP ScriptGlobalTable::GetSerialDevices(VARIANT *pVal)
 PinTable::PinTable()
 {
    m_savingActive = false;
-   m_renderSolid = LoadValueBoolWithDefault("Editor", "RenderSolid", true);
+   m_renderSolid = LoadValueBoolWithDefault(regKey[RegName::Editor], "RenderSolid"s, true);
    ClearMultiSel();
 
    m_hbmOffScreen = nullptr;
@@ -1148,7 +1155,7 @@ PinTable::PinTable()
 
    m_plungerNormalize = 100;  //Mech-Plunger component adjustment or weak spring, aging
    m_plungerFilter = false;
-   m_PhysicsMaxLoops = LoadValueIntWithDefault("Player", "PhysicsMaxLoops", 0xFFFFFFFFu);
+   m_PhysicsMaxLoops = LoadValueIntWithDefault(regKey[RegName::Player], "PhysicsMaxLoops"s, 0xFFFFFFFFu);
 
    m_right = 0.0f;
    m_bottom = 0.0f;
@@ -1156,7 +1163,7 @@ PinTable::PinTable()
    m_glassheight = 210;
    m_tableheight = 0;
 
-   m_BG_current_set = LoadValueIntWithDefault("Player", "BGSet", BG_DESKTOP);
+   m_BG_current_set = LoadValueIntWithDefault(regKey[RegName::Player], "BGSet"s, BG_DESKTOP);
    m_currentBackglassMode = m_BG_current_set;
 
    m_BG_enable_FSS = false;
@@ -1209,31 +1216,31 @@ PinTable::PinTable()
 
    m_numMaterials = 0;
 
-   nudge_set_sensitivity((float)LoadValueIntWithDefault("Player", "NudgeSensitivity", 500) * (float)(1.0/1000.0));
+   nudge_set_sensitivity((float)LoadValueIntWithDefault(regKey[RegName::Player], "NudgeSensitivity"s, 500) * (float)(1.0 / 1000.0));
 
-   m_globalDifficulty = dequantizeUnsignedPercent(LoadValueIntWithDefault("Player", "GlobalDifficulty", 20)); // easy by default
+   m_globalDifficulty = dequantizeUnsignedPercent(LoadValueIntWithDefault(regKey[RegName::Player], "GlobalDifficulty"s, 20)); // easy by default
 
    ReadAccelerometerCalibration();
 
-   m_tblAutoStart = LoadValueIntWithDefault("Player", "Autostart", 0) * 10;
-   m_tblAutoStartRetry = LoadValueIntWithDefault("Player", "AutostartRetry", 0) * 10;
-   m_tblAutoStartEnabled = LoadValueBoolWithDefault("Player", "asenable", false);
-   m_tblVolmod = (float)LoadValueIntWithDefault("Player", "Volmod", 1000) * (float)(1.0/1000.0);
-   m_tblExitConfirm = LoadValueIntWithDefault("Player", "Exitconfirm", 120) * 1000 / 60;
+   m_tblAutoStart = LoadValueIntWithDefault(regKey[RegName::Player], "Autostart"s, 0) * 10;
+   m_tblAutoStartRetry = LoadValueIntWithDefault(regKey[RegName::Player], "AutostartRetry"s, 0) * 10;
+   m_tblAutoStartEnabled = LoadValueBoolWithDefault(regKey[RegName::Player], "asenable"s, false);
+   m_tblVolmod = (float)LoadValueIntWithDefault(regKey[RegName::Player], "Volmod"s, 1000) * (float)(1.0 / 1000.0);
+   m_tblExitConfirm = LoadValueIntWithDefault(regKey[RegName::Player], "Exitconfirm"s, 120) * 1000 / 60;
 
-   SaveValue("Version", "VPinball", VP_VERSION_STRING_DIGITS);
+   SaveValue(regKey[RegName::Version], "VPinball"s, VP_VERSION_STRING_DIGITS);
 
-   m_globalDetailLevel = LoadValueIntWithDefault("Player", "AlphaRampAccuracy", 10);
+   m_globalDetailLevel = LoadValueIntWithDefault(regKey[RegName::Player], "AlphaRampAccuracy"s, 10);
    m_userDetailLevel = 10;
    m_overwriteGlobalDetailLevel = false;
 
    m_overwriteGlobalDayNight = true;
 
-   m_global3DZPD = LoadValueFloatWithDefault("Player", "Stereo3DZPD", 0.5f);
+   m_global3DZPD = LoadValueFloatWithDefault(regKey[RegName::Player], "Stereo3DZPD"s, 0.5f);
    m_3DZPD = 0.5f;
-   m_global3DMaxSeparation = LoadValueFloatWithDefault("Player", "Stereo3DMaxSeparation", 0.03f);
+   m_global3DMaxSeparation = LoadValueFloatWithDefault(regKey[RegName::Player], "Stereo3DMaxSeparation"s, 0.03f);
    m_3DmaxSeparation = 0.03f;
-   m_global3DOffset = LoadValueFloatWithDefault("Player", "Stereo3DOffset", 0.f);
+   m_global3DOffset = LoadValueFloatWithDefault(regKey[RegName::Player], "Stereo3DOffset"s, 0.f);
    m_3DOffset = 0.0f;
    m_overwriteGlobalStereo3D = false;
 
@@ -1245,33 +1252,33 @@ PinTable::PinTable()
    m_tblNudgePlumb = Vertex2D(0.f,0.f);
 
 #ifdef UNUSED_TILT
-   m_jolt_amount = LoadValueIntWithDefault("Player", "JoltAmount", 500);
-   m_tilt_amount = LoadValueIntWithDefault("Player", "TiltAmount", 950);
-   m_jolt_trigger_time = LoadValueIntWithDefault("Player", "JoltTriggerTime", 1000);
-   m_tilt_trigger_time = LoadValueIntWithDefault("Player", "TiltTriggerTime", 10000);
+   m_jolt_amount = LoadValueIntWithDefault(regKey[RegName::Player], "JoltAmount"s, 500);
+   m_tilt_amount = LoadValueIntWithDefault(regKey[RegName::Player], "TiltAmount"s, 950);
+   m_jolt_trigger_time = LoadValueIntWithDefault(regKey[RegName::Player], "JoltTriggerTime"s, 1000);
+   m_tilt_trigger_time = LoadValueIntWithDefault(regKey[RegName::Player], "TiltTriggerTime"s, 10000);
 #endif
 }
 
 void PinTable::ReadAccelerometerCalibration()
 {
-	m_tblAccelerometer = LoadValueBoolWithDefault("Player", "PBWEnabled", true); // true if electronic accelerometer enabled
-	m_tblAccelNormalMount = LoadValueBoolWithDefault("Player", "PBWNormalMount", true); // true is normal mounting (left hand coordinates)
+   m_tblAccelerometer = LoadValueBoolWithDefault(regKey[RegName::Player], "PBWEnabled"s, true); // true if electronic accelerometer enabled
+   m_tblAccelNormalMount = LoadValueBoolWithDefault(regKey[RegName::Player], "PBWNormalMount"s, true); // true is normal mounting (left hand coordinates)
 
-	m_tblAccelAngle = 0.0f;			// 0 degrees rotated counterclockwise (GUI is lefthand coordinates)
-	const bool accel = LoadValueBoolWithDefault("Player", "PBWRotationCB", false);
-	if (accel)
-		m_tblAccelAngle = (float)LoadValueIntWithDefault("Player", "PBWRotationValue", 0);
+   m_tblAccelAngle = 0.0f;			// 0 degrees rotated counterclockwise (GUI is lefthand coordinates)
+   const bool accel = LoadValueBoolWithDefault(regKey[RegName::Player], "PBWRotationCB"s, false);
+   if (accel)
+      m_tblAccelAngle = (float)LoadValueIntWithDefault(regKey[RegName::Player], "PBWRotationValue"s, 0);
 
-	m_tblAccelAmp.x = dequantizeUnsignedPercentNoClamp(LoadValueIntWithDefault("Player", "PBWAccelGainX", 150));
-	m_tblAccelAmp.y = dequantizeUnsignedPercentNoClamp(LoadValueIntWithDefault("Player", "PBWAccelGainY", 150));
-	m_tblAccelMax.x = LoadValueIntWithDefault("Player", "PBWAccelMaxX", 100) * JOYRANGEMX / 100;
-	m_tblAccelMax.y = LoadValueIntWithDefault("Player", "PBWAccelMaxY", 100) * JOYRANGEMX / 100;
+   m_tblAccelAmp.x = dequantizeUnsignedPercentNoClamp(LoadValueIntWithDefault(regKey[RegName::Player], "PBWAccelGainX"s, 150));
+   m_tblAccelAmp.y = dequantizeUnsignedPercentNoClamp(LoadValueIntWithDefault(regKey[RegName::Player], "PBWAccelGainY"s, 150));
+   m_tblAccelMax.x = LoadValueIntWithDefault(regKey[RegName::Player], "PBWAccelMaxX"s, 100) * JOYRANGEMX / 100;
+   m_tblAccelMax.y = LoadValueIntWithDefault(regKey[RegName::Player], "PBWAccelMaxY"s, 100) * JOYRANGEMX / 100;
 
-	// bug!! If tilt sensitivity is not set, it's supposed to disable analog tilting, see KeysConfigDialog.cpp
-	plumb_set_sensitivity((float)LoadValueIntWithDefault("Player", "TiltSensitivity", 400) * (float)(1.0/1000.0));
+   //!! bug!! If tilt sensitivity is not set, it's supposed to disable analog tilting, see KeysConfigDialog.cpp
+   plumb_set_sensitivity((float)LoadValueIntWithDefault(regKey[RegName::Player], "TiltSensitivity"s, 400) * (float)(1.0 / 1000.0));
 
-	if (g_pplayer)
-		g_pplayer->m_pininput.LoadSettings();
+   if (g_pplayer)
+      g_pplayer->m_pininput.LoadSettings();
 }
 
 PinTable::~PinTable()
@@ -1320,7 +1327,7 @@ void PinTable::FVerifySaveToClose()
       for (size_t i = 0; i < m_vAsyncHandles.size(); i++)
          CloseHandle(m_vAsyncHandles[i]);
 
-      m_vpinball->SetActionCur("");
+      m_vpinball->SetActionCur(string());
    }
 }
 
@@ -1334,6 +1341,12 @@ void PinTable::DeleteFromLayer(IEditable *obj)
          break;
       }
    }
+}
+
+void PinTable::UpdatePropertyImageList()
+{ 
+    // just update the combo boxes in the property dialog
+    g_pvp->GetPropertiesDocker()->GetContainProperties()->GetPropertyDialog()->UpdateTabs(m_vmultisel);
 }
 
 void PinTable::InitBuiltinTable(const size_t tableId)
@@ -1423,13 +1436,13 @@ POINT PinTable::GetScreenPoint() const
 }
 
 #define CLEAN_MATERIAL(pEditMaterial) \
-{robin_hood::unordered_map<std::string, Material*, StringHashFunctor, StringComparator>::const_iterator \
+{robin_hood::unordered_map<string, Material*, StringHashFunctor, StringComparator>::const_iterator \
    it = m_materialMap.find(pEditMaterial); \
 if (it == m_materialMap.end()) \
    pEditMaterial.clear();}
 
 #define CLEAN_IMAGE(pEditImage) \
-{robin_hood::unordered_map<std::string, Texture*, StringHashFunctor, StringComparator>::const_iterator \
+{robin_hood::unordered_map<string, Texture*, StringHashFunctor, StringComparator>::const_iterator \
    it = m_textureMap.find(pEditImage); \
 if (it == m_textureMap.end()) \
    pEditImage.clear();}
@@ -1459,7 +1472,7 @@ if(!found) \
 
 void PinTable::InitTablePostLoad()
 {
-   ProfileLog("InitTablePostLoad");
+   ProfileLog("InitTablePostLoad"s);
 
    g_pvp->m_ptableActive = (CComObject<PinTable> *)this;
 
@@ -1832,7 +1845,7 @@ void PinTable::Render3DProjection(Sur * const psur)
    const float inclination = ANGTORAD(m_BG_inclination[m_BG_current_set]);
    const float FOV = (m_BG_FOV[m_BG_current_set] < 1.0f) ? 1.0f : m_BG_FOV[m_BG_current_set]; // Can't have a real zero FOV, but this will look almost the same
 
-   std::vector<Vertex3Ds> vvertex3D;
+   vector<Vertex3Ds> vvertex3D;
    for(auto &ptr : m_vedit)
       ptr->GetBoundingVertices(vvertex3D);
 
@@ -1844,16 +1857,15 @@ void PinTable::Render3DProjection(Sur * const psur)
    pinproj.m_rcviewport.bottom = EDITOR_BG_HEIGHT;
 
    //const float aspect = 4.0f/3.0f;
-   const bool fullscreen = LoadValueBoolWithDefault("Player", "FullScreen", IsWindows10_1803orAbove());
-   const int renderWidth = LoadValueIntWithDefault("Player", "Width", fullscreen ? DEFAULT_PLAYER_FS_WIDTH : DEFAULT_PLAYER_WIDTH);
-   const int renderHeight = LoadValueIntWithDefault("Player", "Height", renderWidth * 9 / 16);
+   const bool fullscreen = LoadValueBoolWithDefault(regKey[RegName::Player], "FullScreen"s, IsWindows10_1803orAbove());
+   const int renderWidth = LoadValueIntWithDefault(regKey[RegName::Player], "Width"s, fullscreen ? DEFAULT_PLAYER_FS_WIDTH : DEFAULT_PLAYER_WIDTH);
+   const int renderHeight = LoadValueIntWithDefault(regKey[RegName::Player], "Height"s, renderWidth * 9 / 16);
    const float aspect = (float)((double)renderWidth / (double)renderHeight); //(float)(4.0/3.0);
 
    pinproj.FitCameraToVertices(vvertex3D, aspect, rotation, inclination, FOV, m_BG_xlatez[m_BG_current_set], m_BG_layback[m_BG_current_set]);
    pinproj.m_matView.RotateXMatrix((float)M_PI);  // convert Z=out to Z=in (D3D coordinate system)
    pinproj.m_matWorld.SetIdentity();
-   D3DXMATRIX proj;
-   D3DXMatrixPerspectiveFovLH(&proj, ANGTORAD(FOV), aspect, pinproj.m_rznear, pinproj.m_rzfar);
+   Matrix3D proj = Matrix3D::MatrixPerspectiveFovLH(ANGTORAD(FOV), aspect, pinproj.m_rznear, pinproj.m_rzfar);
    memcpy(pinproj.m_matProj.m, proj.m, sizeof(float) * 4 * 4);
 
    //pinproj.SetFieldOfView(FOV, aspect, pinproj.m_rznear, pinproj.m_rzfar);
@@ -1977,6 +1989,17 @@ void PinTable::SetDirtyDraw()
    InvalidateRect(false);
 }
 
+void PinTable::HandleLoadFailure()
+{
+   RestoreBackup();
+   g_keepUndoRecords = true;
+   m_pcv->EndSession();
+
+   m_progressDialog.Destroy();
+
+   g_pvp->m_table_played_via_SelectTableOnStart = false;
+}
+
 // also creates Player instance
 void PinTable::Play(const bool cameraMode)
 {
@@ -1988,8 +2011,7 @@ void PinTable::Play(const bool cameraMode)
    EndAutoSaveCounter();
 
    // get the load path from the table filename
-   string szLoadDir;
-   PathFromFilename(m_szFileName, szLoadDir);
+   const string szLoadDir = PathFromFilename(m_szFileName);
    // make sure the load directory is the active directory
    SetCurrentDirectory(szLoadDir.c_str());
 
@@ -2034,32 +2056,15 @@ void PinTable::Play(const bool cameraMode)
       float fOverrideContactScatterAngle;
       if (m_overridePhysics)
       {
-          char tmp[256];
-
-          sprintf_s(tmp, 256, "TablePhysicsGravityConstant%d", m_overridePhysics - 1);
-          m_fOverrideGravityConstant = LoadValueFloatWithDefault("Player", tmp, DEFAULT_TABLE_GRAVITY);
-          m_fOverrideGravityConstant *= GRAVITYCONST;
-
-          sprintf_s(tmp, 256, "TablePhysicsContactFriction%d", m_overridePhysics - 1);
-          m_fOverrideContactFriction = LoadValueFloatWithDefault("Player", tmp, DEFAULT_TABLE_CONTACTFRICTION);
-
-          sprintf_s(tmp, 256, "TablePhysicsElasticity%d", m_overridePhysics - 1);
-          m_fOverrideElasticity = LoadValueFloatWithDefault("Player", tmp, DEFAULT_TABLE_ELASTICITY);
-
-          sprintf_s(tmp, 256, "TablePhysicsElasticityFalloff%d", m_overridePhysics - 1);
-          m_fOverrideElasticityFalloff = LoadValueFloatWithDefault("Player", tmp, DEFAULT_TABLE_ELASTICITY_FALLOFF);
-
-          sprintf_s(tmp, 256, "TablePhysicsScatterAngle%d", m_overridePhysics - 1);
-          m_fOverrideScatterAngle = LoadValueFloatWithDefault("Player", tmp, DEFAULT_TABLE_PFSCATTERANGLE);
-
-          sprintf_s(tmp, 256, "TablePhysicsContactScatterAngle%d", m_overridePhysics - 1);
-          fOverrideContactScatterAngle = LoadValueFloatWithDefault("Player", tmp, DEFAULT_TABLE_SCATTERANGLE);
-
-          sprintf_s(tmp, 256, "TablePhysicsMinSlope%d", m_overridePhysics - 1);
-          m_fOverrideMinSlope = LoadValueFloatWithDefault("Player", tmp, DEFAULT_TABLE_MIN_SLOPE);
-
-          sprintf_s(tmp, 256, "TablePhysicsMaxSlope%d", m_overridePhysics - 1);
-          m_fOverrideMaxSlope = LoadValueFloatWithDefault("Player", tmp, DEFAULT_TABLE_MAX_SLOPE);
+         m_fOverrideGravityConstant = LoadValueFloatWithDefault(regKey[RegName::Player], "TablePhysicsGravityConstant" + std::to_string(m_overridePhysics - 1), DEFAULT_TABLE_GRAVITY);
+         m_fOverrideGravityConstant *= GRAVITYCONST;
+         m_fOverrideContactFriction = LoadValueFloatWithDefault(regKey[RegName::Player], "TablePhysicsContactFriction"+std::to_string(m_overridePhysics - 1), DEFAULT_TABLE_CONTACTFRICTION);
+         m_fOverrideElasticity = LoadValueFloatWithDefault(regKey[RegName::Player], "TablePhysicsElasticity" + std::to_string(m_overridePhysics - 1), DEFAULT_TABLE_ELASTICITY);
+         m_fOverrideElasticityFalloff = LoadValueFloatWithDefault(regKey[RegName::Player], "TablePhysicsElasticityFalloff"+std::to_string(m_overridePhysics - 1), DEFAULT_TABLE_ELASTICITY_FALLOFF);
+         m_fOverrideScatterAngle = LoadValueFloatWithDefault(regKey[RegName::Player], "TablePhysicsScatterAngle" + std::to_string(m_overridePhysics - 1), DEFAULT_TABLE_PFSCATTERANGLE);
+         fOverrideContactScatterAngle = LoadValueFloatWithDefault(regKey[RegName::Player], "TablePhysicsContactScatterAngle"+std::to_string(m_overridePhysics - 1), DEFAULT_TABLE_SCATTERANGLE);
+         m_fOverrideMinSlope = LoadValueFloatWithDefault(regKey[RegName::Player], "TablePhysicsMinSlope" + std::to_string(m_overridePhysics - 1), DEFAULT_TABLE_MIN_SLOPE);
+         m_fOverrideMaxSlope = LoadValueFloatWithDefault(regKey[RegName::Player], "TablePhysicsMaxSlope" + std::to_string(m_overridePhysics - 1), DEFAULT_TABLE_MAX_SLOPE);
       }
 
       c_hardScatter = ANGTORAD(m_overridePhysics ? fOverrideContactScatterAngle : m_defaultScatter);
@@ -2067,8 +2072,7 @@ void PinTable::Play(const bool cameraMode)
       // create Player and init that one
 
       g_pplayer = new Player(cameraMode, this);
-      g_pplayer->Create();
-
+      g_pplayer->CreateWnd();
       const float minSlope = (m_overridePhysics ? m_fOverrideMinSlope : m_angletiltMin);
       const float maxSlope = (m_overridePhysics ? m_fOverrideMaxSlope : m_angletiltMax);
       const float slope = minSlope + (maxSlope - minSlope) * m_globalDifficulty;
@@ -2079,13 +2083,7 @@ void PinTable::Play(const bool cameraMode)
       m_vpinball->ToggleToolbar();
    }
    else
-   {
-      RestoreBackup();
-      g_keepUndoRecords = true;
-      m_pcv->EndSession();
-
-      g_pvp->m_table_played_via_SelectTableOnStart = false;
-   }
+      HandleLoadFailure();
 }
 
 // called before Player instance gets deleted
@@ -2189,7 +2187,7 @@ void PinTable::AutoSave()
    }
    else
    {
-      m_vpinball->SetActionCur("");
+      m_vpinball->SetActionCur(string());
    }
 
    m_vpinball->SetCursorCur(nullptr, IDC_ARROW);
@@ -2203,8 +2201,7 @@ HRESULT PinTable::Save(const bool saveAs)
    if (saveAs)
    {
       //need to get a file name
-      OPENFILENAME ofn;
-      ZeroMemory(&ofn, sizeof(OPENFILENAME));
+      OPENFILENAME ofn = {};
       ofn.lStructSize = sizeof(OPENFILENAME);
       ofn.hInstance = m_vpinball->theInstance;
       ofn.hwndOwner = m_vpinball->GetHwnd();
@@ -2225,12 +2222,12 @@ HRESULT PinTable::Save(const bool saveAs)
       string szInitialDir;
       // First, use dir of current table
       const size_t index = m_szFileName.find_last_of('\\');
-      if (index != std::string::npos)
+      if (index != string::npos)
          szInitialDir = m_szFileName.substr(0, index);
       // Or try with the standard last-used dir
       else
       {
-         const HRESULT hr = LoadValue("RecentDir", "LoadDir", szInitialDir);
+         const HRESULT hr = LoadValue(regKey[RegName::RecentDir], "LoadDir"s, szInitialDir);
          if (hr != S_OK)
             szInitialDir = m_vpinball->m_szMyPath + "Tables\\";
       }
@@ -2247,7 +2244,7 @@ HRESULT PinTable::Save(const bool saveAs)
       char szInitialDir[MAXSTRING];
       strncpy_s(szInitialDir, m_szFileName.c_str(), sizeof(szInitialDir)-1);
       szInitialDir[ofn.nFileOffset] = '\0'; // truncate after folder
-      HRESULT hr = SaveValue("RecentDir", "LoadDir", szInitialDir);
+      HRESULT hr = SaveValue(regKey[RegName::RecentDir], "LoadDir"s, szInitialDir);
 
       {
          MAKE_WIDEPTR_FROMANSI(wszCodeFile, m_szFileName.c_str());
@@ -2266,7 +2263,7 @@ HRESULT PinTable::Save(const bool saveAs)
          }
       }
 
-      TitleFromFilename(m_szFileName, m_szTitle);
+      m_szTitle = TitleFromFilename(m_szFileName);
       SetCaption(m_szTitle);
    }
    else
@@ -2306,7 +2303,7 @@ HRESULT PinTable::Save(const bool saveAs)
       pstgRoot->Commit(STGC_DEFAULT);
       pstgRoot->Release();
 
-      m_vpinball->SetActionCur("");
+      m_vpinball->SetActionCur(string());
       m_vpinball->SetCursorCur(nullptr, IDC_ARROW);
 
       m_undo.SetCleanPoint(eSaveClean);
@@ -3023,7 +3020,7 @@ HRESULT PinTable::LoadInfo(IStorage* pstg, HCRYPTHASH hcrypthash, int version)
    SAFE_VECTOR_DELETE(buffer);
 
    // Write the version to the registry.  This will be read later by the front end.
-   SaveValue("Version", m_szTableName, m_szVersion);
+   SaveValue(regKey[RegName::Version], m_szTableName, m_szVersion);
 
    HRESULT hr;
    IStream *pstm;
@@ -3060,8 +3057,8 @@ HRESULT PinTable::LoadCustomInfo(IStorage* pstg, IStream *pstmTags, HCRYPTHASH h
       WCHAR * const wzName = new WCHAR[len + 1];
       MultiByteToWideCharNull(CP_ACP, 0, m_vCustomInfoTag[i].c_str(), -1, wzName, len + 1);
 
-	  char *szValue;
-	  ReadInfoValue(pstg, wzName, &szValue, hcrypthash);
+      char *szValue = nullptr;
+      ReadInfoValue(pstg, wzName, &szValue, hcrypthash);
       m_vCustomInfoContent.push_back(szValue);
 
       delete[] szValue;
@@ -3286,7 +3283,7 @@ HRESULT PinTable::LoadGameFromFilename(const string& szFileName)
    if (FAILED(hr = StgOpenStorage(wszCodeFile, nullptr, STGM_TRANSACTED | STGM_READ, nullptr, 0, &pstgRoot)))
    {
       char msg[MAXSTRING+32];
-      sprintf_s(msg, "Error 0x%X loading \"%s\"", hr, m_szFileName.c_str());
+      sprintf_s(msg, sizeof(msg), "Error 0x%X loading \"%s\"", hr, m_szFileName.c_str());
       m_vpinball->MessageBox(msg, "Load Error", 0);
       return hr;
    }
@@ -3296,7 +3293,7 @@ HRESULT PinTable::LoadGameFromFilename(const string& szFileName)
 
 HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
 {
-   ProfileLog("LoadGameFromStorage");
+   ProfileLog("LoadGameFromStorage"s);
 
    RECT rc;
    ::SendMessage(m_vpinball->m_hwndStatusBar, SB_GETRECT, 2, (size_t)&rc);
@@ -3368,7 +3365,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
             if (loadfileversion > CURRENT_FILE_FORMAT_VERSION)
             {
                char errorMsg[MAX_PATH] = { 0 };
-               sprintf_s(errorMsg, "This table was saved with version %i.%02i and is newer than the supported version %i.%02i! You might get problems loading/playing it!", loadfileversion / 100, loadfileversion % 100, CURRENT_FILE_FORMAT_VERSION / 100, CURRENT_FILE_FORMAT_VERSION % 100);
+               sprintf_s(errorMsg, sizeof(errorMsg), "This table was saved with file version %i.%02i and is newer than the supported file version %i.%02i!\nYou might get problems loading/playing it, so please update to the latest VPX at https://github.com/vpinball/vpinball/releases!", loadfileversion / 100, loadfileversion % 100, CURRENT_FILE_FORMAT_VERSION / 100, CURRENT_FILE_FORMAT_VERSION % 100);
                ShowError(errorMsg);
                /*
                               pstgRoot->Release();
@@ -3406,7 +3403,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
 
          if (SUCCEEDED(hr = LoadData(pstmGame, csubobj, csounds, ctextures, cfonts, ccollection, loadfileversion, hch, (loadfileversion < NO_ENCRYPTION_FORMAT_VERSION) ? hkey : NULL)))
          {
-            ProfileLog("LoadData");
+            ProfileLog("LoadData"s);
 
             const int ctotalitems = csubobj + csounds + ctextures + cfonts;
             int cloadeditems = 0;
@@ -3441,7 +3438,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
             }
 
-            ProfileLog("GameItem");
+            ProfileLog("GameItem"s);
 
             for (int i = 0; i < csounds; i++)
             {
@@ -3459,7 +3456,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
             }
 
-            ProfileLog("Sound");
+            ProfileLog("Sound"s);
 
             assert(m_vimage.empty());
             m_vimage.resize(ctextures); // due to multithreaded loading do pre-allocation
@@ -3476,7 +3473,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                      HRESULT hr;
                      if (SUCCEEDED(hr = pstgData->OpenStream(wszStmName, nullptr, STGM_DIRECT | STGM_READ | STGM_SHARE_EXCLUSIVE, 0, &pstmItem)))
                      {
-                        hr = LoadImageFromStream(pstmItem, i, loadfileversion);
+                        hr = LoadImageFromStream(pstmItem, i, loadfileversion, false);
                         if (FAILED(hr))
                            return;
                         pstmItem->Release();
@@ -3486,7 +3483,26 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                   cloadeditems++;
                }
             }
-            // due to multithreaded loading and pre-allocation, check if some images could not be loaded and erase them
+            // due to multithreaded loading and pre-allocation, check if some images could not be loaded, and perform a retry since more memory is available now
+            for (size_t i = 0; i < m_vimage.size(); ++i)
+                if (!m_vimage[i] || m_vimage[i]->m_pdsBuffer == nullptr)
+                {
+                    const string szStmName = "Image" + std::to_string(i);
+                    MAKE_WIDEPTR_FROMANSI(wszStmName, szStmName.c_str());
+
+                    IStream* pstmItem;
+                    HRESULT hr;
+                    if (SUCCEEDED(hr = pstgData->OpenStream(wszStmName, nullptr, STGM_DIRECT | STGM_READ | STGM_SHARE_EXCLUSIVE, 0, &pstmItem)))
+                    {
+                        hr = LoadImageFromStream(pstmItem, i, loadfileversion, true);
+                        if (SUCCEEDED(hr))
+                        {
+                            pstmItem->Release();
+                            pstmItem = nullptr;
+                        }
+                    }
+                }
+            // check if some images could not be loaded and erase them
             for (size_t i = 0; i < m_vimage.size(); ++i)
                 if (!m_vimage[i] || m_vimage[i]->m_pdsBuffer == nullptr)
                 {
@@ -3503,7 +3519,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                         --i2;
                     }
 
-            ProfileLog("Image");
+            ProfileLog("Image"s);
 
             ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
 
@@ -3526,7 +3542,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
             }
 
-            ProfileLog("Font");
+            ProfileLog("Font"s);
 
             for (int i = 0; i < ccollection; i++)
             {
@@ -3549,7 +3565,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
             }
 
-            ProfileLog("Collection");
+            ProfileLog("Collection"s);
 
             for (size_t i = 0; i < m_vedit.size(); i++)
             {
@@ -3557,7 +3573,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                piedit->InitPostLoad();
             }
 
-            ProfileLog("IEditable PostLoad");
+            ProfileLog("IEditable PostLoad"s);
          }
          pstmGame->Release();
 
@@ -3609,6 +3625,14 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
             for (size_t i = 0; i < m_materials.size(); ++i)
                m_materials[i]->m_fThickness = 0.05f;
 
+         if (loadfileversion < 1072) // playfield meshes were always forced as collidable until 10.7.1
+            for (size_t i = 0; i < m_vedit.size(); ++i)
+               if (m_vedit[i]->GetItemType() == ItemTypeEnum::eItemPrimitive && strcmp(m_vedit[i]->GetName(), "playfield_mesh") == 0)
+               {
+                  ((Primitive*)m_vedit[i])->put_IsToy(FTOVB(false));
+                  ((Primitive*)m_vedit[i])->put_Collidable(FTOVB(true));
+               }
+
          //////// End Authentication block
       }
       pstgData->Release();
@@ -3625,7 +3649,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
 
    pstgRoot->Release();
 
-   m_vpinball->SetActionCur("");
+   m_vpinball->SetActionCur(string());
 
    m_vpinball->GetLayersListDialog()->ClearList();
    // copy all elements into their layers
@@ -3640,16 +3664,9 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
          if (psel->m_oldLayerIndex == i)
          {
              m_layer[i].push_back(piedit);
-             if (psel->m_layerName == "")
-             {
-                 const string name = "Layer_" + std::to_string(i+1);
-                 psel->m_layerName = name;
-                 m_vpinball->GetLayersListDialog()->AddLayer(name, piedit);
-             }
-             else
-             {
-                 m_vpinball->GetLayersListDialog()->AddLayer(psel->m_layerName, piedit);
-             }
+             if (psel->m_layerName.empty())
+                 psel->m_layerName = "Layer_" + std::to_string(i+1);
+             m_vpinball->GetLayersListDialog()->AddLayer(psel->m_layerName, piedit);
          }
       }
    }
@@ -3792,21 +3809,21 @@ bool PinTable::LoadToken(const int id, BiffReader * const pbr)
    {
       int tmp;
       pbr->GetInt(tmp);
-      m_plungerNormalize = LoadValueIntWithDefault("Player", "PlungerNormalize", tmp);
+      m_plungerNormalize = LoadValueIntWithDefault(regKey[RegName::Player], "PlungerNormalize"s, tmp);
       break;
    }
    case FID(MPDF):
    {
       bool tmp;
       pbr->GetBool(tmp);
-      m_plungerFilter = LoadValueBoolWithDefault("Player", "PlungerFilter", tmp);
+      m_plungerFilter = LoadValueBoolWithDefault(regKey[RegName::Player], "PlungerFilter"s, tmp);
       break;
    }
    case FID(PHML):
    {
       pbr->GetInt(m_PhysicsMaxLoops);
       if (m_PhysicsMaxLoops == 0xFFFFFFFF)
-         /*const HRESULT hr =*/ LoadValue("Player", "PhysicsMaxLoops", m_PhysicsMaxLoops);
+         /*const HRESULT hr =*/LoadValue(regKey[RegName::Player], "PhysicsMaxLoops"s, m_PhysicsMaxLoops);
       break;
    }
    case FID(DECL): pbr->GetBool(m_renderDecals); break;
@@ -3840,7 +3857,7 @@ bool PinTable::LoadToken(const int id, BiffReader * const pbr)
    case FID(IMCG): pbr->GetString(m_imageColorGrade); break;
    case FID(EIMG): pbr->GetString(m_envImage); break;
    case FID(PLMA): pbr->GetString(m_playfieldMaterial); break;
-   case FID(NOTX): {std::string txt;  pbr->GetString(txt); m_notesText = CString(txt.c_str()); break; }
+   case FID(NOTX): {string txt;  pbr->GetString(txt); m_notesText = CString(txt.c_str()); break; }
    case FID(LZAM): pbr->GetInt(m_lightAmbient); break;
    case FID(LZDI): pbr->GetInt(m_Light[0].emission); break;
    case FID(LZHI): pbr->GetFloat(m_lightHeight); break;
@@ -3889,7 +3906,7 @@ bool PinTable::LoadToken(const int id, BiffReader * const pbr)
    {
       pbr->GetFloat(m_globalDifficulty);
       int tmp;
-      const HRESULT hr = LoadValue("Player", "GlobalDifficulty", tmp);
+      const HRESULT hr = LoadValue(regKey[RegName::Player], "GlobalDifficulty"s, tmp);
       if (hr == S_OK) m_globalDifficulty = dequantizeUnsignedPercent(tmp);
       break;
    }
@@ -3986,15 +4003,13 @@ bool PinTable::ExportSound(PinSound * const pps, const char * const szfilename)
 
    // standard/old .wav export pipeline:
 
-   MMIOINFO mmio;
-   ZeroMemory(&mmio, sizeof(mmio));
+   MMIOINFO mmio = {};
 
    const HMMIO hmmio = mmioOpen((LPSTR)szfilename, &mmio, MMIO_ALLOCBUF | MMIO_CREATE | MMIO_EXCLUSIVE | MMIO_READWRITE);
 
    if (hmmio != nullptr)
    {
-      MMCKINFO pck;
-      ZeroMemory(&pck, sizeof(pck));
+      MMCKINFO pck = {};
 
       pck.ckid = mmioStringToFOURCC("RIFF", MMIO_TOUPPER);
       pck.cksize = pps->m_cdata + 36;
@@ -4110,15 +4125,17 @@ int PinTable::AddListSound(HWND hwndListView, PinSound * const pps)
 	   ListView_SetItemText(hwndListView, index, 2, "Backglass");
 	   break;
    default:
+	   assert(false);
+   case SNDOUT_TABLE:
 	   ListView_SetItemText(hwndListView, index, 2, "Table");
 	   break;
    }
    char textBuf[40];
-   sprintf_s(textBuf, "%.03f", dequantizeSignedPercent(pps->m_balance));
+   sprintf_s(textBuf, sizeof(textBuf), "%.03f", dequantizeSignedPercent(pps->m_balance));
    ListView_SetItemText(hwndListView, index, 3, textBuf);
-   sprintf_s(textBuf, "%.03f", dequantizeSignedPercent(pps->m_fade));
+   sprintf_s(textBuf, sizeof(textBuf), "%.03f", dequantizeSignedPercent(pps->m_fade));
    ListView_SetItemText(hwndListView, index, 4, textBuf);
-   sprintf_s(textBuf, "%.03f", dequantizeSignedPercent(pps->m_volume));
+   sprintf_s(textBuf, sizeof(textBuf), "%.03f", dequantizeSignedPercent(pps->m_volume));
    ListView_SetItemText(hwndListView, index, 5, textBuf);
 
    return index;
@@ -4235,7 +4252,7 @@ int PinTable::AddListCollection(HWND hwndListView, CComObject<Collection> *pcol)
    const int index = ListView_InsertItem(hwndListView, &lvitem);
 
    char buf[16] = { 0 };
-   sprintf_s(buf, "%i", pcol->m_visel.size());
+   sprintf_s(buf, sizeof(buf), "%i", pcol->m_visel.size());
    ListView_SetItemText(hwndListView, index, 1, buf);
    return index;
 }
@@ -4380,8 +4397,7 @@ void PinTable::SetMyScrollInfo()
    rgv[0] = phs.ScreenToSurface(rc.left, rc.top);
    rgv[1] = phs.ScreenToSurface(rc.right, rc.bottom);
 
-   SCROLLINFO si;
-   ZeroMemory(&si, sizeof(SCROLLINFO));
+   SCROLLINFO si = {};
    si.cbSize = sizeof(SCROLLINFO);
    si.fMask = SIF_PAGE | SIF_POS | SIF_RANGE;
    si.nMin = (int)min(frect.left, rgv[0].x);
@@ -4537,9 +4553,9 @@ void PinTable::FillCollectionContextMenu(CMenu &mainMenu, CMenu &colSubMenu, ISe
     const LocalString ls16(IDS_TO_COLLECTION);
     mainMenu.AppendMenu(MF_POPUP | MF_STRING, (size_t)colSubMenu.GetHandle(), ls16.m_szbuffer);
 
-    const int maxItems = min(m_vcollection.size() - 1, 32);
+    const int maxItems = m_vcollection.size() - 1;
 
-    // run through all collections and list up to 32 of them in the context menu
+    // run through all collections and list them in the context menu
     // the actual processing is done in ISelect::DoCommand() 
     for (int i = maxItems; i >= 0; i--)
     {
@@ -4548,8 +4564,10 @@ void PinTable::FillCollectionContextMenu(CMenu &mainMenu, CMenu &colSubMenu, ISe
         char szT[MAXNAMEBUFFER*2]; // Names can only be 32 characters (plus terminator)
         WideCharToMultiByteNull(CP_ACP, 0, bstr, -1, szT, MAXNAMEBUFFER*2, nullptr, nullptr);
 
-        colSubMenu.AppendMenu(MF_POPUP, 0x40000 + i, szT);
-        colSubMenu.CheckMenuItem(0x40000 + i, MF_UNCHECKED);
+        UINT flags = MF_POPUP | MF_UNCHECKED;
+        if ((maxItems-i) % 32 == 0) // add new column each 32 entries
+           flags |= MF_MENUBREAK;
+        colSubMenu.AppendMenu(flags, 0x40000 + i, szT);
     }
     if (m_vmultisel.size() == 1)
     {
@@ -4574,6 +4592,21 @@ void PinTable::FillCollectionContextMenu(CMenu &mainMenu, CMenu &colSubMenu, ISe
         for (size_t i = 0; i < allIndices.size(); i++)
             colSubMenu.CheckMenuItem(0x40000 + allIndices[i], MF_CHECKED);
     }
+}
+
+void PinTable::FillLayerContextMenu(CMenu &mainMenu, CMenu &layerSubMenu, ISelect *psel) 
+{
+   const LocalString ls16(IDS_ASSIGN_TO_LAYER2);
+   mainMenu.AppendMenu(MF_POPUP | MF_STRING, (size_t)layerSubMenu.GetHandle(), ls16.m_szbuffer);
+   vector<string> layerNames = g_pvp->GetLayersListDialog()->GetAllLayerNames();
+   int i = 0;
+   for (const auto &name : layerNames)
+   {
+      layerSubMenu.AppendMenu(MF_STRING, ID_ASSIGN_TO_LAYER1 + i, name.c_str());
+      i++;
+      if (i == NUM_ASSIGN_LAYERS)
+        break;
+   }
 }
 
 void PinTable::DoContextMenu(int x, int y, const int menuid, ISelect *psel)
@@ -4602,8 +4635,11 @@ void PinTable::DoContextMenu(int x, int y, const int menuid, ISelect *psel)
       
       CMenu assignLayerMenu;
       CMenu colSubMenu;
+      CMenu layerSubMenu;
+
       assignLayerMenu.CreatePopupMenu();
       colSubMenu.CreatePopupMenu();
+      layerSubMenu.CreatePopupMenu();
 
       // TEXT
       const LocalString ls17(IDS_COPY_ELEMENT);
@@ -4628,9 +4664,11 @@ void PinTable::DoContextMenu(int x, int y, const int menuid, ISelect *psel)
       const LocalString ls3(IDS_SETASDEFAULT);
       newMenu.AppendMenu(MF_STRING, ID_SETASDEFAULT, ls3.m_szbuffer);
 
-      const LocalString lsLayer(IDS_ASSIGN_TO_LAYER);
-      newMenu.AppendMenu(MF_STRING, ID_ASSIGN_TO_LAYER, lsLayer.m_szbuffer);
+      newMenu.AppendMenu(MF_SEPARATOR, ~0u, "");
 
+      FillLayerContextMenu(newMenu, layerSubMenu, psel);
+      const LocalString lsLayer(IDS_ASSIGN_TO_CURRENT_LAYER);
+      newMenu.AppendMenu(MF_STRING, ID_ASSIGN_TO_CURRENT_LAYER, lsLayer.m_szbuffer);
       FillCollectionContextMenu(newMenu, colSubMenu, psel);
 
       const LocalString ls5(IDS_LOCK);
@@ -4735,6 +4773,12 @@ void PinTable::DoCommand(int icmd, int x, int y)
       return;
    }
 
+   if ((icmd >= ID_ASSIGN_TO_LAYER1) && (icmd <= ID_ASSIGN_TO_LAYER1+NUM_ASSIGN_LAYERS-1))
+   {
+      /*add to layer*/
+      m_vpinball->GetLayersListDialog()->AssignToLayerByIndex(icmd - ID_ASSIGN_TO_LAYER1);
+   }
+
    if ((icmd & 0x0000FFFF) == ID_SELECT_ELEMENT)
    {
       const int i = (icmd & 0x00FF0000) >> 16;
@@ -4756,7 +4800,7 @@ void PinTable::DoCommand(int icmd, int x, int y)
            }
            break;
        }
-       case ID_ASSIGN_TO_LAYER: m_vpinball->GetLayersListDialog()->OnAssignButton(); break;
+       case ID_ASSIGN_TO_CURRENT_LAYER: m_vpinball->GetLayersListDialog()->OnAssignButton(); break;
        case ID_EDIT_DRAWINGORDER_HIT: m_vpinball->ShowDrawingOrderDialog(false); break;
        case ID_EDIT_DRAWINGORDER_SELECT: m_vpinball->ShowDrawingOrderDialog(true); break;
        case ID_LOCK: LockElements(); break;
@@ -4773,7 +4817,7 @@ void PinTable::DoCommand(int icmd, int x, int y)
 
 void PinTable::UpdateCollection(const int index)
 {
-   if (index < m_vcollection.size() && index < 32)
+   if (index < m_vcollection.size())
    {
       if (!m_vmultisel.empty())
       {
@@ -4935,8 +4979,7 @@ LRESULT PinTable::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
         case WM_HSCROLL:
         {
-            SCROLLINFO si;
-            ZeroMemory(&si, sizeof(SCROLLINFO));
+            SCROLLINFO si = {};
             si.cbSize = sizeof(SCROLLINFO);
             si.fMask = SIF_ALL;
             GetScrollInfo(SB_HORZ, si);
@@ -4967,8 +5010,7 @@ LRESULT PinTable::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
         case WM_VSCROLL:
         {
-            SCROLLINFO si;
-            ZeroMemory(&si, sizeof(SCROLLINFO));
+            SCROLLINFO si = {};
             si.cbSize = sizeof(SCROLLINFO);
             si.fMask = SIF_ALL;
             GetScrollInfo(SB_VERT, si);
@@ -5144,8 +5186,7 @@ void PinTable::ExportBlueprint()
    //if (saveAs)
    //{
       //need to get a file name
-      OPENFILENAME ofn;
-      ZeroMemory(&ofn, sizeof(OPENFILENAME));
+      OPENFILENAME ofn = {};
       ofn.lStructSize = sizeof(OPENFILENAME);
       ofn.hInstance = m_vpinball->theInstance;
       ofn.hwndOwner = m_vpinball->GetHwnd();
@@ -5201,8 +5242,7 @@ void PinTable::ExportBlueprint()
       CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
    const int bmlinebuffer = totallinebytes - (bmwidth * 3);
 
-   BITMAPFILEHEADER bmfh;
-   ZeroMemory(&bmfh, sizeof(bmfh));
+   BITMAPFILEHEADER bmfh = {};
    bmfh.bfType = 'M' << 8 | 'B';
    bmfh.bfSize = sizeof(bmfh) + sizeof(BITMAPINFOHEADER) + totallinebytes*bmheight;
    bmfh.bfOffBits = (DWORD)sizeof(bmfh) + (DWORD)sizeof(BITMAPINFOHEADER);
@@ -5210,8 +5250,7 @@ void PinTable::ExportBlueprint()
    DWORD foo;
    WriteFile(hfile, &bmfh, sizeof(bmfh), &foo, nullptr);
 #endif
-   BITMAPINFO bmi;
-   ZeroMemory(&bmi, sizeof(bmi));
+   BITMAPINFO bmi = {};
    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
    bmi.bmiHeader.biWidth = bmwidth;
    bmi.bmiHeader.biHeight = bmheight;
@@ -5334,8 +5373,7 @@ void PinTable::ExportTableMesh()
    const size_t idx = m_szFileName.find_last_of('.');
    if (idx != string::npos && idx < MAXSTRING)
        szObjFileName[idx] = '\0';
-   OPENFILENAME ofn;
-   ZeroMemory(&ofn, sizeof(OPENFILENAME));
+   OPENFILENAME ofn = {};
    ofn.lStructSize = sizeof(OPENFILENAME);
    ofn.hInstance = m_vpinball->theInstance;
    ofn.hwndOwner = m_vpinball->GetHwnd();
@@ -5351,7 +5389,7 @@ void PinTable::ExportTableMesh()
    // user canceled
    if (ret == 0)
       return;// S_FALSE;
-   const std::string filename = std::string(szObjFileName);
+   const string filename = string(szObjFileName);
 
    ObjLoader loader;
    loader.ExportStart(filename);
@@ -5368,13 +5406,13 @@ void PinTable::ExportTableMesh()
 
 void PinTable::ImportBackdropPOV(const string& filename)
 {
-    std::vector<std::string> szFileName;
+    vector<string> szFileName;
     bool oldFormatLoaded = false;
 
     if (filename.empty())
     {
        string szInitialDir;
-       HRESULT hr = LoadValue("RecentDir", "POVDir", szInitialDir);
+       HRESULT hr = LoadValue(regKey[RegName::RecentDir], "POVDir"s, szInitialDir);
        if (hr != S_OK)
           szInitialDir = "c:\\Visual Pinball\\Tables\\";
    
@@ -5382,8 +5420,8 @@ void PinTable::ImportBackdropPOV(const string& filename)
           return;
 
        const size_t index = szFileName[0].find_last_of('\\');
-       if (index != std::string::npos)
-           hr = SaveValue("RecentDir", "POVDir", szFileName[0].substr(0, index));
+       if (index != string::npos)
+           hr = SaveValue(regKey[RegName::RecentDir], "POVDir"s, szFileName[0].substr(0, index));
     }
     else
        szFileName.push_back(filename);
@@ -5397,8 +5435,7 @@ void PinTable::ImportBackdropPOV(const string& filename)
         buffer << myFile.rdbuf();
         myFile.close();
 
-        std::string content(buffer.str());
-        xmlDoc.parse<0>(&content[0]);
+        xmlDoc.parse<0>((char*)buffer.str().c_str());
 
         xml_node<> *root = xmlDoc.first_node("POV");
         if(!root)
@@ -5557,8 +5594,7 @@ void PinTable::ExportBackdropPOV(const string& filename)
 	string povFileName;
 	if (filename.empty())
 	{
-		OPENFILENAME ofn;
-		ZeroMemory(&ofn, sizeof(OPENFILENAME));
+		OPENFILENAME ofn = {};
 		ofn.lStructSize = sizeof(OPENFILENAME);
 		ofn.hInstance = m_vpinball->theInstance;
 		ofn.hwndOwner = m_vpinball->GetHwnd();
@@ -5598,43 +5634,43 @@ void PinTable::ExportBackdropPOV(const string& filename)
         xml_node<>*root = xmlDoc.allocate_node(node_element, "POV");
 
         xml_node<>*desktop = xmlDoc.allocate_node(node_element, "desktop");
-        sprintf_s(strBuf, "%f", m_BG_inclination[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_inclination[BG_DESKTOP]);
         const string dti(strBuf);
         xml_node<>*dtIncl = xmlDoc.allocate_node(node_element, "inclination", dti.c_str());
         desktop->append_node(dtIncl);
-        sprintf_s(strBuf, "%f", m_BG_FOV[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_FOV[BG_DESKTOP]);
         const string dtf(strBuf);
         xml_node<>*dtFov = xmlDoc.allocate_node(node_element, "fov", dtf.c_str());
         desktop->append_node(dtFov);
-        sprintf_s(strBuf, "%f", m_BG_layback[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_layback[BG_DESKTOP]);
         const string dtl(strBuf);
         xml_node<>*dtLayback = xmlDoc.allocate_node(node_element, "layback", dtl.c_str());
         desktop->append_node(dtLayback);
-        sprintf_s(strBuf, "%f", m_BG_rotation[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_rotation[BG_DESKTOP]);
         const string dtr(strBuf);
         xml_node<>*dtRotation = xmlDoc.allocate_node(node_element, "rotation", dtr.c_str());
         desktop->append_node(dtRotation);
-        sprintf_s(strBuf, "%f", m_BG_scalex[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_scalex[BG_DESKTOP]);
         const string dtsx(strBuf);
         xml_node<>*dtScalex = xmlDoc.allocate_node(node_element, "xscale", dtsx.c_str());
         desktop->append_node(dtScalex);
-        sprintf_s(strBuf, "%f", m_BG_scaley[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_scaley[BG_DESKTOP]);
         const string dtsy(strBuf);
         xml_node<>*dtScaley = xmlDoc.allocate_node(node_element, "yscale", dtsy.c_str());
         desktop->append_node(dtScaley);
-        sprintf_s(strBuf, "%f", m_BG_scalez[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_scalez[BG_DESKTOP]);
         const string dtsz(strBuf);
         xml_node<>*dtScalez = xmlDoc.allocate_node(node_element, "zscale", dtsz.c_str());
         desktop->append_node(dtScalez);
-        sprintf_s(strBuf, "%f", m_BG_xlatex[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_xlatex[BG_DESKTOP]);
         const string dtox(strBuf);
         xml_node<>*dtOffsetx = xmlDoc.allocate_node(node_element, "xoffset", dtox.c_str());
         desktop->append_node(dtOffsetx);
-        sprintf_s(strBuf, "%f", m_BG_xlatey[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_xlatey[BG_DESKTOP]);
         const string dtoy(strBuf);
         xml_node<>*dtOffsety = xmlDoc.allocate_node(node_element, "yoffset", dtoy.c_str());
         desktop->append_node(dtOffsety);
-        sprintf_s(strBuf, "%f", m_BG_xlatez[BG_DESKTOP]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_xlatez[BG_DESKTOP]);
         const string dtoz(strBuf);
         xml_node<>*dtOffsetz = xmlDoc.allocate_node(node_element, "zoffset", dtoz.c_str());
         desktop->append_node(dtOffsetz);
@@ -5642,43 +5678,43 @@ void PinTable::ExportBackdropPOV(const string& filename)
         root->append_node(desktop);
 
         xml_node<>*fullscreen = xmlDoc.allocate_node(node_element, "fullscreen");
-        sprintf_s(strBuf, "%f", m_BG_inclination[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_inclination[BG_FULLSCREEN]);
         const string fsi(strBuf);
         xml_node<>*fsIncl = xmlDoc.allocate_node(node_element, "inclination", fsi.c_str());
         fullscreen->append_node(fsIncl);
-        sprintf_s(strBuf, "%f", m_BG_FOV[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_FOV[BG_FULLSCREEN]);
         const string fsf(strBuf);
         xml_node<>*fsFov = xmlDoc.allocate_node(node_element, "fov", fsf.c_str());
         fullscreen->append_node(fsFov);
-        sprintf_s(strBuf, "%f", m_BG_layback[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_layback[BG_FULLSCREEN]);
         const string fsl(strBuf);
         xml_node<>*fsLayback = xmlDoc.allocate_node(node_element, "layback", fsl.c_str());
         fullscreen->append_node(fsLayback);
-        sprintf_s(strBuf, "%f", m_BG_rotation[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_rotation[BG_FULLSCREEN]);
         const string fsr(strBuf);
         xml_node<>*fsRotation = xmlDoc.allocate_node(node_element, "rotation", fsr.c_str());
         fullscreen->append_node(fsRotation);
-        sprintf_s(strBuf, "%f", m_BG_scalex[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_scalex[BG_FULLSCREEN]);
         const string fssx(strBuf);
         xml_node<>*fsScalex = xmlDoc.allocate_node(node_element, "xscale", fssx.c_str());
         fullscreen->append_node(fsScalex);
-        sprintf_s(strBuf, "%f", m_BG_scaley[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_scaley[BG_FULLSCREEN]);
         const string fssy(strBuf);
         xml_node<>*fsScaley = xmlDoc.allocate_node(node_element, "yscale", fssy.c_str());
         fullscreen->append_node(fsScaley);
-        sprintf_s(strBuf, "%f", m_BG_scalez[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_scalez[BG_FULLSCREEN]);
         const string fssz(strBuf);
         xml_node<>*fsScalez = xmlDoc.allocate_node(node_element, "zscale", fssz.c_str());
         fullscreen->append_node(fsScalez);
-        sprintf_s(strBuf, "%f", m_BG_xlatex[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_xlatex[BG_FULLSCREEN]);
         const string fsox(strBuf);
         xml_node<>*fsOffsetx = xmlDoc.allocate_node(node_element, "xoffset", fsox.c_str());
         fullscreen->append_node(fsOffsetx);
-        sprintf_s(strBuf, "%f", m_BG_xlatey[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_xlatey[BG_FULLSCREEN]);
         const string fsoy(strBuf);
         xml_node<>*fsOffsety = xmlDoc.allocate_node(node_element, "yoffset", fsoy.c_str());
         fullscreen->append_node(fsOffsety);
-        sprintf_s(strBuf, "%f", m_BG_xlatez[BG_FULLSCREEN]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_xlatez[BG_FULLSCREEN]);
         const string fsoz(strBuf);
         xml_node<>*fsOffsetz = xmlDoc.allocate_node(node_element, "zoffset", fsoz.c_str());
         fullscreen->append_node(fsOffsetz);
@@ -5686,43 +5722,43 @@ void PinTable::ExportBackdropPOV(const string& filename)
         root->append_node(fullscreen);
 
         xml_node<>*fullsinglescreen = xmlDoc.allocate_node(node_element, "fullsinglescreen");
-        sprintf_s(strBuf, "%f", m_BG_inclination[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_inclination[BG_FSS]);
         const string fssi(strBuf);
         xml_node<>*fssIncl = xmlDoc.allocate_node(node_element, "inclination", fssi.c_str());
         fullsinglescreen->append_node(fssIncl);
-        sprintf_s(strBuf, "%f", m_BG_FOV[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_FOV[BG_FSS]);
         const string fssf(strBuf);
         xml_node<>*fssFov = xmlDoc.allocate_node(node_element, "fov", fssf.c_str());
         fullsinglescreen->append_node(fssFov);
-        sprintf_s(strBuf, "%f", m_BG_layback[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_layback[BG_FSS]);
         const string fssl(strBuf);
         xml_node<>*fssLayback = xmlDoc.allocate_node(node_element, "layback", fssl.c_str());
         fullsinglescreen->append_node(fssLayback);
-        sprintf_s(strBuf, "%f", m_BG_rotation[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_rotation[BG_FSS]);
         const string fssr(strBuf);
         xml_node<>*fssRotation = xmlDoc.allocate_node(node_element, "rotation", fssr.c_str());
         fullsinglescreen->append_node(fssRotation);
-        sprintf_s(strBuf, "%f", m_BG_scalex[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_scalex[BG_FSS]);
         const string fsssx(strBuf);
         xml_node<>*fssScalex = xmlDoc.allocate_node(node_element, "xscale", fsssx.c_str());
         fullsinglescreen->append_node(fssScalex);
-        sprintf_s(strBuf, "%f", m_BG_scaley[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_scaley[BG_FSS]);
         const string fsssy(strBuf);
         xml_node<>*fssScaley = xmlDoc.allocate_node(node_element, "yscale", fsssy.c_str());
         fullsinglescreen->append_node(fssScaley);
-        sprintf_s(strBuf, "%f", m_BG_scalez[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_scalez[BG_FSS]);
         const string fsssz(strBuf);
         xml_node<>*fssScalez = xmlDoc.allocate_node(node_element, "zscale", fsssz.c_str());
         fullsinglescreen->append_node(fssScalez);
-        sprintf_s(strBuf, "%f", m_BG_xlatex[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_xlatex[BG_FSS]);
         const string fssox(strBuf);
         xml_node<>*fssOffsetx = xmlDoc.allocate_node(node_element, "xoffset", fssox.c_str());
         fullsinglescreen->append_node(fssOffsetx);
-        sprintf_s(strBuf, "%f", m_BG_xlatey[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_xlatey[BG_FSS]);
         const string fssoy(strBuf);
         xml_node<>*fssOffsety = xmlDoc.allocate_node(node_element, "yoffset", fssoy.c_str());
         fullsinglescreen->append_node(fssOffsety);
-        sprintf_s(strBuf, "%f", m_BG_xlatez[BG_FSS]);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_BG_xlatez[BG_FSS]);
         const string fssoz(strBuf);
         xml_node<>*fssOffsetz = xmlDoc.allocate_node(node_element, "zoffset", fssoz.c_str());
         fullsinglescreen->append_node(fssOffsetz);
@@ -5757,7 +5793,7 @@ void PinTable::ExportBackdropPOV(const string& filename)
         const std::string cutb = std::to_string(m_useTrailForBalls);
         xml_node<>* userTrailBalls = xmlDoc.allocate_node(node_element, "BallTrail", cutb.c_str());
         custom->append_node(userTrailBalls);
-        sprintf_s(strBuf, "%f", m_ballTrailStrength);
+        sprintf_s(strBuf, sizeof(strBuf), "%f", m_ballTrailStrength);
         const std::string cubs(strBuf);
         xml_node<>* userTrailStrength = xmlDoc.allocate_node(node_element, "BallTrailStrength", cubs.c_str());
         custom->append_node(userTrailStrength);
@@ -5767,7 +5803,7 @@ void PinTable::ExportBackdropPOV(const string& filename)
         const std::string cndl = std::to_string(GetGlobalEmissionScale());
         xml_node<>* userDayNight = xmlDoc.allocate_node(node_element, "NightDayLevel", cndl.c_str());
         custom->append_node(userDayNight);
-        sprintf_s(strBuf, "%f", GetGlobalDifficulty());
+        sprintf_s(strBuf, sizeof(strBuf), "%f", GetGlobalDifficulty());
         const std::string cgd(strBuf);
         xml_node<>* userDifficutly = xmlDoc.allocate_node(node_element, "GameplayDifficulty", cgd.c_str());
         custom->append_node(userDifficutly);
@@ -6613,7 +6649,7 @@ STDMETHODIMP PinTable::PlaySound(BSTR bstr, int loopcount, float volume, float p
    {
       if (szName[0] && m_pcv && g_pplayer && g_pplayer->m_hwndDebugOutput)
       {
-         const std::string logmsg = std::string("Request to play \"") + szName + "\", but sound not found.";
+         const string logmsg = "Request to play \""s + szName + "\", but sound not found.";
          m_pcv->AddToDebugOutput(logmsg.c_str());
       }
       return S_OK;
@@ -6634,7 +6670,7 @@ STDMETHODIMP PinTable::PlaySound(BSTR bstr, int loopcount, float volume, float p
 }
 
 
-Texture* PinTable::GetImage(const std::string &szName) const
+Texture* PinTable::GetImage(const string &szName) const
 {
    if (szName.empty())
       return nullptr;
@@ -6642,7 +6678,7 @@ Texture* PinTable::GetImage(const std::string &szName) const
    // during playback, we use the hashtable for lookup
    if (!m_textureMap.empty())
    {
-      const robin_hood::unordered_map<std::string, Texture*, StringHashFunctor, StringComparator>::const_iterator
+      const robin_hood::unordered_map<string, Texture*, StringHashFunctor, StringComparator>::const_iterator
          it = m_textureMap.find(szName);
       if (it != m_textureMap.end())
          return it->second;
@@ -6659,8 +6695,7 @@ Texture* PinTable::GetImage(const std::string &szName) const
 
 void PinTable::ReImportImage(Texture * const ppi, const string& filename)
 {
-   string szextension;
-   ExtensionFromFilename(filename, szextension);
+   const string szextension = ExtensionFromFilename(filename);
 
    const bool binary = !!lstrcmpi(szextension.c_str(), "bmp");
 
@@ -6706,10 +6741,10 @@ bool PinTable::ExportImage(const Texture * const ppi, const char * const szfilen
       if (hFile == INVALID_HANDLE_VALUE)
          return false;
 
-      const int surfwidth = ppi->m_width;					// texture width 
-      const int surfheight = ppi->m_height;					// and height		
+      const unsigned int surfwidth  = ppi->m_width;				// texture width
+      const unsigned int surfheight = ppi->m_height;			// and height
 
-      const int bmplnsize = (surfwidth * 4 + 3) & -4;		// line size ... 4 bytes per pixel + pad to 4 byte boundary		
+      const unsigned int bmplnsize = (surfwidth * 4 + 3) & -4;	// line size ... 4 bytes per pixel + pad to 4 byte boundary		
 
       //<<<< began bmp file header and info <<<<<<<<<<<<<<<
 
@@ -6750,10 +6785,10 @@ bool PinTable::ExportImage(const Texture * const ppi, const char * const szfilen
       unsigned char* info;
       for (info = sinfo + surfwidth * 3; info < sinfo + bmplnsize; *info++ = 0); //fill padding with 0			
 
-      const int pitch = ppi->m_pdsBuffer->pitch();
+      const unsigned int pitch = ppi->m_pdsBuffer->pitch();
       const BYTE *spch = ppi->m_pdsBuffer->data() + (surfheight * pitch); // just past the end of the Texture part of DD surface
 
-      for (int i = 0; i < surfheight; i++)
+      for (unsigned int i = 0; i < surfheight; i++)
       {
          const BYTE * const pch = (spch -= pitch); // start on previous previous line
          memcpy(sinfo, pch, surfwidth*4);
@@ -6765,16 +6800,22 @@ bool PinTable::ExportImage(const Texture * const ppi, const char * const szfilen
       delete[] sinfo;
       CloseHandle(hFile);
 #else
-      FIBITMAP * dib = FreeImage_Allocate(ppi->m_width, ppi->m_height, 32);
+      if (ppi->m_pdsBuffer->m_format == BaseTexture::RGB_FP16 || ppi->m_pdsBuffer->m_format == BaseTexture::RGB_FP32)
+      {
+          assert(!"float format export");
+          return false; // Unsupported but this should not happens since all HDR image are imported and have a m_ppb field
+      }
+
+      FIBITMAP *dib = FreeImage_Allocate(ppi->m_width, ppi->m_height, ppi->m_pdsBuffer->has_alpha() ? 32 : 24);
       BYTE * const psrc = FreeImage_GetBits(dib);
 
-      const int pitch = ppi->m_pdsBuffer->pitch();
+      const unsigned int pitch = ppi->m_pdsBuffer->pitch();
       const BYTE *spch = ppi->m_pdsBuffer->data() + (ppi->m_height * pitch); // just past the end of the Texture part of DD surface
 
-      for (int i = 0; i < ppi->m_height; i++)
+      for (unsigned int i = 0; i < ppi->m_height; i++)
       {
          const BYTE * const pch = (spch -= pitch); // start on previous previous line
-         memcpy(psrc + i*(ppi->m_width*4), pch, ppi->m_width*4);
+         memcpy(psrc + i * (ppi->m_width*(ppi->m_pdsBuffer->has_alpha() ? 4:3)), pch, ppi->m_width*(ppi->m_pdsBuffer->has_alpha() ? 4:3));
       }
 
       if (!FreeImage_Save(FreeImage_GetFIFFromFilename(szfilename), dib, szfilename, PNG_Z_BEST_COMPRESSION | JPEG_QUALITYGOOD | BMP_SAVE_RLE))
@@ -6851,16 +6892,50 @@ int PinTable::AddListImage(HWND hwndListView, Texture * const ppi)
    lvitem.pszText = (LPSTR)ppi->m_szName.c_str();
    lvitem.lParam = (size_t)ppi;
 
-   _snprintf_s(sizeString, MAXTOKEN-1, "%ix%i", ppi->m_realWidth, ppi->m_realHeight);
+   if (ppi->m_realWidth == ppi->m_width && ppi->m_realHeight == ppi->m_height)
+      _snprintf_s(sizeString, MAXTOKEN - 1, "%ix%i", ppi->m_realWidth, ppi->m_realHeight);
+   else
+      _snprintf_s(sizeString, MAXTOKEN - 1, "%ix%i downsized to %ix%i", ppi->m_realWidth, ppi->m_realHeight, ppi->m_width, ppi->m_height);
    const int index = ListView_InsertItem(hwndListView, &lvitem);
 
    ListView_SetItemText(hwndListView, index, 1, (LPSTR)ppi->m_szPath.c_str());
    ListView_SetItemText(hwndListView, index, 2, sizeString);
    ListView_SetItemText(hwndListView, index, 3, usedStringNo);
 
-   char * const sizeConv = StrFormatByteSize64(ppi->m_pdsBuffer->m_data.size(), sizeString, MAXTOKEN);
-
+   char *const sizeConv = StrFormatByteSize64(ppi->m_pdsBuffer->height() * ppi->m_pdsBuffer->pitch(), sizeString, MAXTOKEN);
    ListView_SetItemText(hwndListView, index, 4, sizeConv);
+
+   if (ppi->m_pdsBuffer == nullptr)
+   {
+      ListView_SetItemText(hwndListView, index, 5, "-");
+   }
+   else if (ppi->m_pdsBuffer->m_format == BaseTexture::SRGB)
+   {
+      ListView_SetItemText(hwndListView, index, 5, "sRGB");
+   }
+   else if (ppi->m_pdsBuffer->m_format == BaseTexture::SRGBA)
+   {
+      ListView_SetItemText(hwndListView, index, 5, "sRGBA");
+   }
+   else if (ppi->m_pdsBuffer->m_format == BaseTexture::RGB)
+   {
+      ListView_SetItemText(hwndListView, index, 5, "RGB");
+   }
+   else if (ppi->m_pdsBuffer->m_format == BaseTexture::RGBA)
+   {
+      ListView_SetItemText(hwndListView, index, 5, "RGBA");
+   }
+   else if (ppi->m_pdsBuffer->m_format == BaseTexture::RGB_FP16)
+   {
+      ListView_SetItemText(hwndListView, index, 5, "RGB 16F");
+   }
+   else if (ppi->m_pdsBuffer->m_format == BaseTexture::RGB_FP32)
+   {
+      ListView_SetItemText(hwndListView, index, 5, "RGB 32F");
+   }
+   else
+      assert(!"unknown format");
+
    if ((_stricmp(m_image.c_str(), ppi->m_szName.c_str()) == 0)
     || (_stricmp(m_ballImage.c_str(), ppi->m_szName.c_str()) == 0) 
     || (_stricmp(m_ballImageDecal.c_str(), ppi->m_szName.c_str()) == 0)
@@ -6996,7 +7071,7 @@ void PinTable::ListMaterials(HWND hwndListView)
       AddListMaterial(hwndListView, m_materials[i]);
 }
 
-bool PinTable::IsMaterialNameUnique(const std::string &name) const
+bool PinTable::IsMaterialNameUnique(const string &name) const
 {
    for (size_t i = 0; i < m_materials.size(); i++)
       if(m_materials[i]->m_szName==name)
@@ -7006,7 +7081,7 @@ bool PinTable::IsMaterialNameUnique(const std::string &name) const
 }
 
 
-Material* PinTable::GetMaterial(const std::string &szName) const
+Material* PinTable::GetMaterial(const string &szName) const
 {
    if (szName.empty())
       return &m_vpinball->m_dummyMaterial;
@@ -7014,7 +7089,7 @@ Material* PinTable::GetMaterial(const std::string &szName) const
    // during playback, we use the hashtable for lookup
    if (!m_materialMap.empty())
    {
-      const robin_hood::unordered_map<std::string, Material*, StringHashFunctor, StringComparator>::const_iterator
+      const robin_hood::unordered_map<string, Material*, StringHashFunctor, StringComparator>::const_iterator
          it = m_materialMap.find(szName);
       if (it != m_materialMap.end())
          return it->second;
@@ -7040,7 +7115,7 @@ void PinTable::AddMaterial(Material * const pmat)
       char textBuf[MAXNAMEBUFFER];
       do
       {
-         sprintf_s(textBuf, "%s%i", pmat->m_szName.c_str(), suffix);
+         sprintf_s(textBuf, sizeof(textBuf), "%s%i", pmat->m_szName.c_str(), suffix);
          suffix++;
       } while (!IsMaterialNameUnique(textBuf));
       pmat->m_szName = textBuf;
@@ -7388,7 +7463,7 @@ int PinTable::AddListItem(HWND hwndListView, const string& szName, const string&
    return index;
 }
 
-HRESULT PinTable::LoadImageFromStream(IStream *pstm, unsigned int idx, int version)
+HRESULT PinTable::LoadImageFromStream(IStream *pstm, size_t idx, int version, bool resize_on_low_mem)
 {
    if (version < 100) // Tech Beta 3 and below
    {
@@ -7399,7 +7474,7 @@ HRESULT PinTable::LoadImageFromStream(IStream *pstm, unsigned int idx, int versi
    {
       Texture * const ppi = new Texture();
 
-      if (ppi->LoadFromStream(pstm, version, this) == S_OK)
+      if (ppi->LoadFromStream(pstm, version, this, resize_on_low_mem) == S_OK)
          m_vimage[idx] = ppi;
       else
          delete ppi;
@@ -8515,7 +8590,7 @@ void PinTable::SetShowFSS(const bool enable)
    if (m_BG_enable_FSS)
       m_BG_current_set = FULL_SINGLE_SCREEN;
    else
-      LoadValue("Player", "BGSet", m_BG_current_set);
+      LoadValue(regKey[RegName::Player], "BGSet"s, m_BG_current_set);
 }
 
 STDMETHODIMP PinTable::get_ShowFSS(VARIANT_BOOL *pVal)
@@ -8770,7 +8845,7 @@ STDMETHODIMP PinTable::get_PlungerNormalize(int *pVal)
 
 void PinTable::SetPlungerNormalize(const int value)
 {
-   m_plungerNormalize = LoadValueIntWithDefault("Player", "PlungerNormalize", value);
+   m_plungerNormalize = LoadValueIntWithDefault(regKey[RegName::Player], "PlungerNormalize"s, value);
 }
 
 STDMETHODIMP PinTable::put_PlungerNormalize(int newVal)
@@ -8792,7 +8867,7 @@ STDMETHODIMP PinTable::get_PlungerFilter(VARIANT_BOOL *pVal)
 STDMETHODIMP PinTable::put_PlungerFilter(VARIANT_BOOL newVal)
 {
    STARTUNDO
-   m_plungerFilter = LoadValueBoolWithDefault("Player", "PlungerFilter", VBTOb(newVal));
+   m_plungerFilter = LoadValueBoolWithDefault(regKey[RegName::Player], "PlungerFilter"s, VBTOb(newVal));
    STOPUNDO
 
    return S_OK;
@@ -9211,19 +9286,18 @@ STDMETHODIMP PinTable::put_OverridePhysicsFlippers(VARIANT_BOOL newVal)
 
 STDMETHODIMP PinTable::ImportPhysics()
 {
-   std::vector<std::string> szFileName;
    string szInitialDir;
-
-   HRESULT hr = LoadValue("RecentDir", "PhysicsDir", szInitialDir);
+   HRESULT hr = LoadValue(regKey[RegName::RecentDir], "PhysicsDir"s, szInitialDir);
    if (hr != S_OK)
       szInitialDir = "c:\\Visual Pinball\\Tables\\";
 
+   vector<string> szFileName;
    if (!m_vpinball->OpenFileDialog(szInitialDir, szFileName, "Visual Pinball Physics (*.vpp)\0*.vpp\0", "vpp", 0))
        return S_OK;
 
    const size_t index = szFileName[0].find_last_of('\\');
-   if (index != std::string::npos)
-       hr = SaveValue("RecentDir", "PhysicsDir", szFileName[0].substr(0, index));
+   if (index != string::npos)
+       hr = SaveValue(regKey[RegName::RecentDir], "PhysicsDir"s, szFileName[0].substr(0, index));
 
    ImportVPP(szFileName[0]);
 
@@ -9241,8 +9315,7 @@ void PinTable::ImportVPP(const string& filename)
       buffer << myFile.rdbuf();
       myFile.close();
 
-      std::string content(buffer.str());
-      xmlDoc.parse<0>(&content[0]);
+      xmlDoc.parse<0>((char*)buffer.str().c_str());
       xml_node<> *root = xmlDoc.first_node("physics");
       xml_node<> *physTab = root->first_node("table");
       xml_node<> *physFlip = root->first_node("flipper");
@@ -9487,8 +9560,7 @@ STDMETHODIMP PinTable::ExportPhysics()
    if (idx != string::npos && idx < MAXSTRING)
       szFileName[idx] = '\0';
 
-   OPENFILENAME ofn;
-   ZeroMemory(&ofn, sizeof(OPENFILENAME));
+   OPENFILENAME ofn = {};
    ofn.lStructSize = sizeof(OPENFILENAME);
    ofn.hInstance = m_vpinball->theInstance;
    ofn.hwndOwner = m_vpinball->GetHwnd();
@@ -9500,7 +9572,7 @@ STDMETHODIMP PinTable::ExportPhysics()
    ofn.Flags = OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY;
 
    string szInitialDir;
-   const HRESULT hr = LoadValue("RecentDir", "PhysicsDir", szInitialDir);
+   const HRESULT hr = LoadValue(regKey[RegName::RecentDir], "PhysicsDir"s, szInitialDir);
    if (hr != S_OK)
        szInitialDir = "c:\\Visual Pinball\\Tables\\";
 
@@ -9512,10 +9584,10 @@ STDMETHODIMP PinTable::ExportPhysics()
 
    const string szFilename(ofn.lpstrFile);
    const size_t index = szFilename.find_last_of('\\');
-   if (index != std::string::npos)
+   if (index != string::npos)
    {
-       const std::string newInitDir(szFilename.substr(0, index));
-       SaveValue("RecentDir", "PhysicsDir", newInitDir);
+       const string newInitDir(szFilename.substr(0, index));
+       SaveValue(regKey[RegName::RecentDir], "PhysicsDir"s, newInitDir);
    }
 
    xml_document<> xmlDoc;
@@ -9533,84 +9605,84 @@ STDMETHODIMP PinTable::ExportPhysics()
    char fspeed[16], fstrength[16], felasticity[16], fscatter[16], ftorquedamping[16], ftorquedampingangle[16], freturn[16], felasticityFalloff[16], fFriction[16], fRampup[16];
 
    flipper->get_Mass(&val); // was speed
-   sprintf_s(fspeed, "%f", val);
+   sprintf_s(fspeed, sizeof(fspeed), "%f", val);
    xml_node<>*flipSpeed = xmlDoc.allocate_node(node_element, "speed", fspeed);
    physFlip->append_node(flipSpeed);
 
    flipper->get_Strength(&val);
-   sprintf_s(fstrength, "%f", val);
+   sprintf_s(fstrength, sizeof(fstrength), "%f", val);
    xml_node<>*flipPhysStrength = xmlDoc.allocate_node(node_element, "strength", fstrength);
    physFlip->append_node(flipPhysStrength);
 
    flipper->get_Elasticity(&val);
-   sprintf_s(felasticity, "%f", val);
+   sprintf_s(felasticity, sizeof(felasticity), "%f", val);
    xml_node<>*flipElasticity = xmlDoc.allocate_node(node_element, "elasticity", felasticity);
    physFlip->append_node(flipElasticity);
 
    flipper->get_Scatter(&val); // was scatter angle
-   sprintf_s(fscatter, "%f", val);
+   sprintf_s(fscatter, sizeof(fscatter), "%f", val);
    xml_node<>*flipScatter = xmlDoc.allocate_node(node_element, "scatter", fscatter);
    physFlip->append_node(flipScatter);
 
    flipper->get_EOSTorque(&val);
-   sprintf_s(ftorquedamping, "%f", val);
+   sprintf_s(ftorquedamping, sizeof(ftorquedamping), "%f", val);
    xml_node<>*flipTorqueDamping = xmlDoc.allocate_node(node_element, "eosTorque", ftorquedamping);
    physFlip->append_node(flipTorqueDamping);
 
    flipper->get_EOSTorqueAngle(&val);
-   sprintf_s(ftorquedampingangle, "%f", val);
+   sprintf_s(ftorquedampingangle, sizeof(ftorquedampingangle), "%f", val);
    xml_node<>*flipTorqueDampingAngle = xmlDoc.allocate_node(node_element, "eosTorqueAngle", ftorquedampingangle);
    physFlip->append_node(flipTorqueDampingAngle);
 
    flipper->get_Return(&val);
-   sprintf_s(freturn, "%f", val);
+   sprintf_s(freturn, sizeof(freturn), "%f", val);
    xml_node<>*flipReturnStrength = xmlDoc.allocate_node(node_element, "returnStrength", freturn);
    physFlip->append_node(flipReturnStrength);
 
    flipper->get_ElasticityFalloff(&val);
-   sprintf_s(felasticityFalloff, "%f", val);
+   sprintf_s(felasticityFalloff, sizeof(felasticityFalloff), "%f", val);
    xml_node<>*flipElasticityFalloff = xmlDoc.allocate_node(node_element, "elasticityFalloff", felasticityFalloff);
    physFlip->append_node(flipElasticityFalloff);
 
    flipper->get_Friction(&val);
-   sprintf_s(fFriction, "%f", val);
+   sprintf_s(fFriction, sizeof(fFriction), "%f", val);
    xml_node<>*flipfriction = xmlDoc.allocate_node(node_element, "friction", fFriction);
    physFlip->append_node(flipfriction);
 
    flipper->get_RampUp(&val);
-   sprintf_s(fRampup, "%f", val);
+   sprintf_s(fRampup, sizeof(fRampup), "%f", val);
    xml_node<>*flipCoilRampUp = xmlDoc.allocate_node(node_element, "coilRampUp", fRampup);
    physFlip->append_node(flipCoilRampUp);
 
    char tgravity[16], tFriction[16], tDefaultScatter[16], telasticity[16], telasticityFallOff[16], tcontactScatter[16];
 
    get_Gravity(&val);
-   sprintf_s(tgravity, "%f", val);
+   sprintf_s(tgravity, sizeof(tgravity), "%f", val);
    xml_node<>*tabGravityConst = xmlDoc.allocate_node(node_element, "gravityConstant", tgravity);
    physTab->append_node(tabGravityConst);
 
    get_Friction(&val);
-   sprintf_s(tFriction, "%f", val);
+   sprintf_s(tFriction, sizeof(tFriction), "%f", val);
    xml_node<>*tabContactFriction = xmlDoc.allocate_node(node_element, "contactFriction", tFriction);
    physTab->append_node(tabContactFriction);
 
    get_Elasticity(&val);
-   sprintf_s(telasticity, "%f", val);
+   sprintf_s(telasticity, sizeof(telasticity), "%f", val);
    xml_node<>*tabElasticity = xmlDoc.allocate_node(node_element, "elasticity", telasticity);
    physTab->append_node(tabElasticity);
 
    get_ElasticityFalloff(&val);
-   sprintf_s(telasticityFallOff, "%f", val);
+   sprintf_s(telasticityFallOff, sizeof(telasticityFallOff), "%f", val);
    xml_node<>*tabElasticityFalloff = xmlDoc.allocate_node(node_element, "elasticityFalloff", telasticityFallOff);
    physTab->append_node(tabElasticityFalloff);
 
    get_DefaultScatter(&val);
-   sprintf_s(tDefaultScatter, "%f", val);
+   sprintf_s(tDefaultScatter, sizeof(tDefaultScatter), "%f", val);
    xml_node<>*tabScatterAngle = xmlDoc.allocate_node(node_element, "defaultElementScatter", tDefaultScatter);
    physTab->append_node(tabScatterAngle);
 
    get_Scatter(&val);
-   sprintf_s(tcontactScatter, "%f", val);
+   sprintf_s(tcontactScatter, sizeof(tcontactScatter), "%f", val);
    xml_node<>*tabContactScatterAngle = xmlDoc.allocate_node(node_element, "playfieldScatter", tcontactScatter);
    physTab->append_node(tabContactScatterAngle);
 
@@ -9711,7 +9783,7 @@ float PinTable::GetGlobalDifficulty() const
 void PinTable::SetGlobalDifficulty(const float value)
 {
     int tmp;
-    const HRESULT hr = LoadValue("Player", "GlobalDifficulty", tmp);
+    const HRESULT hr = LoadValue(regKey[RegName::Player], "GlobalDifficulty"s, tmp);
     if (hr == S_OK)
         m_globalDifficulty = dequantizeUnsignedPercent(tmp);
     else
@@ -9792,14 +9864,14 @@ STDMETHODIMP PinTable::put_AccelerometerAngle(float newVal)
 
 STDMETHODIMP PinTable::get_DeadZone(int *pVal)
 {
-   *pVal = LoadValueIntWithDefault("Player", "DeadZone", 0);
+   *pVal = LoadValueIntWithDefault(regKey[RegName::Player], "DeadZone"s, 0);
 
    return S_OK;
 }
 
 STDMETHODIMP PinTable::put_DeadZone(int newVal)
 {
-   SaveValueInt("Player", "DeadZone", clamp(newVal, 0,100));
+   SaveValueInt(regKey[RegName::Player], "DeadZone"s, clamp(newVal, 0,100));
 
    return S_OK;
 }
@@ -9976,7 +10048,7 @@ void PinTable::InvokeBallBallCollisionCallback(const Ball *b1, const Ball *b2, f
 
 void PinTable::OnInitialUpdate()
 {
-    ProfileLog("PinTable OnInitialUpdate");
+    ProfileLog("PinTable OnInitialUpdate"s);
 
     BeginAutoSaveCounter();
     SetWindowText(m_szFileName.c_str());

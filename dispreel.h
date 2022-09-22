@@ -11,7 +11,7 @@
 // DispReel
 
 // add data in this class is persisted with the table
-class DispReelData : public BaseProperty
+class DispReelData final : public BaseProperty
 {
 public:
    Vertex2D    m_v1, m_v2;          // position on map (top right corner)
@@ -70,15 +70,15 @@ public:
 
    STANDARD_EDITABLE_DECLARES(DispReel, eItemDispReel, DISPREEL, 2)
 
-   virtual void MoveOffset(const float dx, const float dy);
-   virtual void SetObjectPos();
+   void MoveOffset(const float dx, const float dy) final;
+   void SetObjectPos() final;
    // Multi-object manipulation
-   virtual Vertex2D GetCenter() const;
-   virtual void PutCenter(const Vertex2D& pv);
+   Vertex2D GetCenter() const final;
+   void PutCenter(const Vertex2D &pv) final;
 
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemDispReel; }
+   ItemTypeEnum HitableGetItemType() const final { return eItemDispReel; }
 
-   virtual void WriteRegDefaults();
+   void WriteRegDefaults() final;
 
    DECLARE_REGISTRY_RESOURCEID(IDR_DISP_REEL)
    // ISupportsErrorInfo
@@ -147,10 +147,10 @@ public:
 
    void    Animate();
 
-   class DispReelAnimObject : public AnimObject
+   class DispReelAnimObject final : public AnimObject
    {
    public:
-      virtual void Animate() { m_pDispReel->Animate(); } // this function is called every frame to animate the object/reels animation
+      void Animate() { m_pDispReel->Animate(); } // this function is called every frame to animate the object/reels animation
 
       DispReel *m_pDispReel;
    } m_dispreelanim;
@@ -184,7 +184,7 @@ private:
       float u_min, u_max;
       float v_min, v_max;
    };
-   std::vector<TexCoordRect> m_digitTexCoords;
+   vector<TexCoordRect> m_digitTexCoords;
 
    // IDispReel
 public:

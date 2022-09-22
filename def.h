@@ -1,5 +1,7 @@
 #pragma once
 
+using namespace std::string_literals;
+
 #ifdef min
 #undef min
 #endif
@@ -7,95 +9,69 @@
 #undef max
 #endif
 
-__forceinline float min(const float x, const float y)
+template <typename T>
+__forceinline T min(const T x, const T y)
 {
    return x < y ? x : y;
 }
-__forceinline float max(const float x, const float y)
+template <typename T>
+__forceinline T max(const T x, const T y)
 {
    return x < y ? y : x;
 }
-__forceinline double min(const double x, const double y)
+#if 0 // a bit slower nowadays
+template <>
+__forceinline float min<float>(const float x, const float y)
 {
-   return x < y ? x : y;
+   return _mm_cvtss_f32(_mm_min_ss(_mm_set_ss(x),_mm_set_ss(y)));
 }
-__forceinline double max(const double x, const double y)
+template <>
+__forceinline float max<float>(const float x, const float y)
 {
-   return x < y ? y : x;
+   return _mm_cvtss_f32(_mm_max_ss(_mm_set_ss(x),_mm_set_ss(y)));
 }
-__forceinline int min(const int x, const int y)
+template <>
+__forceinline double min<double>(const double x, const double y)
 {
-   return x < y ? x : y;
+   return _mm_cvtsd_f64(_mm_min_sd(_mm_set_sd(x),_mm_set_sd(y)));
 }
-__forceinline int max(const int x, const int y)
+template <>
+__forceinline double max<double>(const double x, const double y)
 {
-   return x < y ? y : x;
+   return _mm_cvtsd_f64(_mm_max_sd(_mm_set_sd(x),_mm_set_sd(y)));
 }
-__forceinline long max(const long x, const long y)
-{
-   return x < y ? y : x;
-}
-__forceinline unsigned int min(const unsigned int x, const unsigned int y)
-{
-   return x < y ? x : y;
-}
-__forceinline unsigned int min(const DWORD x, const DWORD y)
-{
-   return x < y ? x : y;
-}
-__forceinline unsigned int max(const unsigned int x, const unsigned int y)
-{
-   return x < y ? y : x;
-}
-__forceinline unsigned long long min(const unsigned long long x, const unsigned long long y)
-{
-   return x < y ? x : y;
-}
-__forceinline unsigned long long max(const unsigned long long x, const unsigned long long y)
-{
-   return x < y ? y : x;
-}
+#endif
 
 template <typename T>
-__forceinline T clamp(const T x, const T min, const T max)
+__forceinline T clamp(const T x, const T mn, const T mx)
 {
-   if (x < min)
-      return min;
-   else if (x > max)
-      return max;
-   else
-      return x;
+   return max(min(x,mx),mn);
 }
 
 template <typename T>
 __forceinline T saturate(const T x)
 {
-   if (x < T(0))
-      return T(0);
-   else if (x > T(1))
-      return T(1);
-   else
-      return x;
+   return max(min(x,T(1)),T(0));
 }
 
 template <typename T>
-inline void RemoveFromVector(std::vector<T>& v, const T& val)
+inline void RemoveFromVector(vector<T>& v, const T& val)
 {
    v.erase(std::remove(v.begin(), v.end(), val), v.end());
 }
 
 template <typename T>
-inline void RemoveFromVectorSingle(std::vector<T>& v, const T& val)
+inline void RemoveFromVectorSingle(vector<T>& v, const T& val)
 {
-   typename std::vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
+   typename vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
    if (it != v.end())
       v.erase(it);
 }
 
 template <typename T>
-inline int FindIndexOf(const std::vector<T>& v, const T& val)
+inline int FindIndexOf(const vector<T>& v, const T& val)
 {
-   typename std::vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
+   typename vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
    if (it != v.end())
       return (int)(it - v.begin());
    else
@@ -133,15 +109,34 @@ inline void ref_count_trigger(const ULONG r, const char *file, const int line) /
 {
 #ifdef DEBUG_REFCOUNT_TRIGGER
    char msg[128];
-   sprintf_s(msg, 128, "Ref Count: %u at %s:%d", r, file, line);
+   sprintf_s(msg, sizeof(msg), "Ref Count: %u at %s:%d", r, file, line);
    /*g_pvp->*/MessageBox(nullptr, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
 }
+
+#ifdef ENABLE_SDL
+//!! TODO
+#define SAFE_RELEASE(p)			{}
+#define SAFE_RELEASE_NO_SET(p)	{}
+#define SAFE_RELEASE_NO_CHECK_NO_SET(p)	{}
+#define SAFE_RELEASE_NO_RCC(p)	{}
+
+// Typed releases: these objects have single reference (so no ref counting)
+#define SAFE_RELEASE_TEXTURE(p)			{ if(p) { glDeleteTextures(1, &p->texture); (p)=nullptr;} }
+#define SAFE_RELEASE_RENDER_TARGET(p)	{ if(p) { glDeleteFramebuffers(1, &p->framebuffer); glDeleteTextures(1, &p->texture); if(p->zBuffer) glDeleteRenderbuffers(1, &p->zBuffer); (p)=nullptr;}}
+
+#else
 #define SAFE_RELEASE(p)			{ if(p) { const ULONG rcc = (p)->Release(); if(rcc != 0) ref_count_trigger(rcc, __FILE__, __LINE__); (p)=nullptr; } }
 #define SAFE_RELEASE_NO_SET(p)	{ if(p) { const ULONG rcc = (p)->Release(); if(rcc != 0) ref_count_trigger(rcc, __FILE__, __LINE__); } }
 #define SAFE_RELEASE_NO_CHECK_NO_SET(p)	{ const ULONG rcc = (p)->Release(); if(rcc != 0) ref_count_trigger(rcc, __FILE__, __LINE__); }
 #define SAFE_RELEASE_NO_RCC(p)	{ if(p) { (p)->Release(); (p)=nullptr; } } // use for releasing things like surfaces gotten from GetSurfaceLevel (that seem to "share" the refcount with the underlying texture)
+
+#define SAFE_RELEASE_TEXTURE(p)         SAFE_RELEASE(p)
+#define SAFE_RELEASE_RENDER_TARGET(p)   SAFE_RELEASE(p)
+
+#endif
 #define FORCE_RELEASE(p)		{ if(p) { ULONG rcc = 1; while(rcc!=0) {rcc = (p)->Release();} (p)=nullptr; } } // release all references until it is 0
+#define SAFE_BUFFER_RELEASE(p)	{ if(p) { (p)->release(); delete (p); (p)=nullptr; } }
 
 #define hrNotImplemented ResultFromScode(E_NOTIMPL)
 
@@ -157,7 +152,7 @@ enum SaveDirtyState
 #define MY_D3DTRANSFORMED_NOTEX2_VERTEX 2 //!! delete
 
 //These Structs are used for rendering and loading meshes. They must match the VertexDeclaration in RenderDevice.cpp and the loaded meshes.
-class Vertex3D_TexelOnly // for rendering, uses MY_D3DFVF_TEX
+class Vertex3D_TexelOnly final // for rendering, uses MY_D3DFVF_TEX
 {
 public:
    // Position
@@ -172,7 +167,7 @@ public:
 
 
 // NB: this struct MUST NOT BE CHANGED as the Primitive class uses it for file I/O...
-class Vertex3D_NoTex2 // for rendering, uses MY_D3DFVF_NOTEX2_VERTEX or MY_D3DTRANSFORMED_NOTEX2_VERTEX
+class Vertex3D_NoTex2 final // for rendering, uses MY_D3DFVF_NOTEX2_VERTEX or MY_D3DTRANSFORMED_NOTEX2_VERTEX
 {
 public:
    // Position
@@ -190,7 +185,7 @@ public:
    D3DVALUE tv;
 };
 
-class LocalString
+class LocalString final
 {
 public:
    LocalString(const int resid);
@@ -198,7 +193,7 @@ public:
    char m_szbuffer[256];
 };
 
-class LocalStringW
+class LocalStringW final
 {
 public:
    LocalStringW(const int resid);
@@ -243,7 +238,14 @@ __forceinline __m128 sseHorizontalAdd(const __m128 &a) // could use dp instructi
 
 //
 
-__forceinline int float_as_int(const float x) //!! use bit_cast
+#if __cplusplus >= 202002L
+#include <bit>
+#define float_as_int(x) std::bit_cast<int>(x)
+#define float_as_uint(x) std::bit_cast<unsigned int>(x)
+#define int_as_float(x) std::bit_cast<float>(x)
+#define uint_as_float(x) std::bit_cast<float>(x)
+#else
+__forceinline int float_as_int(const float x)
 {
    union {
       float f;
@@ -253,7 +255,17 @@ __forceinline int float_as_int(const float x) //!! use bit_cast
    return uc.i;
 }
 
-__forceinline float int_as_float(const int i) //!! use bit_cast
+__forceinline unsigned int float_as_uint(const float x)
+{
+   union {
+      float f;
+      unsigned int i;
+   } uc;
+   uc.f = x;
+   return uc.i;
+}
+
+__forceinline float int_as_float(const int i)
 {
    union {
       int i;
@@ -262,6 +274,17 @@ __forceinline float int_as_float(const int i) //!! use bit_cast
    iaf.i = i;
    return iaf.f;
 }
+
+__forceinline float uint_as_float(const unsigned int i)
+{
+   union {
+      unsigned int i;
+      float f;
+   } iaf;
+   iaf.i = i;
+   return iaf.f;
+}
+#endif
 
 __forceinline bool infNaN(const float a)
 {
@@ -280,7 +303,7 @@ __forceinline bool NaN(const float a)
 
 __forceinline bool deNorm(const float a)
 {
-   return (((float_as_int(a) & 0x7FFFFFFF) < 0x00800000) && (a != 0.0));
+   return (((float_as_int(a) & 0x7FFFFFFF) < 0x00800000) && (a != 0.0f));
 }
 
 __forceinline bool sign(const float a)
@@ -325,8 +348,8 @@ inline unsigned long long tinymtu(unsigned long long state[2]) {
 
 extern unsigned long long tinymt64state[2];
 
-__forceinline float rand_mt_01()  { return int_as_float(0x3F800000u | (unsigned int)(tinymtu(tinymt64state) >> 41)) - 1.0f; }
-__forceinline float rand_mt_m11() { return int_as_float(0x3F800000u | (unsigned int)(tinymtu(tinymt64state) >> 41))*2.0f - 3.0f; }
+__forceinline float rand_mt_01()  { return (float)(tinymtu(tinymt64state) >> (64-24)) * 0.000000059604644775390625f; } // [0..1)
+__forceinline float rand_mt_m11() { return (float)((int64_t)tinymtu(tinymt64state) >> (64-25)) * 0.000000059604644775390625f; } // [-1..1)
 
 //
 
@@ -338,7 +361,7 @@ __forceinline float radical_inverse(unsigned int v)
    v = ((v & 0x33333333u) << 2) | ((v & 0xCCCCCCCCu) >> 2);
    v = ((v & 0x0F0F0F0Fu) << 4) | ((v & 0xF0F0F0F0u) >> 4);
    v = ((v & 0x00FF00FFu) << 8) | ((v & 0xFF00FF00u) >> 8);
-   return (float)v * 0.00000000023283064365386962890625f; // /2^32
+   return (float)(v >> 8) * 0.000000059604644775390625f;
 }
 
 template <unsigned int base>
@@ -361,14 +384,14 @@ __forceinline float sobol(unsigned int i, unsigned int scramble = 0)
    for (unsigned int v = 1u << 31; (i != 0); i >>= 1, v ^= v >> 1) if (i & 1)
       scramble ^= v;
 
-   return (float)scramble * 0.00000000023283064365386962890625f; // /2^32
+   return (float)(scramble >> 8) * 0.000000059604644775390625f;
 }
 
 inline void RemoveSpaces(char* const source)
 {
    char* i = source;
    char* j = source;
-   while (*j != 0)
+   while (*j != '\0')
    {
       *i = *j++;
       if (!isspace(*i))
@@ -400,7 +423,7 @@ __forceinline float millimetersToVPUnits(const float value)
 }
 
 float sz2f(const string& sz);
-void f2sz(const float f, string& sz);
+string f2sz(const float f);
 
 void WideStrNCopy(const WCHAR *wzin, WCHAR *wzout, const DWORD wzoutMaxLen);
 int WideStrCmp(const WCHAR *wz1, const WCHAR *wz2);
@@ -450,3 +473,8 @@ inline int MultiByteToWideCharNull(
 
 
 char* replace(const char* const original, const char* const pattern, const char* const replacement);
+
+/**
+ * @brief Detect whether the program is running on the Wine compatibility layer
+ */
+bool IsOnWine();

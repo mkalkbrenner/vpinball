@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 PinBinary::PinBinary()
 {
@@ -42,7 +42,7 @@ bool PinBinary::ReadFromFile(const string& szFileName)
    /*foo =*/ CloseHandle(hFile);
 
    m_szPath = szFileName;
-   TitleFromFilename(szFileName, m_szName);
+   m_szName = TitleFromFilename(szFileName);
 
    return true;
 }
@@ -71,7 +71,7 @@ bool PinBinary::WriteToFile(const string& szfilename)
 
 HRESULT PinBinary::SaveToStream(IStream *pstream)
 {
-   BiffWriter bw(pstream, NULL);
+   BiffWriter bw(pstream, 0);
 
    bw.WriteString(FID(NAME), m_szName);
    bw.WriteString(FID(PATH), m_szPath);
@@ -84,7 +84,7 @@ HRESULT PinBinary::SaveToStream(IStream *pstream)
 
 HRESULT PinBinary::LoadFromStream(IStream *pstream, int version)
 {
-   BiffReader br(pstream, this, NULL, version, NULL, NULL);
+   BiffReader br(pstream, this, nullptr, version, 0, 0);
 
    br.Load();
 
@@ -150,7 +150,7 @@ void PinFont::Register()
    static int tempFontNumber = -1;
    tempFontNumber++;
 
-   m_szTempFile = szPath + string("VPTemp") + std::to_string(tempFontNumber) + ".ttf";
+   m_szTempFile = szPath + "VPTemp"s + std::to_string(tempFontNumber) + ".ttf";
    WriteToFile(m_szTempFile);
 
    /*const int fonts =*/ AddFontResource(m_szTempFile.c_str());

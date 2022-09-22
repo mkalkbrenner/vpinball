@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 Timer::Timer()
 {
@@ -23,19 +23,19 @@ HRESULT Timer::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Timer::SetDefaults(bool fromMouseClick)
 {
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Timer", "TimerEnabled", true) : true;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Timer", "TimerInterval", 100) : 100;
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey[RegName::DefaultPropsTimer], "TimerEnabled"s, true) : true;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(regKey[RegName::DefaultPropsTimer], "TimerInterval"s, 100) : 100;
 }
 
 void Timer::WriteRegDefaults()
 {
-   SaveValueBool("DefaultProps\\Timer", "TimerEnabled", m_d.m_tdr.m_TimerEnabled);
-   SaveValueInt("DefaultProps\\Timer", "TimerInterval", m_d.m_tdr.m_TimerInterval);
+   SaveValueBool(regKey[RegName::DefaultPropsTimer], "TimerEnabled"s, m_d.m_tdr.m_TimerEnabled);
+   SaveValueInt(regKey[RegName::DefaultPropsTimer], "TimerInterval"s, m_d.m_tdr.m_TimerInterval);
 }
 
 void Timer::SetObjectPos()
 {
-    m_vpinball->SetObjectPosCur(m_d.m_v.x, m_d.m_v.y);
+   m_vpinball->SetObjectPosCur(m_d.m_v.x, m_d.m_v.y);
 }
 
 void Timer::MoveOffset(const float dx, const float dy)

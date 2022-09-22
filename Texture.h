@@ -1,148 +1,72 @@
 #pragma once
 
-#define MIN_TEXTURE_SIZE 8
+#define MIN_TEXTURE_SIZE 8u
 
 struct FIBITMAP;
 
-// texture stored in main memory in 32bit ARGB uchar format or 96bit RGB float
-class BaseTexture
+// texture stored in main memory in 24/32bit RGB/RGBA uchar format or 48/96bit RGB float
+class BaseTexture final
 {
 public:
    enum Format
-   {
-      RGBA,
-      RGB_FP
+   { // RGB/RGBA formats must be ordered R, G, B (and eventually A)
+      RGB,			// Linear RGB without alpha channel, 1 byte per channel
+      RGBA,			// Linear RGB with alpha channel, 1 byte per channel
+      SRGB,			// sRGB without alpha channel, 1 byte per channel
+      SRGBA,		// sRGB with alpha channel, 1 byte per channel
+      RGB_FP16,		// Linear RGB, 1 half float per channel
+      RGB_FP32		// Linear RGB, 1 float per channel
    };
 
-   BaseTexture()
-      : m_width(0), m_height(0), m_realWidth(0), m_realHeight(0), m_format(RGBA), m_has_alpha(false)
+   BaseTexture(const unsigned int w, const unsigned int h, const Format format)
+      : m_width(w), m_height(h), m_data((format == RGBA || format == SRGBA ? 4 : 3) * (format == RGB_FP32 ? 4 : format == RGB_FP16 ? 2 : 1) * w * h), m_realWidth(w), m_realHeight(h), m_format(format)
    { }
 
-   BaseTexture(const int w, const int h, const Format format, const bool has_alpha)
-      : m_width(w), m_height(h), m_data((format == RGBA ? 4 : 3*4) * (w*h)), m_realWidth(w), m_realHeight(h), m_format(format), m_has_alpha(has_alpha)
-   { }
+   unsigned int width() const  { return m_width; }
+   unsigned int height() const { return m_height; }
+   unsigned int pitch() const  { return (has_alpha() ? 4 : 3) * (m_format == RGB_FP32 ? 4 : m_format == RGB_FP16 ? 2 : 1) * m_width; } // pitch in bytes
+   BYTE* data()                { return m_data.data(); }
+   bool has_alpha() const      { return m_format == RGBA || m_format == SRGBA; }
 
-   int width() const   { return m_width; }
-   int height() const  { return m_height; }
-   int pitch() const   { return (m_format == RGBA ? 4 : 3*4) * m_width; } // pitch in bytes
-   BYTE* data()        { return m_data.data(); }
+   BaseTexture *ToBGRA(); // swap R and B channels, also tonemaps floating point buffers during conversion and adds an opaque alpha channel (if format with missing alpha)
 
 private:
-   int m_width;
-   int m_height;
+   unsigned int m_width, m_height;
+   vector<BYTE> m_data;
 
 public:
-   std::vector<BYTE> m_data;
-   int m_realWidth, m_realHeight;
+   unsigned int m_realWidth, m_realHeight;
    Format m_format;
-   bool m_has_alpha;
 
-   bool Needs_ConvertAlpha_Tonemap() const { return (m_format == RGB_FP) || ((m_format == RGBA) && m_has_alpha); }
-
-   void CopyTo_ConvertAlpha_Tonemap(BYTE* const __restrict bits) const // premultiplies alpha (as Win32 AlphaBlend() wants it like that) OR converts rgb_fp format to 32bits
-   {
-     if(m_format == RGB_FP) // Tonemap for 8bpc-Display
-     {
-        const float * const __restrict src = (float*)m_data.data();
-        unsigned int o = 0;
-        for (int j = 0; j < m_height; ++j)
-			  for (int i = 0; i < m_width; ++i, ++o)
-			  {
-				  const float r = src[o * 3];
-				  const float g = src[o * 3 + 1];
-				  const float b = src[o * 3 + 2];
-				  const float l = r*0.176204f + g*0.812985f + b*0.0108109f;
-				  const float n = (l*(float)(255.*0.25) + 255.0f) / (l + 1.0f); // simple tonemap and scale by 255, overflow is handled by clamp below
-				  ((DWORD*)bits)[o] =  (int)clamp(b*n, 0.f, 255.f)      |
-				                      ((int)clamp(g*n, 0.f, 255.f)<< 8) |
-				                      ((int)clamp(r*n, 0.f, 255.f)<<16) |
-				                      (                     255u  <<24);
-			  }
-      }
-	  else
-	  {
-          if (!m_has_alpha)
-              memcpy(bits, m_data.data(), m_height * pitch());
-          else
-		  if (GetWinVersion() >= 2600) // For everything newer than Windows XP: use the alpha in the bitmap, thus RGB needs to be premultiplied with alpha, due to how AlphaBlend() works
-		  {
-			  unsigned int o = 0;
-			  for (int j = 0; j < m_height; ++j)
-				  for (int i = 0; i < m_width; ++i, ++o)
-				  {
-					  const unsigned int src = ((DWORD*)m_data.data())[o];
-					  const unsigned int alpha = src>>24;
-					  if (alpha == 0) // adds a checkerboard where completely transparent (for the image manager display)
-					  {
-						  const DWORD c = ((((i >> 4) ^ (j >> 4)) & 1) << 7) + 127;
-						  ((DWORD*)bits)[o] = c | (c<<8) | (c<<16) | (0<<24);
-					  }
-					  else if (alpha != 255) // premultiply alpha for win32 AlphaBlend()
-					  {
-						  ((DWORD*)bits)[o] =  (( (src     &0xFF) * alpha) >> 8)      |
-						                      (((((src>> 8)&0xFF) * alpha) >> 8)<< 8) |
-						                      (((((src>>16)&0xFF) * alpha) >> 8)<<16) |
-						                      (                           alpha <<24);
-					  }
-					  else
-						  ((DWORD*)bits)[o] = src;
-				  }
-		  }
-		  else // adds a checkerboard pattern where alpha is set to output bits
-		  {
-			  unsigned int o = 0;
-			  for (int j = 0; j < m_height; ++j)
-				  for (int i = 0; i < m_width; ++i, ++o)
-				  {
-					  const unsigned int src = ((DWORD*)m_data.data())[o];
-					  const unsigned int alpha = src>>24;
-					  if (alpha != 255)
-					  {
-						  const unsigned int c = (((((i >> 4) ^ (j >> 4)) & 1) << 7) + 127) * (255 - alpha);
-						  ((DWORD*)bits)[o] =  (( (src     &0xFF) * alpha + c) >> 8)      |
-						                      (((((src>> 8)&0xFF) * alpha + c) >> 8)<< 8) |
-						                      (((((src>>16)&0xFF) * alpha + c) >> 8)<<16) |
-						                      (                               alpha <<24);
-					  }
-					  else
-						  ((DWORD*)bits)[o] = src;
-				  }
-		  }
-	  }
-   }
-
-   static BaseTexture *CreateFromHBitmap(const HBITMAP hbm);
+   static BaseTexture *CreateFromHBitmap(const HBITMAP hbm, bool with_alpha = true);
    static BaseTexture *CreateFromFile(const string& filename);
-   static BaseTexture *CreateFromFreeImage(FIBITMAP* dib); // also free's/delete's the dib inside!
+   static BaseTexture *CreateFromFreeImage(FIBITMAP *dib, bool resize_on_low_mem); // also free's/delete's the dib inside!
    static BaseTexture *CreateFromData(const void *data, const size_t size);
 };
 
-class Texture : public ILoadable
+class Texture final : public ILoadable
 {
 public:
    Texture();
    Texture(BaseTexture * const base);
-   virtual ~Texture();
+   ~Texture();
 
    // ILoadable callback
-   virtual bool LoadToken(const int id, BiffReader * const pbr);
+   bool LoadToken(const int id, BiffReader * const pbr) final;
 
    HRESULT SaveToStream(IStream *pstream, const PinTable *pt);
-   HRESULT LoadFromStream(IStream *pstream, int version, PinTable *pt);
+   HRESULT LoadFromStream(IStream *pstream, int version, PinTable *pt, bool resize_on_low_mem);
 
    void FreeStuff();
 
    void CreateGDIVersion();
 
-   BaseTexture *CreateFromHBitmap(const HBITMAP hbm);
+   BaseTexture *CreateFromHBitmap(const HBITMAP hbm, bool with_alpha = true);
    void CreateFromResource(const int id);
 
    bool IsHDR() const
    {
-       if (m_pdsBuffer == nullptr)
-           return false;
-       else
-           return (m_pdsBuffer->m_format == BaseTexture::RGB_FP);
+      return m_pdsBuffer != nullptr && (m_pdsBuffer->m_format == BaseTexture::RGB_FP16 || m_pdsBuffer->m_format == BaseTexture::RGB_FP32);
    }
 
    void SetSizeFrom(const BaseTexture* const tex)
@@ -158,14 +82,15 @@ public:
    void ReleaseTextureDC(HDC dc);
 
 private:
+   bool m_resize_on_low_mem;
    bool LoadFromMemory(BYTE * const data, const DWORD size);
 
 public:
 
    // width and height of texture can be different than width and height
    // of m_pdsBuffer, since the surface can be limited to smaller sizes by the user
-   int m_width, m_height;
-   int m_realWidth, m_realHeight;
+   unsigned int m_width, m_height;
+   unsigned int m_realWidth, m_realHeight;
    float m_alphaTestValue;
    BaseTexture* m_pdsBuffer;
 
@@ -178,3 +103,45 @@ public:
 private:
    HBITMAP m_oldHBM;        // this is to cache the result of SelectObject()
 };
+
+template<bool opaque>
+inline void copy_bgra_rgba(unsigned int* const __restrict dst, const unsigned int* const __restrict src, const size_t size)
+{
+    size_t o = 0;
+
+#if defined(_M_IX86) || defined(_M_X64)
+    // align output writes
+    for (; ((reinterpret_cast<size_t>(dst+o) & 15) != 0) && o < size; ++o)
+    {
+       const unsigned int rgba = src[o];
+       unsigned int tmp = (_rotl(rgba, 16) & 0x00FF00FFu) | (rgba & 0xFF00FF00u);
+       if (opaque)
+          tmp |= 0xFF000000u;
+       dst[o] = tmp;
+    }
+
+    const __m128i brMask  = _mm_set1_epi32(0x00FF00FFu);
+    const __m128i alphaFF = _mm_set1_epi32(0xFF000000u);
+    for (; o+3 < size; o+=4)
+    {
+       const __m128i srco = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src+o));
+       __m128i ga = _mm_andnot_si128(brMask, srco);    // mask g and a
+       if (opaque)
+          ga = _mm_or_si128(ga, alphaFF);
+       const __m128i br = _mm_and_si128(brMask, srco); // mask b and r
+       // swap b and r, then or g and a back again
+       const __m128i rb = _mm_shufflehi_epi16(_mm_shufflelo_epi16(br, _MM_SHUFFLE(2, 3, 0, 1)), _MM_SHUFFLE(2, 3, 0, 1));
+       _mm_store_si128(reinterpret_cast<__m128i*>(dst+o), _mm_or_si128(ga, rb));
+    }
+    // leftover writes below
+#endif
+
+    for (; o < size; ++o)
+    {
+       const unsigned int rgba = src[o];
+       unsigned int tmp = (_rotl(rgba, 16) & 0x00FF00FFu) | (rgba & 0xFF00FF00u);
+       if (opaque)
+          tmp |= 0xFF000000u;
+       dst[o] = tmp;
+    }
+}

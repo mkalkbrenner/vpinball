@@ -34,15 +34,12 @@ void MaterialDialog::EnableAllMaterialDialogItems(const BOOL e)
 
 float MaterialDialog::getItemText(int id)
 {
-   const float fv = sz2f(GetDlgItemText(id).c_str());
-   return fv;
+   return sz2f(GetDlgItemText(id).c_str());
 }
 
 void MaterialDialog::setItemText(int id, float value)
 {
-   string textBuf;
-   f2sz(value, textBuf);
-   SetDlgItemText(id, textBuf.c_str());
+   SetDlgItemText(id, f2sz(value).c_str());
 }
 
 MaterialDialog::MaterialDialog() : CDialog(IDD_MATERIALDIALOG)
@@ -62,54 +59,54 @@ BOOL MaterialDialog::OnInitDialog()
    AttachItem(IDC_COLOR_BUTTON3, m_colorButton3);
 
    m_resizer.Initialize(*this, CRect(0, 0, 780, 520));
-   m_resizer.AddChild(m_hMaterialList, topleft, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
-   m_resizer.AddChild(GetDlgItem(IDC_DIFFUSE_CHECK).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_BASE_COLOR).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_GLOSSY_LAYER).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_CLEARCOAR_LAYER).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_OPACITY).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHYSICS).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_COLOR_BUTTON1).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_COLOR_BUTTON2).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_COLOR_BUTTON3).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_WRAP).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_DIFFUSE_EDIT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_WRAP_TEXT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_GLOSSY_TEXT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_SHININESS).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_GLOSSY_IMGLERP).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_THICKNESS).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_THICKNESS_TEXT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_GLOSSY_EDIT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_GLOSSY_IMGLERP_EDIT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_THICKNESS_EDIT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_SHININESS_TEXT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_CLEARCOAT_TEXT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_EDGE_BRIGHTNESS).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_SPECULAR_EDIT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_BRIGHTNESS_TEXT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_AMOUNT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_OPACITY_EDIT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_OPACITY_CHECK).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_EDGE_OPACITY).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_EDGEALPHA_EDIT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_EDGE_OPACITY_TEXT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHY_ELASTICITY).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_MAT_ELASTICITY).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHY_ELASTICITY_FALLOFF).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_MAT_ELASTICITY_FALLOFF).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHY_FRICTION).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_MAT_FRICTION).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHY_SCATTER_ANGLE).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_MAT_SCATTER_ANGLE).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_ADD_BUTTON).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_CLONE_BUTTON).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_IMPORT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_EXPORT).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_RENAME).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDC_DELETE_MATERIAL).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDOK).GetHwnd(), topright, 0);
-   m_resizer.AddChild(GetDlgItem(IDCANCEL).GetHwnd(), topright, 0);
+   m_resizer.AddChild(m_hMaterialList, CResizer::topleft, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
+   m_resizer.AddChild(GetDlgItem(IDC_DIFFUSE_CHECK).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_BASE_COLOR).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_GLOSSY_LAYER).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_CLEARCOAR_LAYER).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_OPACITY).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHYSICS).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_COLOR_BUTTON1).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_COLOR_BUTTON2).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_COLOR_BUTTON3).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_WRAP).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_DIFFUSE_EDIT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_WRAP_TEXT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_GLOSSY_TEXT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_SHININESS).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_GLOSSY_IMGLERP).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_THICKNESS).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_THICKNESS_TEXT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_GLOSSY_EDIT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_GLOSSY_IMGLERP_EDIT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_THICKNESS_EDIT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_SHININESS_TEXT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_CLEARCOAT_TEXT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_EDGE_BRIGHTNESS).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_SPECULAR_EDIT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_BRIGHTNESS_TEXT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_AMOUNT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_OPACITY_EDIT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_OPACITY_CHECK).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_EDGE_OPACITY).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_EDGEALPHA_EDIT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_EDGE_OPACITY_TEXT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHY_ELASTICITY).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_MAT_ELASTICITY).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHY_ELASTICITY_FALLOFF).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_MAT_ELASTICITY_FALLOFF).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHY_FRICTION).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_MAT_FRICTION).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_STATIC_PHY_SCATTER_ANGLE).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_MAT_SCATTER_ANGLE).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_ADD_BUTTON).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_CLONE_BUTTON).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_IMPORT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_EXPORT).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_RENAME).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDC_DELETE_MATERIAL).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDOK).GetHwnd(), CResizer::topright, 0);
+   m_resizer.AddChild(GetDlgItem(IDCANCEL).GetHwnd(), CResizer::topright, 0);
 
    LoadPosition();
    ListView_SetExtendedListViewStyle(m_hMaterialList, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
@@ -128,7 +125,7 @@ BOOL MaterialDialog::OnInitDialog()
    pt->ListMaterials(m_hMaterialList);
 
    ListView_SetItemState(m_hMaterialList, 0, LVIS_SELECTED, LVIS_SELECTED)
-   
+
    return TRUE;
 }
 
@@ -304,13 +301,12 @@ BOOL MaterialDialog::OnCommand(WPARAM wParam, LPARAM lParam)
       }
       case IDC_IMPORT:
       {
-         std::vector<std::string> szFilename;
          string szInitialDir;
-
-         const HRESULT hr = LoadValue("RecentDir", "MaterialDir", szInitialDir);
+         const HRESULT hr = LoadValue(regKey[RegName::RecentDir], "MaterialDir"s, szInitialDir);
          if (hr != S_OK)
             szInitialDir = "c:\\Visual Pinball\\Tables\\";
 
+         vector<string> szFilename;
          if (g_pvp->OpenFileDialog(szInitialDir, szFilename, "Material Files (.mat)\0*.mat\0", "mat", 0))
          {
             int materialCount = 0;
@@ -346,8 +342,8 @@ BOOL MaterialDialog::OnCommand(WPARAM wParam, LPARAM lParam)
             fclose(f);
 
             const size_t index = szFilename[0].find_last_of('\\');
-            if (index != std::string::npos)
-               SaveValue("RecentDir", "MaterialDir", szFilename[0].substr(0, index));
+            if (index != string::npos)
+               SaveValue(regKey[RegName::RecentDir], "MaterialDir"s, szFilename[0].substr(0, index));
 
             pt->SetNonUndoableDirty(eSaveDirty);
          }
@@ -374,8 +370,7 @@ BOOL MaterialDialog::OnCommand(WPARAM wParam, LPARAM lParam)
 
             char szFileName[MAXSTRING];
             strncpy_s(szFileName, "Materials.mat", sizeof(szFileName)-1);
-            OPENFILENAME ofn;
-            ZeroMemory(&ofn, sizeof(OPENFILENAME));
+            OPENFILENAME ofn = {};
             ofn.lStructSize = sizeof(OPENFILENAME);
             ofn.hInstance = g_pvp->theInstance;
             ofn.hwndOwner = g_pvp->GetHwnd();
@@ -386,7 +381,7 @@ BOOL MaterialDialog::OnCommand(WPARAM wParam, LPARAM lParam)
             ofn.lpstrDefExt = "mat";
 
             string szInitialDir;
-            const HRESULT hr = LoadValue("RecentDir", "MaterialDir", szInitialDir);
+            const HRESULT hr = LoadValue(regKey[RegName::RecentDir], "MaterialDir"s, szInitialDir);
             if (hr != S_OK)
                szInitialDir = "c:\\Visual Pinball\\Tables\\";
 
@@ -436,10 +431,10 @@ BOOL MaterialDialog::OnCommand(WPARAM wParam, LPARAM lParam)
 
                const string szFilename(ofn.lpstrFile);
                const size_t index = szFilename.find_last_of('\\');
-               if (index != std::string::npos)
+               if (index != string::npos)
                {
-                   const std::string newInitDir(szFilename.substr(0, index));
-                   SaveValue("RecentDir", "MaterialDir", newInitDir);
+                   const string newInitDir(szFilename.substr(0, index));
+                   SaveValue(regKey[RegName::RecentDir], "MaterialDir"s, newInitDir);
                }
             }
          }
@@ -553,7 +548,7 @@ INT_PTR MaterialDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
                   int suffix = 1;
                   do
                   {
-                     sprintf_s(textBuf, "%s%i", pinfo->item.pszText, suffix);
+                     sprintf_s(textBuf, sizeof(textBuf), "%s%i", pinfo->item.pszText, suffix);
                      suffix++;
                   } while (!pt->IsMaterialNameUnique(textBuf));
                   pmat->m_szName = textBuf;
@@ -848,11 +843,11 @@ void MaterialDialog::OnClose()
 
 void MaterialDialog::LoadPosition()
 {
-    const int x = LoadValueIntWithDefault("Editor", "MaterialMngPosX", 0);
-    const int y = LoadValueIntWithDefault("Editor", "MaterialMngPosY", 0);
+    const int x = LoadValueIntWithDefault(regKey[RegName::Editor], "MaterialMngPosX"s, 0);
+    const int y = LoadValueIntWithDefault(regKey[RegName::Editor], "MaterialMngPosY"s, 0);
 
-    const int w = LoadValueIntWithDefault("Editor", "MaterialMngWidth", 1000);
-    const int h = LoadValueIntWithDefault("Editor", "MaterialMngHeight", 800);
+    const int w = LoadValueIntWithDefault(regKey[RegName::Editor], "MaterialMngWidth"s, 1000);
+    const int h = LoadValueIntWithDefault(regKey[RegName::Editor], "MaterialMngHeight"s, 800);
     SetWindowPos(nullptr, x, y, w, h, SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
@@ -860,10 +855,10 @@ void MaterialDialog::SavePosition()
 {
     const CRect rect = GetWindowRect();
 
-    SaveValueInt("Editor", "MaterialMngPosX", rect.left);
-    SaveValueInt("Editor", "MaterialMngPosY", rect.top);
+    SaveValueInt(regKey[RegName::Editor], "MaterialMngPosX"s, rect.left);
+    SaveValueInt(regKey[RegName::Editor], "MaterialMngPosY"s, rect.top);
     const int w = rect.right - rect.left;
-    SaveValueInt("Editor", "MaterialMngWidth", w);
+    SaveValueInt(regKey[RegName::Editor], "MaterialMngWidth"s, w);
     const int h = rect.bottom - rect.top;
-    SaveValueInt("Editor", "MaterialMngHeight", h);
+    SaveValueInt(regKey[RegName::Editor], "MaterialMngHeight"s, h);
 }

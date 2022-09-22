@@ -6,9 +6,9 @@
 #define AFX_PRIMITIVE_H__31CD2D6B_9BDD_4B1B_BC62_B9DE588A0CAA__INCLUDED_
 
 #include "resource.h"
-#include <set>
+#include <inc/robin_hood.h>
 
-class Mesh
+class Mesh final
 {
 public:
    Vertex3Ds middlePoint;
@@ -19,12 +19,12 @@ public:
    };
    struct FrameData
    {
-      std::vector<VertData> m_frameVerts;
+      vector<VertData> m_frameVerts;
    };
 
-   std::vector<FrameData> m_animationFrames;
-   std::vector<Vertex3D_NoTex2> m_vertices;
-   std::vector<unsigned int> m_indices;
+   vector<FrameData> m_animationFrames;
+   vector<Vertex3D_NoTex2> m_vertices;
+   vector<unsigned int> m_indices;
 
    Mesh() { middlePoint.x = 0.0f; middlePoint.y = 0.0f; middlePoint.z = 0.0f; }
    void Clear();
@@ -48,7 +48,7 @@ public:
 //  ObjRotY = 7
 //  ObjRotZ = 8
 
-class PrimitiveData : public BaseProperty
+class PrimitiveData final : public BaseProperty
 {
 public:
    int m_Sides;
@@ -75,6 +75,10 @@ public:
    bool m_use3DMesh;
    bool m_drawTexturesInside;
    bool m_staticRendering;
+
+   bool m_addBlend;
+   COLORREF m_color;
+   float m_alpha;
 
    bool m_toy;
    bool m_skipRendering;
@@ -223,6 +227,13 @@ public:
    STDMETHOD(get_ObjectSpaceNormalMap)(/*[out, retval]*/ VARIANT_BOOL *pVal);
    STDMETHOD(put_ObjectSpaceNormalMap)(/*[in]*/ VARIANT_BOOL newVal);
 
+   STDMETHOD(get_AddBlend)(/*[out, retval]*/ VARIANT_BOOL *pVal);
+   STDMETHOD(put_AddBlend)(/*[in]*/ VARIANT_BOOL newVal);
+   STDMETHOD(get_Opacity)(/*[out, retval]*/ float *pVal);
+   STDMETHOD(put_Opacity)(/*[in]*/ float newVal);
+   STDMETHOD(get_Color)(/*[out, retval]*/ OLE_COLOR *pVal);
+   STDMETHOD(put_Color)(/*[in]*/ OLE_COLOR newVal);
+
    Primitive();
    virtual ~Primitive();
 
@@ -247,30 +258,33 @@ public:
 
    DECLARE_REGISTRY_RESOURCEID(IDR_PRIMITIVE)
 
-   virtual void MoveOffset(const float dx, const float dy);
-   virtual void SetObjectPos();
+   void MoveOffset(const float dx, const float dy) final;
+   void SetObjectPos() final;
    // Multi-object manipulation
-   virtual Vertex2D GetCenter() const;
-   virtual void PutCenter(const Vertex2D& pv);
+   Vertex2D GetCenter() const final;
+   void PutCenter(const Vertex2D &pv) final;
 
-   //STDMETHOD(get_Name)(BSTR *pVal) {return E_FAIL;}
+   //STDMETHOD(get_Name)(BSTR *pVal) final {return E_FAIL;}
 
    //virtual HRESULT InitVBA(BOOL fNew, int id, WCHAR * const wzName);
-   virtual void WriteRegDefaults();
+   void WriteRegDefaults() final;
 
-   virtual bool LoadMeshDialog();
-   virtual void ExportMeshDialog();
+   bool LoadMeshDialog() final;
+   void ExportMeshDialog() final;
 
-   virtual bool IsTransparent() const;
-   virtual float GetDepth(const Vertex3Ds& viewDir) const;
-   virtual unsigned long long GetMaterialID() const { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
-   virtual unsigned long long GetImageID() const { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemPrimitive; }
+   float GetAlpha() const { return m_d.m_alpha; }
+   void SetAlpha(const float value) { m_d.m_alpha = max(value, 0.f); }
 
-   virtual void SetDefaultPhysics(bool fromMouseClick);
-   virtual void ExportMesh(ObjLoader& loader);
-   virtual void RenderBlueprint(Sur *psur, const bool solid);
-   virtual void UpdateStatusBarInfo();
+   bool IsTransparent() const final;
+   float GetDepth(const Vertex3Ds &viewDir) const final;
+   unsigned long long GetMaterialID() const final { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
+   unsigned long long GetImageID() const final { return (unsigned long long)(m_ptable->GetImage(m_d.m_szImage)); }
+   ItemTypeEnum HitableGetItemType() const final { return eItemPrimitive; }
+
+   void SetDefaultPhysics(bool fromMouseClick) final;
+   void ExportMesh(ObjLoader &loader) final;
+   void RenderBlueprint(Sur *psur, const bool solid) final;
+   void UpdateStatusBarInfo() final;
 
    void CreateRenderGroup(const Collection * const collection);
    void RecalculateMatrices();
@@ -309,7 +323,7 @@ private:
 
    bool BrowseFor3DMeshFile();
    void SetupHitObject(vector<HitObject*> &pvho, HitObject * obj);
-   void AddHitEdge(vector<HitObject*> &pvho, std::set< std::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j, const Vertex3Ds &vi, const Vertex3Ds &vj);
+   void AddHitEdge(vector<HitObject*> &pvho, robin_hood::unordered_set< robin_hood::pair<unsigned, unsigned> >& addedEdges, const unsigned i, const unsigned j, const Vertex3Ds &vi, const Vertex3Ds &vj);
 
    void CalculateBuiltinOriginal();
    void WaitForMeshDecompression();
@@ -318,7 +332,7 @@ private:
    PropertyPane *m_propPosition;
    PropertyPane *m_propPhysics;
 
-   std::vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
+   vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
 
    //!! outdated(?) information (along with the variable decls) for the old builtin primitive code, kept for reference:
 
@@ -362,8 +376,8 @@ private:
    // = nothing...
 
    // Vertices for editor display & hit shape
-   std::vector<Vertex3Ds> m_vertices;
-   std::vector<float> m_normals; // only z component actually
+   vector<Vertex3Ds> m_vertices;
+   vector<float> m_normals; // only z component actually
 
    VertexBuffer *m_vertexBuffer;
    IndexBuffer *m_indexBuffer;

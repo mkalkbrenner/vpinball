@@ -10,7 +10,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // LightSeq
 
-class LightSeqData
+class LightSeqData final
 {
 public:
    Vertex2D      m_v;
@@ -44,21 +44,21 @@ enum {
 };
 
 struct _tracer {
-   int		type;				// type of tracer processing required
-   int		delay;
-   int		length;
-   int		frameCount;
-   float	x;					// current grid coordinates
-   float	stepX;				// step to next grid coordinate for the next frame
-   float	processStepX;		// step to next grid coordinate for processing this frame
-   float	y;
-   float	stepY;
-   float	processStepY;
-   float	radius;
-   float	stepRadius;
-   bool		processRadiusNeg;
-   float	angle;
-   float	stepAngle;
+   int   type;         // type of tracer processing required
+   int   delay;
+   int   length;
+   int   frameCount;
+   float x;            // current grid coordinates
+   float stepX;        // step to next grid coordinate for the next frame
+   float processStepX; // step to next grid coordinate for processing this frame
+   float y;
+   float stepY;
+   float processStepY;
+   float radius;
+   float stepRadius;
+   bool  processRadiusNeg;
+   float angle;
+   float stepAngle;
 };
 
 class LightSeq :
@@ -99,47 +99,48 @@ public:
    END_CONNECTION_POINT_MAP()
 
    void RenderOutline(Sur * const psur);
-   virtual void MoveOffset(const float dx, const float dy);
-   virtual void SetObjectPos();
+
+   void MoveOffset(const float dx, const float dy) final;
+   void SetObjectPos() final;
    // Multi-object manipulation
-   virtual Vertex2D GetCenter() const;
-   virtual void PutCenter(const Vertex2D& pv);
+   Vertex2D GetCenter() const final;
+   void PutCenter(const Vertex2D& pv) final;
 
-   virtual void RenderBlueprint(Sur *psur, const bool solid);
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemLightSeq; }
+   void RenderBlueprint(Sur *psur, const bool solid) final;
+   ItemTypeEnum HitableGetItemType() const final { return eItemLightSeq; }
 
-   virtual void WriteRegDefaults();
+   void WriteRegDefaults() final;
 
    STANDARD_EDITABLE_DECLARES(LightSeq, eItemLightSeq, LIGHTSEQ, 3)
 
-      //DECLARE_NOT_AGGREGATABLE(LightSeq)
-      // Remove the comment from the line above if you don't want your object to
-      // support aggregation.
+   //DECLARE_NOT_AGGREGATABLE(LightSeq)
+   // Remove the comment from the line above if you don't want your object to
+   // support aggregation.
 
-      DECLARE_REGISTRY_RESOURCEID(IDR_LIGHT_SEQ)
+   DECLARE_REGISTRY_RESOURCEID(IDR_LIGHT_SEQ)
    // ISupportsErrorInfo
    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid);
 
 private:
-   U32				m_timeNextUpdate;
-   int				m_blinkSequence;
-   float			m_GridXCenter;
-   float			m_GridYCenter;
-   int				m_lightSeqGridHeight;
-   int				m_lightSeqGridWidth;
-   int				m_GridXCenterAdjust;
-   int				m_GridYCenterAdjust;
-   _tracer			m_th1, m_th2, m_tt1, m_tt2;
-   Collection		*m_pcollection;
-   short			*m_pgridData;
-   LightSeqQueue	m_queue;
-   SequencerState	m_playAnimation;
-   long			m_tailLength;
-   long			m_pauseValue;
-   long			m_replayCount;
-   long			m_updateRate;
-   bool			m_playInProgress;
-   bool			m_pauseInProgress;
+   U32            m_timeNextUpdate;
+   int            m_blinkSequence;
+   float          m_GridXCenter;
+   float          m_GridYCenter;
+   int            m_lightSeqGridHeight;
+   int            m_lightSeqGridWidth;
+   int            m_GridXCenterAdjust;
+   int            m_GridYCenterAdjust;
+   _tracer        m_th1, m_th2, m_tt1, m_tt2;
+   Collection     *m_pcollection;
+   short          *m_pgridData;
+   LightSeqQueue  m_queue;
+   SequencerState m_playAnimation;
+   long           m_tailLength;
+   long           m_pauseValue;
+   long           m_replayCount;
+   long           m_updateRate;
+   bool           m_playInProgress;
+   bool           m_pauseInProgress;
 
    // ILightSeq
 public:
@@ -183,10 +184,10 @@ public:
 
    void     Animate();
 
-   class LightSeqAnimObject : public AnimObject
+   class LightSeqAnimObject final : public AnimObject
    {
    public:
-      virtual void Animate() { m_pLightSeq->Animate(); } // this function is called every frame to animate the object/light sequence
+      void Animate() final { m_pLightSeq->Animate(); } // this function is called every frame to animate the object/light sequence
 
       LightSeq *m_pLightSeq;
    } m_lightseqanim;
@@ -194,7 +195,7 @@ public:
    LightSeqData m_d;
 
 private:
-   PinTable     *m_ptable;
+   PinTable *m_ptable;
 
    void     SetupTracers(const SequencerState Animation, long TailLength, long Repeat, long Pause);
    bool     ProcessTracer(_tracer * const pTracer, const LightState State);

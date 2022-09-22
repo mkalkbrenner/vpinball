@@ -7,7 +7,7 @@
 
 #include "resource.h"       // main symbols
 
-class FlasherData
+class FlasherData final
 {
 public:
    Vertex2D m_vCenter;
@@ -75,31 +75,31 @@ public:
    // ISupportsErrorInfo
    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid);
 
-   virtual void ClearForOverwrite();
+   void ClearForOverwrite() final;
 
-   virtual void RenderBlueprint(Sur *psur, const bool solid);
+   void RenderBlueprint(Sur *psur, const bool solid) final;
 
-   virtual void FlipY(const Vertex2D& pvCenter);
-   virtual void FlipX(const Vertex2D& pvCenter);
-   virtual void Rotate(const float ang, const Vertex2D& pvCenter, const bool useElementCenter);
-   virtual void Scale(const float scalex, const float scaley, const Vertex2D& pvCenter, const bool useElementCenter);
-   virtual void Translate(const Vertex2D &pvOffset);
-   virtual void MoveOffset(const float dx, const float dy);
-   virtual void SetObjectPos();
+   void FlipY(const Vertex2D& pvCenter) final;
+   void FlipX(const Vertex2D& pvCenter) final;
+   void Rotate(const float ang, const Vertex2D &pvCenter, const bool useElementCenter) final;
+   void Scale(const float scalex, const float scaley, const Vertex2D &pvCenter, const bool useElementCenter) final;
+   void Translate(const Vertex2D &pvOffset) final;
+   void MoveOffset(const float dx, const float dy) final;
+   void SetObjectPos() final;
 
-   virtual int GetMinimumPoints() const { return 2; }
+   int GetMinimumPoints() const final { return 2; }
 
-   virtual Vertex2D GetCenter() const { return m_d.m_vCenter; }
-   virtual void PutCenter(const Vertex2D& pv) { m_d.m_vCenter = pv; }
-   virtual void DoCommand(int icmd, int x, int y);
+   Vertex2D GetCenter() const final { return m_d.m_vCenter; }
+   void PutCenter(const Vertex2D& pv) final { m_d.m_vCenter = pv; }
+   void DoCommand(int icmd, int x, int y) final;
 
-   virtual bool IsTransparent() const { return !m_d.m_isDMD; }
-   virtual float GetDepth(const Vertex3Ds& viewDir) const
+   bool IsTransparent() const final { return !m_d.m_isDMD; }
+   float GetDepth(const Vertex3Ds& viewDir) const final
    {
       return m_d.m_depthBias + viewDir.x * m_d.m_vCenter.x + viewDir.y * m_d.m_vCenter.y + viewDir.z * m_d.m_height;
    }
-   virtual unsigned long long GetMaterialID() const { return 64-1; } //!! some constant number
-   virtual unsigned long long GetImageID() const
+   unsigned long long GetMaterialID() const final { return 64-1; } //!! some constant number
+   unsigned long long GetImageID() const final
    {
       Texture * const pinA = m_ptable->GetImage(m_d.m_szImageA);
       Texture * const pinB = m_ptable->GetImage(m_d.m_szImageB);
@@ -110,12 +110,12 @@ public:
          tex = pinB;
       return (unsigned long long)tex;
    }
-   virtual bool IsDMD() const { return m_d.m_isDMD; }
-   virtual ItemTypeEnum HitableGetItemType() const { return eItemFlasher; }
+   bool IsDMD() const final { return m_d.m_isDMD; }
+   ItemTypeEnum HitableGetItemType() const final { return eItemFlasher; }
 
-   virtual void WriteRegDefaults();
+   void WriteRegDefaults() final;
 
-   long GetAlpha(void) const
+   long GetAlpha() const
    {
       return m_d.m_alpha;
    }
@@ -123,7 +123,7 @@ public:
    {
       m_d.m_alpha = max(value,(long)0);
    }
-   long GetFilterAmount(void) const
+   long GetFilterAmount() const
    {
       return m_d.m_filterAmount;
    }
@@ -132,7 +132,7 @@ public:
       m_d.m_filterAmount = max(value,(long)0);
    }
 
-   BaseTexture* GetVideoCap(const std::string& szName);
+   //BaseTexture* GetVideoCap(const string& szName);
 
    void setInPlayState(const bool newVal);
 

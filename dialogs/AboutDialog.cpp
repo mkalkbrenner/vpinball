@@ -24,7 +24,7 @@ INT_PTR AboutDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
       {
          const HWND hwndDlg = GetHwnd();
          char versionString[256];
-         sprintf_s(versionString, "Version %i.%i.%i Final (Revision %i (%s), %ubit)", VP_VERSION_MAJOR,VP_VERSION_MINOR,VP_VERSION_REV, GIT_REVISION, GIT_SHA,
+         sprintf_s(versionString, sizeof(versionString), "Version %i.%i.%i Final (Revision %i (%s), %ubit)", VP_VERSION_MAJOR,VP_VERSION_MINOR,VP_VERSION_REV, GIT_REVISION, GIT_SHA,
 #ifdef _WIN64
             64u
 #else
@@ -37,8 +37,7 @@ INT_PTR AboutDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
             std::ifstream file(g_pvp->m_szMyPath + "Changelog.txt");
             if (!file.is_open())
                file = std::ifstream(g_pvp->m_szMyPath + "Doc\\Changelog.txt");
-            std::string line;
-            std::string text;
+            string line, text;
             while (std::getline(file, line))
             {
                line += "\r\n";
@@ -79,11 +78,10 @@ BOOL AboutDialog::OnCommand(WPARAM wParam, LPARAM lParam)
       case IDC_TRANSSITE:
       {
          if (LOWORD(wParam) == IDC_WEBSITE)
-            /*const HRESULT hr =*/ OpenURL("http://www.vpforums.org");
+            /*const HRESULT hr =*/ OpenURL("http://www.vpforums.org"s);
          else
          {
-            const LPCTSTR szSite = GetDlgItem(IDC_TRANSWEBSITE).GetWindowText();
-            m_urlString = szSite;
+            m_urlString = GetDlgItem(IDC_TRANSWEBSITE).GetWindowText().c_str();
             /*const HRESULT hr =*/ OpenURL(m_urlString);
          }
          return TRUE;

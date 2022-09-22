@@ -7,10 +7,10 @@
 
 enum WordType { eUnknown, eClass, eSub, eFunction, ePropGet, ePropLet, ePropSet, eDim, eConst };
 
-class UserData
+class UserData final
 {
 public:
-   string m_uniqueKey;
+   string m_uniqueKey;        // always lower case
    int m_lineNum;             // Line No. Declaration
    string m_keyName;          // Name
    WordType eTyping;
@@ -21,21 +21,11 @@ public:
 
    UserData();
    UserData(const int LineNo, const string &Desc, const string &Name, const WordType TypeIn);
-   ~UserData();
-
-   bool FindOrInsertStringIntoAutolist(vector<string>* ListIn, const string &strIn);
-   size_t FindOrInsertUD(vector<UserData>* ListIn, const UserData& udIn);
-   int FindUD(vector<UserData>* ListIn, string &strIn, vector<UserData>::iterator& UDiterOut, int &Pos);
-   int FindClosestUD(const vector<UserData>* ListIn, const int CurrentLine, const int CurrentIdx);
-   int FindUDbyKey(vector<UserData>* ListIn, const string &strIn, vector<UserData>::iterator& UDiterOut, int &PosOut);
-   int UDKeyIndex(vector<UserData>* ListIn, const string &strIn);
-   int UDIndex(vector<UserData>* ListIn, const string &strIn);
-   UserData GetUDfromUniqueKey(const vector<UserData>* ListIn, const string &UniKey);
-   size_t GetUDPointerfromUniqueKey(const vector<UserData>* ListIn, const string &UniKey);
+   ~UserData() {}
 };
 
-// CodeViewer Preferences 
-class CVPrefrence
+// CodeViewer Preferences
+class CVPreference
 {
 public:
    LOGFONT m_logFont;
@@ -47,18 +37,16 @@ public:
    int IDC_Font_code;
 
 private:
-   string szControlName; //!! unused
-   string szRegName;
+   string m_szRegName;
    bool m_highlight;
 
 public:
-   CVPrefrence();
-   CVPrefrence* FillCVPreference(
-      const string& szCtrlNameIn, const COLORREF crTextColor,
+   CVPreference(
+      const COLORREF crTextColor,
       const bool bDisplay, const string& szRegistryName,
       const int szScintillaKeyword, const int IDC_ChkBox,
       const int IDC_ColorBut, const int IDC_Font);
-   ~CVPrefrence();
+   ~CVPreference() {}
 
    void GetPrefsFromReg();
    void SetPrefsToReg();
@@ -66,5 +54,5 @@ public:
    void ReadCheckBox(const HWND hwndDlg);
    void SetDefaultFont(const HWND hwndDlg);
    int GetHeightFromPointSize(const HWND hwndDlg);
-   void ApplyPreferences(const HWND hwndScin, const CVPrefrence* DefaultPref);
+   void ApplyPreferences(const HWND hwndScin, const CVPreference* DefaultPref);
 };

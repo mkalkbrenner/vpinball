@@ -1,46 +1,33 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "objloader.h"
 #include "meshes/spinnerBracketMesh.h"
 #include "meshes/spinnerPlateMesh.h"
+#include "Shader.h"
+#include "IndexBuffer.h"
+#include "VertexBuffer.h"
 
 Spinner::Spinner()
 {
    m_phitspinner = nullptr;
-   m_bracketVertexBuffer = 0;
-   m_bracketIndexBuffer = 0;
-   m_plateVertexBuffer = 0;
-   m_plateIndexBuffer = 0;
+   m_bracketVertexBuffer = nullptr;
+   m_bracketIndexBuffer = nullptr;
+   m_plateVertexBuffer = nullptr;
+   m_plateIndexBuffer = nullptr;
    m_vertexBuffer_spinneranimangle = -FLT_MAX;
 }
 
 Spinner::~Spinner()
 {
-   if (m_bracketVertexBuffer)
-   {
-      m_bracketVertexBuffer->release();
-      m_bracketVertexBuffer = 0;
-   }
-   if (m_bracketIndexBuffer)
-   {
-      m_bracketIndexBuffer->release();
-      m_bracketIndexBuffer = 0;
-   }
-   if (m_plateVertexBuffer)
-   {
-      m_plateVertexBuffer->release();
-      m_plateVertexBuffer = 0;
-   }
-   if (m_plateIndexBuffer)
-   {
-      m_plateIndexBuffer->release();
-      m_plateIndexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_bracketVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_bracketIndexBuffer);
+   SAFE_BUFFER_RELEASE(m_plateVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_plateIndexBuffer);
 }
 
 void Spinner::UpdateStatusBarInfo()
 {
    char tbuf[128];
-   sprintf_s(tbuf, "Length: %.3f | Height: %.3f", m_vpinball->ConvertToUnit(m_d.m_length), m_vpinball->ConvertToUnit(m_d.m_height));
+   sprintf_s(tbuf, sizeof(tbuf), "Length: %.3f | Height: %.3f", m_vpinball->ConvertToUnit(m_d.m_length), m_vpinball->ConvertToUnit(m_d.m_height));
    m_vpinball->SetStatusBarUnitInfo(tbuf, true);
 }
 
@@ -116,46 +103,54 @@ HRESULT Spinner::Init(PinTable *ptable, float x, float y, bool fromMouseClick)
 
 void Spinner::WriteRegDefaults()
 {
-   SaveValueFloat("DefaultProps\\Spinner", "Length", m_d.m_length);
-   SaveValueFloat("DefaultProps\\Spinner", "Rotation", m_d.m_rotation);
-   SaveValueBool("DefaultProps\\Spinner", "ShowBracket", m_d.m_showBracket);
-   SaveValueFloat("DefaultProps\\Spinner", "Height", m_d.m_height);
-   SaveValueFloat("DefaultProps\\Spinner", "AngleMax", m_d.m_angleMax);
-   SaveValueFloat("DefaultProps\\Spinner", "AngleMin", m_d.m_angleMin);
-   SaveValueFloat("DefaultProps\\Spinner", "Elasticity", m_d.m_elasticity);
-   SaveValueFloat("DefaultProps\\Spinner", "AntiFriction", m_d.m_damping);
-   SaveValueFloat("DefaultProps\\Spinner", "Scatter", m_d.m_scatter);
-   SaveValueBool("DefaultProps\\Spinner", "Visible", m_d.m_visible);
-   SaveValueBool("DefaultProps\\Spinner", "TimerEnabled", m_d.m_tdr.m_TimerEnabled);
-   SaveValueInt("DefaultProps\\Spinner", "TimerInterval", m_d.m_tdr.m_TimerInterval);
-   SaveValue("DefaultProps\\Spinner", "Image", m_d.m_szImage);
-   SaveValue("DefaultProps\\Spinner", "Surface", m_d.m_szSurface);
-   SaveValueBool("DefaultProps\\Spinner", "ReflectionEnabled", m_d.m_reflectionEnabled);
+#define regKey regKey[RegName::DefaultPropsSpinner]
+
+   SaveValueFloat(regKey, "Length"s, m_d.m_length);
+   SaveValueFloat(regKey, "Rotation"s, m_d.m_rotation);
+   SaveValueBool(regKey, "ShowBracket"s, m_d.m_showBracket);
+   SaveValueFloat(regKey, "Height"s, m_d.m_height);
+   SaveValueFloat(regKey, "AngleMax"s, m_d.m_angleMax);
+   SaveValueFloat(regKey, "AngleMin"s, m_d.m_angleMin);
+   SaveValueFloat(regKey, "Elasticity"s, m_d.m_elasticity);
+   SaveValueFloat(regKey, "AntiFriction"s, m_d.m_damping);
+   SaveValueFloat(regKey, "Scatter"s, m_d.m_scatter);
+   SaveValueBool(regKey, "Visible"s, m_d.m_visible);
+   SaveValueBool(regKey, "TimerEnabled"s, m_d.m_tdr.m_TimerEnabled);
+   SaveValueInt(regKey, "TimerInterval"s, m_d.m_tdr.m_TimerInterval);
+   SaveValue(regKey, "Image"s, m_d.m_szImage);
+   SaveValue(regKey, "Surface"s, m_d.m_szSurface);
+   SaveValueBool(regKey, "ReflectionEnabled"s, m_d.m_reflectionEnabled);
+
+#undef regKey
 }
 
 void Spinner::SetDefaults(bool fromMouseClick)
 {
-   m_d.m_length = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Spinner", "Length", 80.f) : 80.f;
-   m_d.m_rotation = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Spinner", "Rotation", 0.f) : 0.f;
-   m_d.m_showBracket = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Spinner", "ShowBracket", true) : true;
-   m_d.m_height = (float)(fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Spinner", "Height", 60000) : 60000) / 1000.0f;
+#define regKey regKey[RegName::DefaultPropsSpinner]
+
+   m_d.m_length = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Length"s, 80.f) : 80.f;
+   m_d.m_rotation = fromMouseClick ? LoadValueFloatWithDefault(regKey, "Rotation"s, 0.f) : 0.f;
+   m_d.m_showBracket = fromMouseClick ? LoadValueBoolWithDefault(regKey, "ShowBracket"s, true) : true;
+   m_d.m_height = (float)(fromMouseClick ? LoadValueIntWithDefault(regKey, "Height"s, 60000) : 60000) / 1000.0f;
 
    SetDefaultPhysics(fromMouseClick);
 
-   m_d.m_angleMax = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Spinner", "AngleMax", 0.f) : 0.f;
-   m_d.m_angleMin = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Spinner", "AngleMin", 0.f) : 0.f;
-   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Spinner", "Visible", true) : true;
-   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Spinner", "ReflectionEnabled", true) : true;
-   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault("DefaultProps\\Spinner", "TimerEnabled", false) : false;
-   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault("DefaultProps\\Spinner", "TimerInterval", 100) : 100;
+   m_d.m_angleMax = fromMouseClick ? LoadValueFloatWithDefault(regKey, "AngleMax"s, 0.f) : 0.f;
+   m_d.m_angleMin = fromMouseClick ? LoadValueFloatWithDefault(regKey, "AngleMin"s, 0.f) : 0.f;
+   m_d.m_visible = fromMouseClick ? LoadValueBoolWithDefault(regKey, "Visible"s, true) : true;
+   m_d.m_reflectionEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "ReflectionEnabled"s, true) : true;
+   m_d.m_tdr.m_TimerEnabled = fromMouseClick ? LoadValueBoolWithDefault(regKey, "TimerEnabled"s, false) : false;
+   m_d.m_tdr.m_TimerInterval = fromMouseClick ? LoadValueIntWithDefault(regKey, "TimerInterval"s, 100) : 100;
 
-   HRESULT hr = LoadValue("DefaultProps\\Spinner", "Image", m_d.m_szImage);
+   HRESULT hr = LoadValue(regKey, "Image"s, m_d.m_szImage);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szImage.clear();
 
-   hr = LoadValue("DefaultProps\\Spinner", "Surface", m_d.m_szSurface);
+   hr = LoadValue(regKey, "Surface"s, m_d.m_szSurface);
    if ((hr != S_OK) || !fromMouseClick)
       m_d.m_szSurface.clear();
+
+#undef regKey
 }
 
 void Spinner::UIRenderPass1(Sur * const psur)
@@ -255,33 +250,17 @@ void Spinner::EndPlay()
    IEditable::EndPlay();
    m_phitspinner = nullptr;
 
-   if (m_bracketVertexBuffer)
-   {
-      m_bracketVertexBuffer->release();
-      m_bracketVertexBuffer = 0;
-   }
-   if (m_bracketIndexBuffer)
-   {
-      m_bracketIndexBuffer->release();
-      m_bracketIndexBuffer = 0;
-   }
-   if (m_plateVertexBuffer)
-   {
-      m_plateVertexBuffer->release();
-      m_plateVertexBuffer = 0;
-   }
-   if (m_plateIndexBuffer)
-   {
-      m_plateIndexBuffer->release();
-      m_plateIndexBuffer = 0;
-   }
+   SAFE_BUFFER_RELEASE(m_bracketVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_bracketIndexBuffer);
+   SAFE_BUFFER_RELEASE(m_plateVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_plateIndexBuffer);
 }
 
 void Spinner::ExportMesh(ObjLoader& loader)
 {
    char name[sizeof(m_wzName)/sizeof(m_wzName[0])];
    WideCharToMultiByteNull(CP_ACP, 0, m_wzName, -1, name, sizeof(name), nullptr, nullptr);
-   std::vector<Vertex3D_NoTex2> transformedVertices;
+   vector<Vertex3D_NoTex2> transformedVertices;
    vector<HitObject*> dummyHitObj;
 
    const float height = m_ptable->GetSurfaceHeight(m_d.m_szSurface, m_d.m_vCenter.x, m_d.m_vCenter.y)*m_ptable->m_BG_scalez[m_ptable->m_BG_current_set];
@@ -291,14 +270,14 @@ void Spinner::ExportMesh(ObjLoader& loader)
 
    if (m_d.m_showBracket)
    {
-      const string subObjName = name + string("Bracket");
+      const string subObjName = name + "Bracket"s;
       loader.WriteObjectName(subObjName);
 
       m_fullMatrix.RotateZMatrix(ANGTORAD(m_d.m_rotation));
 
       transformedVertices.resize(spinnerBracketNumVertices);
 
-      for (int i = 0; i < spinnerBracketNumVertices; i++)
+      for (unsigned int i = 0; i < spinnerBracketNumVertices; i++)
       {
          Vertex3Ds vert(spinnerBracket[i].x, spinnerBracket[i].y, spinnerBracket[i].z);
          vert = m_fullMatrix.MultiplyVector(vert);
@@ -330,7 +309,7 @@ void Spinner::ExportMesh(ObjLoader& loader)
    m_vertexBuffer_spinneranimangle = -FLT_MAX;
    UpdatePlate(transformedVertices.data());
 
-   const string subObjName = name + string("Plate");
+   const string subObjName = name + "Plate"s;
    loader.WriteObjectName(subObjName);
    loader.WriteVertexInfo(transformedVertices.data(), spinnerPlateNumVertices);
    loader.WriteFaceInfoList(spinnerPlateIndices, spinnerPlateNumFaces);
@@ -361,7 +340,7 @@ void Spinner::UpdatePlate(Vertex3D_NoTex2 * const vertBuffer)
    else
       buf = vertBuffer;
 
-   for (int i = 0; i < spinnerPlateNumVertices; i++)
+   for (unsigned int i = 0; i < spinnerPlateNumVertices; i++)
    {
       Vertex3Ds vert(spinnerPlate[i].x, spinnerPlate[i].y, spinnerPlate[i].z);
       vert = fullMatrix.MultiplyVector(vert);
@@ -399,19 +378,19 @@ void Spinner::RenderDynamic()
    const Material * const mat = m_ptable->GetMaterial(m_d.m_szMaterial);
    pd3dDevice->basicShader->SetMaterial(mat);
 
-   pd3dDevice->SetRenderState(RenderDevice::DEPTHBIAS, 0);
+   pd3dDevice->SetRenderStateDepthBias(0.0f);
    pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
-   pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 
    Texture * const image = m_ptable->GetImage(m_d.m_szImage);
    if (image)
    {
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_with_texture_isMetal" : "basic_with_texture_isNotMetal");
-      pd3dDevice->basicShader->SetTexture("Texture0", image, false);
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
+      pd3dDevice->basicShader->SetTexture(SHADER_Texture0, image, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
       pd3dDevice->basicShader->SetAlphaTestValue(image->m_alphaTestValue * (float)(1.0 / 255.0));
    }
    else // No image by that name
-      pd3dDevice->basicShader->SetTechnique(mat->m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+      pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat->m_bIsMetal);
 
    pd3dDevice->basicShader->Begin(0);
    pd3dDevice->DrawIndexedPrimitiveVB(RenderDevice::TRIANGLELIST, MY_D3DFVF_NOTEX2_VERTEX, m_plateVertexBuffer, 0, spinnerPlateNumVertices, m_plateIndexBuffer, 0, spinnerPlateNumFaces);
@@ -419,7 +398,7 @@ void Spinner::RenderDynamic()
 
    //    g_pplayer->UpdateBasicShaderMatrix();
 
-   //    pd3dDevice->SetRenderState(RenderDevice::CULLMODE, RenderDevice::CULL_CCW);
+   //    pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 }
 
 
@@ -428,24 +407,20 @@ void Spinner::RenderSetup()
    if (!m_d.m_visible)
       return;
 
-   RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;
-
    const float height = m_ptable->GetSurfaceHeight(m_d.m_szSurface, m_d.m_vCenter.x, m_d.m_vCenter.y)*m_ptable->m_BG_scalez[m_ptable->m_BG_current_set];
    m_posZ = height + m_d.m_height;
 
-   if (m_bracketIndexBuffer)
-      m_bracketIndexBuffer->release();
-   m_bracketIndexBuffer = pd3dDevice->CreateAndFillIndexBuffer(spinnerBracketNumFaces, spinnerBracketIndices);
+   SAFE_BUFFER_RELEASE(m_bracketIndexBuffer);
+   m_bracketIndexBuffer = IndexBuffer::CreateAndFillIndexBuffer(spinnerBracketNumFaces, spinnerBracketIndices, PRIMARY_DEVICE);
 
-   if (m_bracketVertexBuffer)
-      m_bracketVertexBuffer->release();
-   pd3dDevice->CreateVertexBuffer(spinnerBracketNumVertices, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_bracketVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_bracketVertexBuffer);
+   VertexBuffer::CreateVertexBuffer(spinnerBracketNumVertices, 0, MY_D3DFVF_NOTEX2_VERTEX, &m_bracketVertexBuffer, PRIMARY_DEVICE);
 
    m_fullMatrix.RotateZMatrix(ANGTORAD(m_d.m_rotation));
 
    Vertex3D_NoTex2 *buf;
    m_bracketVertexBuffer->lock(0, 0, (void**)&buf, VertexBuffer::WRITEONLY);
-   for (int i = 0; i < spinnerBracketNumVertices; i++)
+   for (unsigned int i = 0; i < spinnerBracketNumVertices; i++)
    {
       Vertex3Ds vert(spinnerBracket[i].x, spinnerBracket[i].y, spinnerBracket[i].z);
       vert = m_fullMatrix.MultiplyVector(vert);
@@ -464,13 +439,11 @@ void Spinner::RenderSetup()
    }
    m_bracketVertexBuffer->unlock();
 
-   if (m_plateIndexBuffer)
-      m_plateIndexBuffer->release();
-   m_plateIndexBuffer = pd3dDevice->CreateAndFillIndexBuffer(spinnerPlateNumFaces, spinnerPlateIndices);
+   SAFE_BUFFER_RELEASE(m_plateIndexBuffer);
+   m_plateIndexBuffer = IndexBuffer::CreateAndFillIndexBuffer(spinnerPlateNumFaces, spinnerPlateIndices, PRIMARY_DEVICE);
 
-   if (m_plateVertexBuffer)
-      m_plateVertexBuffer->release();
-   pd3dDevice->CreateVertexBuffer(spinnerPlateNumVertices, USAGE_DYNAMIC, MY_D3DFVF_NOTEX2_VERTEX, &m_plateVertexBuffer);
+   SAFE_BUFFER_RELEASE(m_plateVertexBuffer);
+   VertexBuffer::CreateVertexBuffer(spinnerPlateNumVertices, USAGE_DYNAMIC, MY_D3DFVF_NOTEX2_VERTEX, &m_plateVertexBuffer, PRIMARY_DEVICE);
 
    m_vertexBuffer_spinneranimangle = -FLT_MAX;
    UpdatePlate(nullptr);
@@ -499,7 +472,7 @@ void Spinner::RenderStatic()
    mat.m_fEdge = 1.0f;
    mat.m_fEdgeAlpha = 1.0f;
    pd3dDevice->basicShader->SetMaterial(&mat);
-   pd3dDevice->basicShader->SetTechnique(mat.m_bIsMetal ? "basic_without_texture_isMetal" : "basic_without_texture_isNotMetal");
+   pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_without_texture, mat.m_bIsMetal);
    ppin3d->EnableAlphaBlend(false);
 
    pd3dDevice->basicShader->Begin(0);
@@ -530,8 +503,8 @@ void Spinner::PutCenter(const Vertex2D& pv)
 
 void Spinner::SetDefaultPhysics(bool fromMouseClick)
 {
-   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Spinner", "Elasticity", 0.3f) : 0.3f;
-   m_d.m_damping = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\Spinner", "AntiFriction", 0.9879f) : 0.9879f;
+   m_d.m_elasticity = fromMouseClick ? LoadValueFloatWithDefault(regKey[RegName::DefaultPropsSpinner], "Elasticity"s, 0.3f) : 0.3f;
+   m_d.m_damping = fromMouseClick ? LoadValueFloatWithDefault(regKey[RegName::DefaultPropsSpinner], "AntiFriction"s, 0.9879f) : 0.9879f;
 }
 
 HRESULT Spinner::SaveData(IStream *pstm, HCRYPTHASH hcrypthash, const bool backupForPlay)
@@ -613,7 +586,7 @@ STDMETHODIMP Spinner::InterfaceSupportsErrorInfo(REFIID riid)
       &IID_ISpinner,
    };
 
-   for (int i = 0; i < sizeof(arr) / sizeof(arr[0]); i++)
+   for (size_t i = 0; i < sizeof(arr) / sizeof(arr[0]); i++)
    {
       if (InlineIsEqualGUID(*arr[i], riid))
          return S_OK;

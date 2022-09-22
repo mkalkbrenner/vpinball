@@ -32,7 +32,7 @@ struct SavePhysicsMaterial
 
 #define MATERIAL_VERSION 1 // for im/export
 
-class Material
+class Material final
 {
 public:
 
@@ -139,7 +139,7 @@ public:
       return (unsigned long long)h;*/
    }
 
-   std::string m_szName;
+   string m_szName;
    float m_fWrapLighting;
    float m_fRoughness;
    float m_fGlossyImageLerp;

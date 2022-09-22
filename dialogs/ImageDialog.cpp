@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "resource.h"
 #include "ImageDialog.h"
 #include "vpversion.h"
@@ -54,52 +54,63 @@ INT_PTR ImageDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
       {
          const HWND hListView = GetDlgItem(IDC_SOUNDLIST).GetHwnd();
          m_resizer.Initialize(*this, CRect(0, 0, 720, 450));
-         m_resizer.AddChild(hListView, topleft, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
-         m_resizer.AddChild(GetDlgItem(IDC_PICTUREPREVIEW).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_IMPORT).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_REIMPORT).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_REIMPORTFROM).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_UPDATE_ALL_BUTTON).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_DELETE_IMAGE).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_RENAME).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_EXPORT).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_OK).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_ALPHA_MASK_EDIT).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_STATIC_ALPHA).GetHwnd(), topright, 0);
-         m_resizer.AddChild(GetDlgItem(IDC_CHECK_RENAME_ON_EXPORT).GetHwnd(), topright, 0);
+         m_resizer.AddChild(hListView, CResizer::topleft, RD_STRETCH_WIDTH | RD_STRETCH_HEIGHT);
+         m_resizer.AddChild(GetDlgItem(IDC_PICTUREPREVIEW).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_IMPORT).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_REIMPORT).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_REIMPORTFROM).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_UPDATE_ALL_BUTTON).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_DELETE_IMAGE).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_RENAME).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_EXPORT).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_OK).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_ALPHA_MASK_EDIT).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_STATIC_ALPHA).GetHwnd(), CResizer::topright, 0);
+         m_resizer.AddChild(GetDlgItem(IDC_CHECK_RENAME_ON_EXPORT).GetHwnd(), CResizer::topright, 0);
 
          LoadPosition();
 
          ListView_SetExtendedListViewStyle(hListView, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
 
          LVCOLUMN lvcol;
-         lvcol.mask = LVCF_TEXT | LVCF_WIDTH;
+         lvcol.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT;
          const LocalString ls(IDS_NAME);
          lvcol.pszText = (LPSTR)ls.m_szbuffer; // = "Name";
-         lvcol.cx = 100;
+         lvcol.cx = 150;
+         lvcol.fmt = LVCFMT_LEFT;
          ListView_InsertColumn(hListView, 0, &lvcol);
 
          const LocalString ls2(IDS_IMPORTPATH);
          lvcol.pszText = (LPSTR)ls2.m_szbuffer; // = "Import Path";
          lvcol.cx = 200;
+         lvcol.fmt = LVCFMT_LEFT;
          ListView_InsertColumn(hListView, 1, &lvcol);
 
          const LocalString ls3(IDS_IMAGESIZE);
          lvcol.pszText = (LPSTR)ls3.m_szbuffer; // = "Image Size";
          lvcol.cx = 100;
+         lvcol.fmt = LVCFMT_CENTER;
          ListView_InsertColumn(hListView, 2, &lvcol);
 
          const LocalString ls4(IDS_USED_IN_TABLE);
          lvcol.pszText = (LPSTR)ls4.m_szbuffer; // = "In use";
          lvcol.cx = 45;
+         lvcol.fmt = LVCFMT_CENTER;
          ListView_InsertColumn(hListView, 3, &lvcol);
 
          const LocalString ls5(IDS_IMAGE_RAW_SIZE);
          lvcol.pszText = (LPSTR)ls5.m_szbuffer; // = "Raw Size";
          lvcol.cx = 60;
+         lvcol.fmt = LVCFMT_RIGHT;
          ListView_InsertColumn(hListView, 4, &lvcol);
 
-         CCO(PinTable) * const pt = g_pvp->GetActiveTable();
+         const LocalString ls6(IDS_FORMAT);
+         lvcol.pszText = (LPSTR)ls6.m_szbuffer; // = "Format";
+         lvcol.cx = 70;
+         lvcol.fmt = LVCFMT_CENTER;
+         ListView_InsertColumn(hListView, 5, &lvcol);
+
+         CCO(PinTable) *const pt = g_pvp->GetActiveTable();
          if (pt)
             pt->ListImages(hListView);
 
@@ -155,7 +166,10 @@ INT_PTR ImageDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
                   ppi->m_szName = pinfo->item.pszText;
                   CCO(PinTable) * const pt = g_pvp->GetActiveTable();
                   if (pt)
+                  {
                      pt->SetNonUndoableDirty(eSaveDirty);
+                     pt->UpdatePropertyImageList();
+                  }
                }
                return TRUE;
          }
@@ -178,11 +192,7 @@ INT_PTR ImageDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
                   ListView_GetItem(GetDlgItem(IDC_SOUNDLIST).GetHwnd(), &lvitem);
                   Texture * const ppi = (Texture *)lvitem.lParam;
                   if (ppi != nullptr)
-                  {
-                     char textBuf[256];
-                     sprintf_s(textBuf, "%i", (int)ppi->m_alphaTestValue);
-                     SetDlgItemText(IDC_ALPHA_MASK_EDIT, textBuf);
-                  }
+                     SetDlgItemText(IDC_ALPHA_MASK_EDIT, std::to_string((int)ppi->m_alphaTestValue).c_str());
                }
                ::InvalidateRect(GetDlgItem(IDC_PICTUREPREVIEW).GetHwnd(), nullptr, fTrue);
             }
@@ -395,26 +405,26 @@ void ImageDialog::OnCancel()
 
 void ImageDialog::Import()
 {
-   std::vector<std::string> szFileName;
    string szInitialDir;
-
-   HRESULT hr = LoadValue("RecentDir", "ImageDir", szInitialDir);
+   HRESULT hr = LoadValue(regKey[RegName::RecentDir], "ImageDir"s, szInitialDir);
    if (hr != S_OK)
       szInitialDir = "c:\\Visual Pinball\\Tables\\";
 
+   vector<string> szFileName;
    if (g_pvp->OpenFileDialog(szInitialDir, szFileName, "Bitmap, JPEG, PNG, TGA, WEBP, EXR, HDR Files (.bmp/.jpg/.png/.tga/.webp/.exr/.hdr)\0*.bmp;*.jpg;*.jpeg;*.png;*.tga;*.webp;*.exr;*.hdr\0", "png", OFN_EXPLORER | OFN_ALLOWMULTISELECT))
    {
       CCO(PinTable) * const pt = g_pvp->GetActiveTable();
       const HWND hSoundList = GetDlgItem(IDC_SOUNDLIST).GetHwnd();
 
-      for (const std::string &file : szFileName)
+      for (const string &file : szFileName)
          pt->ImportImage(hSoundList, file);
 
       const size_t index = szFileName[0].find_last_of('\\');
-      if (index != std::string::npos)
-         hr = SaveValue("RecentDir", "ImageDir", szFileName[0].substr(0, index));
+      if (index != string::npos)
+         hr = SaveValue(regKey[RegName::RecentDir], "ImageDir"s, szFileName[0].substr(0, index));
 
       pt->SetNonUndoableDirty(eSaveDirty);
+      pt->UpdatePropertyImageList();
       SetFocus();
    }
 }
@@ -437,8 +447,7 @@ void ImageDialog::Export()
          Texture * ppi = (Texture*)lvitem.lParam;
          if (ppi != nullptr)
          {
-            OPENFILENAME ofn;
-            ZeroMemory(&ofn, sizeof(OPENFILENAME));
+            OPENFILENAME ofn = {};
             ofn.lStructSize = sizeof(OPENFILENAME);
             ofn.hInstance = g_pvp->theInstance;
             ofn.hwndOwner = g_pvp->GetHwnd();
@@ -505,7 +514,7 @@ void ImageDialog::Export()
                ofn.nFilterIndex = 12;
 
             string g_initDir;
-            const HRESULT hr = LoadValue("RecentDir", "ImageDir", g_initDir);
+            const HRESULT hr = LoadValue(regKey[RegName::RecentDir], "ImageDir"s, g_initDir);
             if (hr != S_OK)
                g_initDir = "c:\\Visual Pinball\\Tables\\";
 
@@ -570,7 +579,7 @@ void ImageDialog::Export()
                   ppi = (Texture*)lvitem.lParam;
                }
 
-               SaveValue("RecentDir", "ImageDir", pathName);
+               SaveValue(regKey[RegName::RecentDir], "ImageDir"s, pathName);
             } // finished all selected items
          }
       }
@@ -713,13 +722,12 @@ void ImageDialog::ReimportFrom()
       const int ans = MessageBox( ls.m_szbuffer/*"Are you sure you want to replace this image with a new one?"*/, "Confirm Reimport", MB_YESNO | MB_DEFBUTTON2);
       if (ans == IDYES)
       {
-         std::vector<std::string> szFileName;
          string szInitialDir;
-
-         const HRESULT hr = LoadValue("RecentDir", "ImageDir", szInitialDir);
+         const HRESULT hr = LoadValue(regKey[RegName::RecentDir], "ImageDir"s, szInitialDir);
          if (hr != S_OK)
             szInitialDir = "c:\\Visual Pinball\\Tables\\";
 
+         vector<string> szFileName;
          if (g_pvp->OpenFileDialog(szInitialDir, szFileName, "Bitmap, JPEG, PNG, TGA, WEBP, EXR, HDR Files (.bmp/.jpg/.png/.tga/.webp/.exr/.hdr)\0*.bmp;*.jpg;*.jpeg;*.png;*.tga;*.webp;*.exr;*.hdr\0","png",0))
          {
             LVITEM lvitem;
@@ -731,14 +739,14 @@ void ImageDialog::ReimportFrom()
             if (ppi != nullptr)
             {
                const size_t index = szFileName[0].find_last_of('\\');
-               if (index != std::string::npos)
-                  SaveValue("RecentDir", "ImageDir", szFileName[0].substr(0, index));
+               if (index != string::npos)
+                  SaveValue(regKey[RegName::RecentDir], "ImageDir"s, szFileName[0].substr(0, index));
 
                CCO(PinTable) * const pt = g_pvp->GetActiveTable();
                pt->ReImportImage(ppi, szFileName[0]);
                ListView_SetItemText(hSoundList, sel, 1, (LPSTR)ppi->m_szPath.c_str());
                pt->SetNonUndoableDirty(eSaveDirty);
-
+               pt->UpdatePropertyImageList();
                // Display new image
                ::InvalidateRect(GetDlgItem(IDC_PICTUREPREVIEW).GetHwnd(), nullptr, fTrue);
             }
@@ -751,11 +759,11 @@ void ImageDialog::ReimportFrom()
 
 void ImageDialog::LoadPosition()
 {
-    const int x = LoadValueIntWithDefault( "Editor", "ImageMngPosX", 0 );
-    const int y = LoadValueIntWithDefault( "Editor", "ImageMngPosY", 0 );
+    const int x = LoadValueIntWithDefault(regKey[RegName::Editor], "ImageMngPosX"s, 0 );
+    const int y = LoadValueIntWithDefault(regKey[RegName::Editor], "ImageMngPosY"s, 0 );
 
-    const int w = LoadValueIntWithDefault("Editor", "ImageMngWidth", 1000);
-    const int h = LoadValueIntWithDefault("Editor", "ImageMngHeight", 800);
+    const int w = LoadValueIntWithDefault(regKey[RegName::Editor], "ImageMngWidth"s, 1000);
+    const int h = LoadValueIntWithDefault(regKey[RegName::Editor], "ImageMngHeight"s, 800);
     SetWindowPos(nullptr, x, y, w, h, SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
@@ -763,10 +771,10 @@ void ImageDialog::SavePosition()
 {
     const CRect rect = GetWindowRect();
 
-    SaveValueInt("Editor", "ImageMngPosX", rect.left);
-    SaveValueInt("Editor", "ImageMngPosY", rect.top);
+    SaveValueInt(regKey[RegName::Editor], "ImageMngPosX"s, rect.left);
+    SaveValueInt(regKey[RegName::Editor], "ImageMngPosY"s, rect.top);
     const int w = rect.right - rect.left;
-    SaveValueInt("Editor", "ImageMngWidth", w);
+    SaveValueInt(regKey[RegName::Editor], "ImageMngWidth"s, w);
     const int h = rect.bottom - rect.top;
-    SaveValueInt("Editor", "ImageMngHeight", h);
+    SaveValueInt(regKey[RegName::Editor], "ImageMngHeight"s, h);
 }

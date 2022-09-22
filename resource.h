@@ -102,7 +102,6 @@
 #define IDD_CODEVIEW_PREFS              101
 #define IDC_PRIMITIVE_LEGACY_SIDES_EDIT 101
 #define IDC_Y_SCALE_EDIT                101
-#define IDS_DRAGPOINT_DESC              102
 #define IDC_X_OFFSET_EDIT               102
 #define IDR_DRAG_POINT                  103
 #define IDS_TB_SELECT                   103
@@ -113,10 +112,9 @@
 #define IDC_FOV_EDIT                    105
 #define IDS_TB_PLAY                     106
 #define IDC_DRAW_TEXTURES_SIDES_CHECK   106
-#define IDS_FLIPPER_DESC                107
 #define IDC_KICKER_ORIENTATION_EDIT     107
 #define IDC_TABLE_SCALEZ                108
-#define ID_ASSIGN_TO_LAYER              108
+#define ID_ASSIGN_TO_CURRENT_LAYER      108
 #define IDR_FLIPPER                     108
 #define IDC_SHOW_BRACKET_CHECK          108
 #define IDC_SELECT                      109
@@ -134,7 +132,6 @@
 #define IDC_COLLIDABLE_CHECK            111
 #define IDC_MECH_STRENGTH_EDIT          111
 #define IDC_KICKER_RADIUS_EDIT          111
-#define IDS_TIMER_DESC                  112
 #define IDC_PARK_POSITION_EDIT          112
 #define IDC_ELASTICITY_FALLOFF_EDIT     112
 #define IDR_TIMER                       113
@@ -142,42 +139,35 @@
 #define IDC_FRICTION_EDIT               114
 #define ID_INSERT_TIMER                 114
 #define IDC_SCATTER_VELOCITY_EDIT       114
-#define IDS_PLUNGER_DESC                115
 #define IDC_SCATTER_ANGLE_EDIT          115
 #define IDR_PLUNGER                     116
 #define IDS_TB_PLUNGER                  116
 #define IDC_AUTO_PLUNGER_CHECK          116
 #define ID_INSERT_PLUNGER               117
 #define IDC_PLUNGER_TEXT                117
-#define IDS_TEXTBOX_DESC                118
+#define IDS_FORMAT                      117
 #define IDC_STARTGAME                   118
 #define IDC_MOMENTUM_XFER_EDIT          118
 #define IDR_TEXTBOX                     119
 #define IDS_TB_TEXTBOX                  119
 #define IDC_LMAGSAVE                    119
 #define ID_INSERT_TEXTBOX               120
-#define IDS_DISPREEL_DESC               120
 #define IDC_RMAGSAVE                    120
-#define IDS_BUMPER_DESC                 121
 #define IDC_MECHTILT                    121
 #define IDR_BUMPER                      122
 #define IDS_TB_BUMPER                   122
 #define IDC_STARTGAME2                  122
 #define ID_INSERT_BUMPER                123
 #define IDS_TB_DISPREEL                 123
-#define IDS_PIEVENTHANDLER_DESC         124
 #define IDR_PI_EVENT_HANDLER            125
-#define IDS_TRIGGER_DESC                126
 #define IDR_TRIGGER                     127
 #define IDS_TB_TRIGGER                  127
 #define ID_INSERT_TRIGGER               128
 #define IDS_STRING128                   128
-#define IDS_LIGHT_DESC                  129
 #define IDR_LIGHT                       130
 #define IDS_TB_LIGHT                    130
 #define ID_INSERT_LIGHT                 131
 #define IDS_DRAWING_ORDER_HIT           131
-#define IDS_KICKER_DESC                 132
 #define IDR_KICKER                      133
 #define IDS_TB_KICKER                   133
 #define ID_INSERT_KICKER                134
@@ -189,7 +179,6 @@
 #define ID_TABLE_MAGNIFY                137
 #define IDS_TB_MAGNIFY                  137
 #define IDC_MAGNIFY                     137
-#define IDS_GATE_DESC                   138
 #define IDC_WALL                        138
 #define IDR_GATE                        139
 #define IDS_TB_GATE                     139
@@ -198,7 +187,6 @@
 #define IDC_TRIGGER                     140
 #define IDS_WRONGFILEVERSION2           140
 #define IDS_TB_FLASHER                  140
-#define IDS_SPINNER_DESC                141
 #define IDC_GATE                        141
 #define IDR_SPINNER                     142
 #define IDS_TB_SPINNER                  142
@@ -207,13 +195,11 @@
 #define IDC_PLUNGER                     143
 #define IDS_SELECT_COLLECTION           143
 #define IDS_TO_COLLECTION               143
-#define IDS_RAMP_DESC                   144
 #define IDC_TEXTBOX                     144
 #define IDR_RAMP                        145
 #define IDS_TB_RAMP                     145
 #define IDC_BUMPER                      145
 #define ID_INSERT_RAMP                  146
-#define IDS_TB_SCRIPT                   146
 #define IDC_KICKER                      146
 #define ID_DRAWINFRONT                  147
 #define IDC_TARGET                      147
@@ -262,7 +248,6 @@
 #define IDS_MISC                        178
 #define ID_LOCK                         179
 #define IDS_IMAGESIZE                   179
-#define IDS_LIGHTSEQ_DESC               180
 #define IDR_LIGHT_SEQ                   181
 #define IDS_COPY_ELEMENT                181
 #define IDS_VISUALS                     182
@@ -279,7 +264,8 @@
 #define IDS_IMAGE_RAW_SIZE              192
 #define IDS_STRING193                   193
 #define IDS_SIZE                        193
-#define IDS_ASSIGN_TO_LAYER             197
+#define IDS_ASSIGN_TO_CURRENT_LAYER     197
+#define IDS_ASSIGN_TO_LAYER2            198
 #define IDS_DRAWING_ORDER_SELECT        200
 #define IDW_MAIN                        201
 #define IDC_SOUNDLIST                   201
@@ -484,7 +470,6 @@
 #define IDC_TABLENAME                   336
 #define IDS_EDITOR                      336
 #define IDC_TABLEAUTHOR                 337
-#define IDS_DEFAULTBALL                 337
 #define IDC_EMAIL                       338
 #define IDD_PROPFLIPPER_PHYSICS         338
 #define IDS_NONE                        338
@@ -994,6 +979,7 @@
 #define IDC_DEFAULT_GROUP_COLLECTION_CHECK2 728
 #define IDC_ALWAYSVIEWSCRIPT            728
 #define IDC_CVP_EDIT_MOUSEDWELL         729
+#define IDC_CVP_BUT_COL_BACKGROUND_SEL  730
 #define IDC_MAT_ELASTICITY              731
 #define IDC_MAT_FRICTION                732
 #define IDC_MAT_SCATTER_ANGLE           733
@@ -1162,6 +1148,7 @@
 #define IDC_RESET_WINDOW_POS            878
 #define IDC_3D_STEREO_CONTRAST          879
 #define IDC_3D_STEREO_DESATURATION      880
+#define IDC_GLOBAL_DISABLE_LIGHTING_BALLS 881
 #define IDC_LAYBACK_EDIT                1040
 #define IDC_3D_STEREO_SEPARATION_EDIT   1041
 #define IDC_3D_STEREO_ZPD_EDIT          1042
@@ -1291,18 +1278,6 @@
 #define ID_LAYER_TOGGLEALL              32860
 #define ID_LAYER_MERGEALL               32861
 #define ID_WALLMENU_ASSIGNTO            32862
-#define ID_ASSIGNTO_LAYER1              32863
-#define ID_ASSIGNTO_LAYER2              32864
-#define ID_ASSIGNTO_LAYER3              32865
-#define ID_ASSIGNTO_LAYER4              32866
-#define ID_ASSIGNTO_LAYER5              32867
-#define ID_ASSIGNTO_LAYER6              32868
-#define ID_ASSIGNTO_LAYER7              32869
-#define ID_ASSIGNTO_LAYER8              32870
-#define ID_ASSIGNTO_LAYER9              32871
-#define ID_ASSIGNTO_LAYER10             32872
-#define ID_ASSIGNTO_MERGETOLAYER1       32873
-#define ID_ASSIGNTO_LAYER11             32874
 #define ID_EDIT_SEARCH                  32875
 #define ID_SELECT_ELEMENT               32876
 #define ID_WALLMENU_SELECTALL           32877
@@ -1313,6 +1288,7 @@
 #define ID_ADD_COMMENT                  32883
 #define ID_EDIT_UNCOMMENT               32886
 #define ID_REMOVE_COMMENT               32888
+#define ID_GO_TO_DEFINITION             32889
 #define ID_INSERT_FLASHER               32890
 #define ID_TABLE_DIMENSIONMANAGER       32894
 #define ID_VIEW_SOLID                   32895
@@ -1335,6 +1311,26 @@
 #define ID_ADD_SMOOTH_CTRL_POINT        33004
 #define ID_TABLE_STOP_PLAY              33005
 #define ID_TABLE_PLAYER_STOPPED         33006
+#define ID_ASSIGN_TO_LAYER1             41000
+#define ID_ASSIGN_TO_LAYER2             41001
+#define ID_ASSIGN_TO_LAYER3             41002
+#define ID_ASSIGN_TO_LAYER4             41003
+#define ID_ASSIGN_TO_LAYER5             41004
+#define ID_ASSIGN_TO_LAYER6             41005
+#define ID_ASSIGN_TO_LAYER7             41006
+#define ID_ASSIGN_TO_LAYER8             41007
+#define ID_ASSIGN_TO_LAYER9             41008
+#define ID_ASSIGN_TO_LAYER10            41009
+#define ID_ASSIGN_TO_LAYER11            41010
+#define ID_ASSIGN_TO_LAYER12            41011
+#define ID_ASSIGN_TO_LAYER13            41012
+#define ID_ASSIGN_TO_LAYER14            41013
+#define ID_ASSIGN_TO_LAYER15            41014
+#define ID_ASSIGN_TO_LAYER16            41015
+#define ID_ASSIGN_TO_LAYER17            41016
+#define ID_ASSIGN_TO_LAYER18            41017
+#define ID_ASSIGN_TO_LAYER19            41018
+#define ID_ASSIGN_TO_LAYER20            41019
 #define DZVALUE                         65535
 #define DZName                          65535
 
@@ -1344,7 +1340,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        669
 #define _APS_NEXT_COMMAND_VALUE         4027
-#define _APS_NEXT_CONTROL_VALUE         881
+#define _APS_NEXT_CONTROL_VALUE         882
 #define _APS_NEXT_SYMED_VALUE           188
 #endif
 #endif

@@ -1,7 +1,6 @@
 #pragma once
 
 //#define DISABLE_FORCE_NVIDIA_OPTIMUS // do not enable NVIDIA Optimus cards (on Laptops, etc) by default
-//#define NVAPI_DEPTH_READ // forces NVAPI to do copydepth (as officially unspecified in DX9)
 
 //#define DISABLE_FORCE_AMD_HIGHPERF // do not enable AMD high performance device (on Laptops, etc) by default
 
@@ -93,6 +92,15 @@
 #define AUTOSAVE_DEFAULT_TIME   10
 
 #define DEFAULT_SECURITY_LEVEL  0
+
+#define NUM_ASSIGN_LAYERS       20
+
+//VR Support
+
+#ifdef ENABLE_SDL
+//No VR support with DX9 possible, only with DX11 and OpenGL
+#define ENABLE_VR
+#endif
 
 //
 

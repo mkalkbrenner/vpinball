@@ -289,6 +289,12 @@
     <ClCompile Include="inc\serial.cpp">
       <Filter>inc</Filter>
     </ClCompile>
+    <ClCompile Include="IndexBuffer.cpp" />
+    <ClCompile Include="VertexBuffer.cpp" />
+    <ClCompile Include="TextureManager.cpp" />
+    <ClCompile Include="RenderTarget.cpp" />
+    <ClCompile Include="Sampler.cpp" />
+    <ClCompile Include="Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="vpinball.rc">
@@ -1466,6 +1472,20 @@
     <ClInclude Include="inc\serial.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="IndexBuffer.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexBuffer.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderTarget.h" />
+    <ClInclude Include="Sampler.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader\BallShader.hlsl">

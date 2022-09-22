@@ -5,15 +5,26 @@
 #define FLUSH_DATA /*0*/ D3DGETDATA_FLUSH // latter should be a bit less accurate but leading to less failures when getting the data
 #define GET_DATA_RETRIES 10
 
-#define ErrorPrintf(x, ...) { char sz[256]; sprintf_s(sz,x,__VA_ARGS__); ShowError(sz); }
+#define ErrorPrintf(x, ...) { char sz[256]; sprintf_s(sz,sizeof(sz),x,__VA_ARGS__); ShowError(sz); }
 #ifdef _DEBUG
- #define DebugPrintf(x, ...) { char sz[256]; sprintf_s(sz,x,__VA_ARGS__); ShowError(sz); }
+ #define DebugPrintf(x, ...) { char sz[256]; sprintf_s(sz,sizeof(sz),x,__VA_ARGS__); ShowError(sz); }
 #else
  #define DebugPrintf(x, ...)
 #endif
 
+#ifdef ENABLE_SDL //!! Implement for GL
+CGpuProfiler::CGpuProfiler() {}
+CGpuProfiler::~CGpuProfiler() {}
+bool CGpuProfiler::Init(void* const pDevice) { return true; }
+void CGpuProfiler::ResetCounters() {}
+void CGpuProfiler::Shutdown() {}
+void CGpuProfiler::BeginFrame(void* const pDevice) {}
+void CGpuProfiler::Timestamp(GTS gts) {}
+void CGpuProfiler::EndFrame() {}
+void CGpuProfiler::WaitForDataAndUpdate() {}
+#else
 CGpuProfiler::CGpuProfiler ()
-:   m_init(false),
+:	m_init(false),
 	m_iFrameQuery(0),
 	m_iFrameCollect(-1),
 	m_frequencyQuery(nullptr),
@@ -281,3 +292,4 @@ void CGpuProfiler::WaitForDataAndUpdate ()
 		m_tBeginAvg = t;
 	}
 }
+#endif //ENABLE_SDL
