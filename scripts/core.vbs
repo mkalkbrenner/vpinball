@@ -2413,12 +2413,12 @@ Sub PinMAMETimer_Timer
 				If(Not IsEmpty(ChgNVRAM)) Then NVRAMCallback ChgNVRAM
 			End If
 		End If
-		If PPUC_UseLamps Then PPUC_LampCallback
 		If UseLamps Then ChgLamp = Controller.ChangedLamps Else LampCallback
 		If UsePdbLeds Then ChgLed = Controller.ChangedPDLeds Else PDLedCallback
 		If UseSolenoids Then ChgSol = Controller.ChangedSolenoids
 		If isObject(GICallback) or isObject(GICallback2) Then ChgGI = Controller.ChangedGIStrings
 		MotorCallback
+		' PPUC callbacks, we need dedicated ones to not conflict with existing table scripts
 		If PPUC_UseLamps Then PPUC_LampCallback
 		If PPUC_UseSolenoids Then PPUCSolenoidCallback
 		If PPUC_UseGI Then PPUCSolenoidCallback
