@@ -5,15 +5,18 @@ Const PPUC_EVENT_SOURCE_SOLENOID = 83 ' "S" VPX/DOF/PUP includes flashers
 Const PPUC_EVENT_SOURCE_SWITCH   = 87 ' "W" VPX/DOF/PUP
 Const PPUC_EVENT_READ_SWITCHES   = 82 ' "R" Read switches command
 
+' Defaults, should be adjusted in table scripts
 Dim PPUC_UseLamps = 1
 Dim PPUC_UseSolenoids = 1
 Dim PPUC_UseGI = 1
-
 Dim PPUC_IOBoardCount = 4
+DIM PPUC_ComPort = "Com3"
+
+' Internal state variables
 Dim PPUC_CurrentIOBoard = 0
 
-Sub PPUC_Init(ComPort)
-	OpenSerial(ComPort)
+Sub PPUC_Init
+	OpenSerial(PPUC_ComPort)
 	SetupSerial 115200, 8, 0, 1, True, False
 End Sub
 
